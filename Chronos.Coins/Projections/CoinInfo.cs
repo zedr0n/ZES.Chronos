@@ -1,4 +1,4 @@
-namespace Coins.Projections
+namespace Chronos.Coins.Projections
 {
     public class CoinInfo
     {

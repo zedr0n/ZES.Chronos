@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Coins.Projections;
+using Chronos.Coins.Projections;
 using ZES.Interfaces.Domain;
 
-namespace Coins.Queries
+namespace Chronos.Coins.Queries
 {
     public class CoinInfoHandler : IQueryHandler<CoinInfoQuery, CoinInfo>
     {

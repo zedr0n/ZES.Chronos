@@ -1,6 +1,6 @@
 ﻿using ZES.Infrastructure.Domain;
 
-namespace Coins.Commands
+namespace Chronos.Coins.Commands
 {
     public class CreateCoinCommand : Command
     {

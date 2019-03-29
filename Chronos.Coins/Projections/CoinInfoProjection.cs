@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Concurrent;
-using Coins.Events;
+﻿using System.Collections.Concurrent;
+using Chronos.Coins.Events;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Projections;
 using ZES.Interfaces;
 using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Pipes;
 
-namespace Coins.Projections
+namespace Chronos.Coins.Projections
 {
     //[Reset]
     /// <summary>

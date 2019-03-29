@@ -1,9 +1,8 @@
-﻿using System;
-using Coins.Events;
+﻿using Chronos.Coins.Events;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces;
 
-namespace Coins
+namespace Chronos.Coins
 {
     /// <summary>
     /// Crypto coin aggregate root

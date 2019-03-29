@@ -1,7 +1,6 @@
-﻿using System;
-using ZES.Infrastructure.Domain;
+﻿using ZES.Infrastructure.Domain;
 
-namespace Coins.Events
+namespace Chronos.Coins.Events
 {
     public class CoinCreated : Event
     {

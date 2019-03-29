@@ -1,7 +1,7 @@
 ﻿using System;
 using ZES.Interfaces.Domain;
 
-namespace Coins.Queries
+namespace Chronos.Coins.Queries
 {
     public class CoinInfoQuery : IQuery<CoinInfoQuery>
     {

@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using ZES.Interfaces.Domain;
 
-namespace Coins.Commands
+namespace Chronos.Coins.Commands
 {
     public class CreateCoinHandler : ICommandHandler<CreateCoinCommand>
     {
