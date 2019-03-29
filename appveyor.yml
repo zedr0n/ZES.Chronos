@@ -1,0 +1,31 @@
+version: 1.0.{build}
+image: Visual Studio 2017
+
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
+  
+before_build:
+  - cmd: dotnet restore --verbosity m
+build:
+  project: ZES.Chronos.sln
+  verbosity: minimal
+  publish_nuget: true             # package projects with .nuspec files and push to artifacts
+after_build:
+  #- cmd: pushd ZES && dotnet pack --no-build -o .. && popd
+test_script:
+  #- cmd: dotnet test ZES.Tests\ZES.Tests.csproj
+on_failure:
+  #- cmd: 7z a SqlTests.zip Chronos.Tests\bin\Debug\netcoreapp2.0\*.db
+  #- cmd: appveyor PushArtifact SqlTests.zip
+  # Cache node modules, and refresh if package.json changes
+cache:
+  #- node_modules -> package.json
+artifacts:
+  #- path: SqlTests.zip
+  #  name: SqlTests
+nuget:
+  project_feed: true
+  account_feed: true
