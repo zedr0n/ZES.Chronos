@@ -14,7 +14,7 @@ namespace Chronos.Coins.Commands
 
         public async Task Handle(CreateCoinCommand command)
         {
-            var coin = new Coin(command.AggregateId,command.Ticker,command.Name);
+            var coin = new Coin(command.Ticker,command.Name);
             await _domainRepository.Save(coin);
         }
     }    
