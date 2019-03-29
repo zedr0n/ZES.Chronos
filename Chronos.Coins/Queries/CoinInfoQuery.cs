@@ -1,11 +1,16 @@
 ﻿using System;
+using Chronos.Coins.Projections;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins.Queries
 {
-    public class CoinInfoQuery : IQuery<CoinInfoQuery>
+    public class CoinInfoQuery : IQuery<CoinInfo>
     {
-        public string Name { get; set; }
-        public Guid CoinId { get; set; }
+        public string Name { get; }
+
+        public CoinInfoQuery(string name)
+        {
+            Name = name;
+        }
     }
 }
