@@ -11,11 +11,14 @@ namespace Chronos.Coins
     {
         private string _ticker;
         private string _name;
-        
-        public Coin() {}
+
+        public Coin()
+        {
+            Register<CoinCreated>(When);
+        }
         public Coin(string coinId, string ticker,string name)
         {
-            When(new CoinCreated
+            base.When(new CoinCreated
             {
                 CoinId = coinId,
                 Name = name,
@@ -23,12 +26,11 @@ namespace Chronos.Coins
             });
         }
 
-        public void When(CoinCreated e)
+        private void When(CoinCreated e)
         {
             Id = e.CoinId;
             _ticker = e.Ticker;
             _name = e.Name;
-            base.When(e);
         }
     }
 }
