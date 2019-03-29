@@ -12,11 +12,11 @@ namespace Chronos.Coins
         private string _ticker;
         private string _name;
 
-        public Coin()
+        private Coin()
         {
             Register<CoinCreated>(When);
         }
-        public Coin(string coinId, string ticker,string name)
+        public Coin(string coinId, string ticker,string name) : this()
         {
             base.When(new CoinCreated
             {
