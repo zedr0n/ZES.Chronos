@@ -11,6 +11,7 @@ namespace Chronos.Coins.Commands
         
         public CreateCoinCommand(string name, string ticker)
         {
+            AggregateId = name;
             Name = name;
             Ticker = ticker;
         }
