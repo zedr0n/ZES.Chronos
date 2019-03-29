@@ -12,7 +12,7 @@ namespace Chronos.Coins
         private string _ticker;
         private string _name;
 
-        private Coin()
+        public Coin()
         {
             Register<CoinCreated>(When);
         }
