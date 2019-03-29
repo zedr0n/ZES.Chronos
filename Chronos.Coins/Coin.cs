@@ -23,7 +23,7 @@ namespace Chronos.Coins
 
         private void When(CoinCreated e)
         {
-            Id = e.CoinId;
+            Id = e.Name;
             _ticker = e.Ticker;
             _name = e.Name;
         }
