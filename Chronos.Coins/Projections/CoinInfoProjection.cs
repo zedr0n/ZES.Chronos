@@ -29,7 +29,7 @@ namespace Chronos.Coins.Projections
             _tickers.TryAdd(e.Name, e.Ticker);
         }
 
-        protected CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue) : base(eventStore, logger, messageQueue)
+        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue) : base(eventStore, logger, messageQueue)
         {
             Register<CoinCreated>(When);
         }
