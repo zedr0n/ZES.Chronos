@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coins", "Coins\Coins.csproj", "{0EF251D6-0C32-4A98-88E1-D1ECAAB35888}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Coins", "Chronos.Coins\Chronos.Coins.csproj", "{0EF251D6-0C32-4A98-88E1-D1ECAAB35888}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
