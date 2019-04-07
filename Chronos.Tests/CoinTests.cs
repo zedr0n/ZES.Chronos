@@ -86,9 +86,13 @@ namespace Chronos.Tests
             Assert.Equal(2,stats.NumberOfCoins);
             
             var historicalQuery = new HistoricalQuery<Stats>(query, coinInfo.CreatedAt );
-            var historicalStats = await RetryUntil(async () => await bus.QueryAsync(historicalQuery));
+            var historicalStats = await bus.QueryAsync(historicalQuery);
             
             Assert.Equal(1, historicalStats.NumberOfCoins);
+            
+            var liveQuery = new HistoricalQuery<Stats>(query, DateTime.UtcNow.Ticks);
+            var liveStats = await bus.QueryAsync(liveQuery);
+            Assert.Equal(2, liveStats.NumberOfCoins);
         }
     }
 }
