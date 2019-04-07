@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Coins", "Chronos.Coins\Chronos.Coins.csproj", "{0EF251D6-0C32-4A98-88E1-D1ECAAB35888}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Tests", "Chronos.Tests\Chronos.Tests.csproj", "{57E83B03-17D6-4A66-AB09-9A54BA99DD71}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{0EF251D6-0C32-4A98-88E1-D1ECAAB35888}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0EF251D6-0C32-4A98-88E1-D1ECAAB35888}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0EF251D6-0C32-4A98-88E1-D1ECAAB35888}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57E83B03-17D6-4A66-AB09-9A54BA99DD71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57E83B03-17D6-4A66-AB09-9A54BA99DD71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57E83B03-17D6-4A66-AB09-9A54BA99DD71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57E83B03-17D6-4A66-AB09-9A54BA99DD71}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

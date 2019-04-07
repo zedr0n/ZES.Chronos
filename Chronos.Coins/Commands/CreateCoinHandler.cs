@@ -3,7 +3,7 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins.Commands
 {
-    public class CreateCoinHandler : ICommandHandler<CreateCoinCommand>
+    public class CreateCoinHandler : ICommandHandler<CreateCoin>
     {
         private readonly IDomainRepository _domainRepository;
 
@@ -12,7 +12,7 @@ namespace Chronos.Coins.Commands
             _domainRepository = domainRepository;
         }
 
-        public async Task Handle(CreateCoinCommand command)
+        public async Task Handle(CreateCoin command)
         {
             var coin = new Coin(command.Ticker,command.Name);
             await _domainRepository.Save(coin);
