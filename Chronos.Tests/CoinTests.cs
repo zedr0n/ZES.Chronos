@@ -67,5 +67,20 @@ namespace Chronos.Tests
             
             Assert.Equal("BTC", coinInfo.Ticker);
         }
+        
+        [Fact]
+        public async void CanGetNumberOfCoins()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            
+            var command = new CreateCoin("Bitcoin", "BTC");
+            await bus.CommandAsync(command);
+
+            var query = new CoinInfoQuery("Bitcoin");
+            var coinInfo = await RetryUntil(async () => await bus.QueryAsync(query));
+            
+            Assert.Equal("BTC", coinInfo.Ticker);
+        }
     }
 }

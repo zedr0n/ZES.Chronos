@@ -26,10 +26,10 @@ namespace Chronos.Coins.Queries
             } 
         }
         
-        private StateType When(CoinCreated e, StateType c)
+        private static StateType When(CoinCreated e, StateType c)
         {
-            State.Set(e.Name, new CoinInfo(e.Name, e.Ticker));
-            return State;
+            c.Set(e.Name, new CoinInfo(e.Name, e.Ticker));
+            return c;
         }
 
         public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue, ITimeline timeline) : base(eventStore, logger, messageQueue, timeline)
