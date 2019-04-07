@@ -74,13 +74,13 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
-            var command = new CreateCoin("Bitcoin", "BTC");
-            await bus.CommandAsync(command);
+            await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
+            await bus.CommandAsync(new CreateCoin("Ethereum", "ETH"));
 
             var query = new StatsQuery(); 
             var stats = await RetryUntil(async () => await bus.QueryAsync(query),s => s.NumberOfCoins > 0);
             
-            Assert.Equal(1,stats.NumberOfCoins);
+            Assert.Equal(2,stats.NumberOfCoins);
         }
     }
 }
