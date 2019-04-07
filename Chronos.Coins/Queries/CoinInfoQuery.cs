@@ -1,6 +1,4 @@
-﻿using System;
-using ZES.Infrastructure;
-using ZES.Interfaces.Domain;
+﻿using ZES.Infrastructure;
 
 namespace Chronos.Coins.Queries
 {

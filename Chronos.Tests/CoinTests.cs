@@ -77,10 +77,10 @@ namespace Chronos.Tests
             var command = new CreateCoin("Bitcoin", "BTC");
             await bus.CommandAsync(command);
 
-            var query = new CoinInfoQuery("Bitcoin");
-            var coinInfo = await RetryUntil(async () => await bus.QueryAsync(query));
+            var query = new StatsQuery(); 
+            var stats = await RetryUntil(async () => await bus.QueryAsync(query),s => s.NumberOfCoins > 0);
             
-            Assert.Equal("BTC", coinInfo.Ticker);
+            Assert.Equal(1,stats.NumberOfCoins);
         }
     }
 }

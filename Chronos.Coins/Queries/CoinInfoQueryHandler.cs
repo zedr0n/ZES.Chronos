@@ -6,16 +6,20 @@ namespace Chronos.Coins.Queries
 {
     public class CoinInfoQueryHandler : IQueryHandler<CoinInfoQuery, CoinInfo>
     {
-        private readonly CoinInfoProjection _coinInfoProjection;
-            
-        public CoinInfoQueryHandler(CoinInfoProjection coinInfoProjection)
+        private IProjection<CoinInfoProjection.StateType>_projection;
+        public CoinInfoProjection Projection
         {
-            _coinInfoProjection = coinInfoProjection;
+            set => _projection = value;
+        }
+            
+        public CoinInfoQueryHandler(CoinInfoProjection projection)
+        {
+            _projection = projection;
         }
             
         public CoinInfo Handle(CoinInfoQuery query)
         {
-            var coinInfo = _coinInfoProjection.State.Get(query.Name);
+            var coinInfo = _projection.State.Get(query.Name);
             return coinInfo;
         }
 
