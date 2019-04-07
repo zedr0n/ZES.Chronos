@@ -20,7 +20,6 @@ namespace Chronos.Coins.Queries
         
         public StatsProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue, ITimeline timeline) : base(eventStore, logger, messageQueue, timeline)
         {
-            State.Value = new Stats(0);
             Register<CoinCreated>(When);
         }
     }

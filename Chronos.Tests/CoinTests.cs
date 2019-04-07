@@ -6,6 +6,7 @@ using Chronos.Coins.Queries;
 using SimpleInjector;
 using Xunit;
 using Xunit.Abstractions;
+using ZES.Infrastructure;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
 using ZES.Tests;
@@ -75,12 +76,19 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             
             await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
+            var coinInfo = await RetryUntil(async () => await bus.QueryAsync(new CoinInfoQuery("Bitcoin")));
+            
             await bus.CommandAsync(new CreateCoin("Ethereum", "ETH"));
-
+            
             var query = new StatsQuery(); 
             var stats = await RetryUntil(async () => await bus.QueryAsync(query),s => s.NumberOfCoins > 0);
-            
+
             Assert.Equal(2,stats.NumberOfCoins);
+            
+            var historicalQuery = new HistoricalQuery<Stats>(query, coinInfo.CreatedAt );
+            var historicalStats = await RetryUntil(async () => await bus.QueryAsync(historicalQuery));
+            
+            Assert.Equal(1, historicalStats.NumberOfCoins);
         }
     }
 }

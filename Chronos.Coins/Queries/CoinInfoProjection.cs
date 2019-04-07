@@ -28,7 +28,7 @@ namespace Chronos.Coins.Queries
         
         private static StateType When(CoinCreated e, StateType c)
         {
-            c.Set(e.Name, new CoinInfo(e.Name, e.Ticker));
+            c.Set(e.Name, new CoinInfo(e.Name, e.Ticker,e.Timestamp));
             return c;
         }
 
