@@ -7,14 +7,10 @@ namespace Chronos.Coins.Queries
     public class StatsQueryHandler : IQueryHandler<StatsQuery, Stats>
     {
         private IProjection<ValueState<Stats>> _projection;
-        private StatsProjection Projection
-        {
-            set => _projection = value;
-        }
 
-        public StatsQueryHandler(StatsProjection projection)
+        public StatsQueryHandler(IProjection<ValueState<Stats>> projection)
         {
-            Projection = projection;
+            _projection = projection;
         }
         
         public Stats Handle(StatsQuery query)
@@ -25,6 +21,12 @@ namespace Chronos.Coins.Queries
         public Task<Stats> HandleAsync(StatsQuery query)
         {
             throw new System.NotImplementedException();
+        }
+
+        public IProjection Projection
+        {
+            get => _projection;
+            set => _projection = value as IProjection<ValueState<Stats>>;
         }
     }
 }
