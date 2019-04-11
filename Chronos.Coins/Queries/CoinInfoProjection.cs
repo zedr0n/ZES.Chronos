@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using Chronos.Coins.Events;
-using ZES.Infrastructure;
 using ZES.Infrastructure.Projections;
 using ZES.Interfaces;
 using ZES.Interfaces.EventStore;

@@ -64,7 +64,7 @@ namespace Chronos.Tests
             await bus.CommandAsync(command);
 
             var query = new CoinInfoQuery("Bitcoin");
-            var coinInfo = await RetryUntil(async () => await bus.QueryAsync(query));
+            var coinInfo = await RetryUntil(async () => await bus.QueryAsync(query), c => c.Name == "Bitcoin");
             
             Assert.Equal("BTC", coinInfo.Ticker);
         }
@@ -85,12 +85,12 @@ namespace Chronos.Tests
 
             Assert.Equal(2,stats.NumberOfCoins);
             
-            var historicalQuery = new HistoricalQuery<Stats>(query, coinInfo.CreatedAt );
+            var historicalQuery = new HistoricalQuery<StatsQuery,Stats>(query, coinInfo.CreatedAt );
             var historicalStats = await bus.QueryAsync(historicalQuery);
             
             Assert.Equal(1, historicalStats.NumberOfCoins);
             
-            var liveQuery = new HistoricalQuery<Stats>(query, DateTime.UtcNow.Ticks);
+            var liveQuery = new HistoricalQuery<StatsQuery,Stats>(query, DateTime.UtcNow.Ticks);
             var liveStats = await bus.QueryAsync(liveQuery);
             Assert.Equal(2, liveStats.NumberOfCoins);
         }
