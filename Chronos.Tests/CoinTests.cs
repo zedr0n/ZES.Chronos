@@ -48,7 +48,7 @@ namespace Chronos.Tests
             var repository = container.GetInstance<IDomainRepository>();
             
             var command = new CreateCoin("Bitcoin", "BTC");
-            await bus.CommandAsync(command);
+            await await bus.CommandAsync(command);
 
             var root = await repository.Find<Coin>("Bitcoin");
             Assert.Equal("Bitcoin",root.Id);
