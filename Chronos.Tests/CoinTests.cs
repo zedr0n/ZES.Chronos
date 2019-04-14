@@ -50,7 +50,7 @@ namespace Chronos.Tests
             var command = new CreateCoin("Bitcoin", "BTC");
             await bus.CommandAsync(command);
 
-            var root = await RetryUntil(async () => await repository.Find<Coin>("Bitcoin"));
+            var root = await repository.Find<Coin>("Bitcoin");
             Assert.Equal("Bitcoin",root.Id);
         }
 

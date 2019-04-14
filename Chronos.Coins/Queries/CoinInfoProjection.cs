@@ -31,7 +31,7 @@ namespace Chronos.Coins.Queries
             return c;
         }
 
-        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue, ITimeline timeline) : base(eventStore, logger, messageQueue, timeline)
+        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue) : base(eventStore, logger, messageQueue)
         {
             Register<CoinCreated>(When);
         }

@@ -17,8 +17,8 @@ namespace Chronos.Coins.Queries
 
             return state;
         }
-        
-        public StatsProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue, ITimeline timeline) : base(eventStore, logger, messageQueue, timeline)
+
+        public StatsProjection(IEventStore<IAggregate> eventStore, ILog log, IMessageQueue messageQueue) : base(eventStore, log, messageQueue)
         {
             Register<CoinCreated>(When);
         }
