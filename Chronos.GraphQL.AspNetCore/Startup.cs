@@ -15,10 +15,24 @@ namespace Chronos.GraphQL.AspNetCore
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    builder =>
+                    {
+                        builder
+                            .AllowAnyOrigin() 
+                            .AllowAnyMethod()
+                            .AllowAnyHeader()
+                            .AllowCredentials();
+                    });
+            });
+            
             var container = new Container();
             var schema = ZES.GraphQL.Startup.WireGraphQl(container, Config.RegisterAll,
                 typeof(Schema.Query), typeof(Schema.Mutation));
             services.AddGraphQL(schema);
+                      
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -29,6 +43,7 @@ namespace Chronos.GraphQL.AspNetCore
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors("AllowAll");
             app.UseGraphQL();
         }
     }

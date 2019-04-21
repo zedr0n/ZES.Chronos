@@ -5,6 +5,8 @@ using Xunit;
 using Xunit.Abstractions;
 using ZES.GraphQL;
 
+using static Chronos.Coins.Schema;
+
 namespace Chronos.Tests
 {
     public class SchemaTests : ChronosTest
@@ -20,10 +22,8 @@ namespace Chronos.Tests
             var log = container.GetInstance<ZES.Interfaces.ILog>(); 
             
             var schemaProvider = container.GetInstance<ISchemaProvider>();
-            schemaProvider.SetQuery(typeof(Coins.Schema.Query)); 
-            schemaProvider.SetMutation(typeof(Coins.Schema.Mutation)); 
             
-            var schema = schemaProvider.Generate();
+            var schema = schemaProvider.Generate(typeof(Query), typeof(Mutation));            
             var executor = schema.MakeExecutable();
             
             await executor.ExecuteAsync(@"mutation { createCoin( command : { name : ""Bitcoin"", ticker : ""BTC"" } ) }");
