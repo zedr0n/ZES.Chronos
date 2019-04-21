@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using SimpleInjector;
-using Schema = Chronos.Coins.Schema;
+using ZES.GraphQL;
 
 namespace Chronos.GraphQL.AspNetCore
 {
@@ -29,10 +29,8 @@ namespace Chronos.GraphQL.AspNetCore
             });
             
             var container = new Container();
-            var schema = ZES.GraphQL.Startup.WireGraphQl(container, Config.RegisterAll,
-                typeof(Schema.Query), typeof(Schema.Mutation));
-            services.AddGraphQL(schema);
-                      
+            services.WireGraphQl(container, new []{ typeof(Config)});          
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

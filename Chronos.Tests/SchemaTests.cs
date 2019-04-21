@@ -1,11 +1,9 @@
-using Common.Logging;
-using HotChocolate;
+using Chronos.Coins;
 using HotChocolate.Execution;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.GraphQL;
 
-using static Chronos.Coins.Schema;
 
 namespace Chronos.Tests
 {
@@ -23,8 +21,7 @@ namespace Chronos.Tests
             
             var schemaProvider = container.GetInstance<ISchemaProvider>();
             
-            var schema = schemaProvider.Generate(typeof(Query), typeof(Mutation));            
-            var executor = schema.MakeExecutable();
+            var executor = schemaProvider.Generate(typeof(Config.Query), typeof(Config.Mutation));            
             
             await executor.ExecuteAsync(@"mutation { createCoin( command : { name : ""Bitcoin"", ticker : ""BTC"" } ) }");
             
