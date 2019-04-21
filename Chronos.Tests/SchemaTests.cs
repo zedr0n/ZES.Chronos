@@ -24,7 +24,6 @@ namespace Chronos.Tests
             schemaProvider.SetMutation(typeof(Coins.Schema.Mutation)); 
             
             var schema = schemaProvider.Generate();
-            log.Info(schema);
             var executor = schema.MakeExecutable();
             
             await executor.ExecuteAsync(@"mutation { createCoin( command : { name : ""Bitcoin"", ticker : ""BTC"" } ) }");

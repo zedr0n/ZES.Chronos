@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Coins", "Chronos.Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Tests", "Chronos.Tests\Chronos.Tests.csproj", "{57E83B03-17D6-4A66-AB09-9A54BA99DD71}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.GraphQL.AspNetCore", "Chronos.GraphQL.AspNetCore\Chronos.GraphQL.AspNetCore.csproj", "{18B7B266-A9CD-4843-B184-10DF8E367579}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{57E83B03-17D6-4A66-AB09-9A54BA99DD71}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{57E83B03-17D6-4A66-AB09-9A54BA99DD71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{57E83B03-17D6-4A66-AB09-9A54BA99DD71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18B7B266-A9CD-4843-B184-10DF8E367579}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18B7B266-A9CD-4843-B184-10DF8E367579}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18B7B266-A9CD-4843-B184-10DF8E367579}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18B7B266-A9CD-4843-B184-10DF8E367579}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
