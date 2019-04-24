@@ -13,15 +13,15 @@ namespace Chronos.Coins.Queries
             _projection = projection;
         }
         
-        public override Stats Handle(StatsQuery query)
-        {
-            return _projection.State.Value;
-        }
-
         public override IProjection Projection
         {
             get => _projection;
             set => _projection = value as IProjection<ValueState<Stats>>;
+        }
+        
+        public override Stats Handle(StatsQuery query)
+        {
+            return _projection.State.Value;
         }
     }
 }

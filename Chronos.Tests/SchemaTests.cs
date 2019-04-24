@@ -4,12 +4,12 @@ using Xunit;
 using Xunit.Abstractions;
 using ZES.GraphQL;
 
-
 namespace Chronos.Tests
 {
     public class SchemaTests : ChronosTest
     {
-        public SchemaTests(ITestOutputHelper outputHelper) : base(outputHelper)
+        public SchemaTests(ITestOutputHelper outputHelper)
+            : base(outputHelper)
         {
         }
 

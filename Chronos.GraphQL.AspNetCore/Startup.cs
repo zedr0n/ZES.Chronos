@@ -17,7 +17,8 @@ namespace Chronos.GraphQL.AspNetCore
         {
             services.AddCors(options =>
             {
-                options.AddPolicy("AllowAll",
+                options.AddPolicy(
+                    "AllowAll",
                     builder =>
                     {
                         builder
@@ -29,8 +30,7 @@ namespace Chronos.GraphQL.AspNetCore
             });
             
             var container = new Container();
-            services.WireGraphQl(container, new []{ typeof(Config)});          
-            
+            services.WireGraphQl(container, new[] { typeof(Config) });          
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

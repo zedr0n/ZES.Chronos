@@ -9,6 +9,11 @@ namespace Chronos.Coins
 {
     public static class Config
     {
+        [Registration]
+        public static void RegisterAll(Container c)
+        {
+            c.RegisterAll(Assembly.GetExecutingAssembly());
+        }
         
         [RootQuery]
         public class Query
@@ -21,12 +26,6 @@ namespace Chronos.Coins
         public class Mutation
         {
             public bool CreateCoin(CreateCoin command) => true;
-        }
-        
-        [Registration]
-        public static void RegisterAll(Container c)
-        {
-            c.RegisterAll(Assembly.GetExecutingAssembly());
         }
     }
 }

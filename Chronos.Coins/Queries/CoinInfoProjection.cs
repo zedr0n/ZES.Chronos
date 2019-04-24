@@ -9,6 +9,18 @@ namespace Chronos.Coins.Queries
 {
     public class CoinInfoProjection : Projection<CoinInfoProjection.StateType> 
     {
+        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue)
+            : base(eventStore, logger, messageQueue)
+        {
+            Register<CoinCreated>(When);
+        }
+
+        private static StateType When(CoinCreated e, StateType c)
+        {
+            c.Set(e.Name, new CoinInfo(e.Name, e.Ticker, e.Timestamp));
+            return c;
+        }
+
         public class StateType
         {
             private readonly ConcurrentDictionary<string, CoinInfo> _coins = new ConcurrentDictionary<string, CoinInfo>();
@@ -23,17 +35,6 @@ namespace Chronos.Coins.Queries
             {
                 _coins[id] = c;
             } 
-        }
-        
-        private static StateType When(CoinCreated e, StateType c)
-        {
-            c.Set(e.Name, new CoinInfo(e.Name, e.Ticker,e.Timestamp));
-            return c;
-        }
-
-        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue) : base(eventStore, logger, messageQueue)
-        {
-            Register<CoinCreated>(When);
         }
     }
 }

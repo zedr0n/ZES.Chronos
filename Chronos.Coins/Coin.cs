@@ -16,7 +16,9 @@ namespace Chronos.Coins
         {
             Register<CoinCreated>(When);
         }
-        public Coin(string ticker,string name) : this()
+        
+        public Coin(string ticker, string name)
+            : this()
         {
             base.When(new CoinCreated(name, ticker));
         }

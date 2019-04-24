@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp2.2</TargetFramework>
+        <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
     </PropertyGroup>
 
     <ItemGroup>
@@ -10,7 +11,7 @@
         </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.App" />
         <PackageReference Include="ZES.GraphQL">
-          <Version>1.0.153</Version>
+          <Version>1.0.159</Version>
         </PackageReference>
     </ItemGroup>
 
