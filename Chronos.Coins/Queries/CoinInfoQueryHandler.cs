@@ -11,16 +11,12 @@ namespace Chronos.Coins.Queries
         {
             _projection = projection;
         }
-            
-        public override IProjection Projection
+
+        protected override IProjection Projection => _projection;
+
+        public override CoinInfo Handle(IProjection projection, CoinInfoQuery query)
         {
-            get => _projection;
-            set => _projection = value as IProjection<CoinInfoProjection.StateType>;
-        }
-        
-        public override CoinInfo Handle(CoinInfoQuery query)
-        {
-            return _projection.State.Get(query.Name);
+            return (projection as IProjection<CoinInfoProjection.StateType>)?.State.Get(query.Name);
         }
     }
 }

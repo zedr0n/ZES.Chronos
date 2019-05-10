@@ -8,12 +8,12 @@ namespace Chronos.Coins.Queries
 {
     public class StatsProjection : Projection<ValueState<Stats>>
     {
-        public StatsProjection(IEventStore<IAggregate> eventStore, ILog log, IMessageQueue messageQueue)
-            : base(eventStore, log, messageQueue)
+        public StatsProjection(IEventStore<IAggregate> eventStore, ILog log, IMessageQueue messageQueue, ITimeline timeline, ProjectionDispatcher.Builder streamDispatcher)
+            : base(eventStore, log, messageQueue, timeline, streamDispatcher)
         {
             Register<CoinCreated>(When);
         }
-
+        
         private static ValueState<Stats> When(IEvent e, ValueState<Stats> state)
         {
             lock (state)

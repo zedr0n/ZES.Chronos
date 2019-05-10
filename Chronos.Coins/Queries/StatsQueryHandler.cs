@@ -6,22 +6,18 @@ namespace Chronos.Coins.Queries
 {
     public class StatsQueryHandler : QueryHandler<StatsQuery, Stats>
     {
-        private IProjection<ValueState<Stats>> _projection;
+        private readonly IProjection<ValueState<Stats>> _projection;
 
         public StatsQueryHandler(IProjection<ValueState<Stats>> projection)
         {
             _projection = projection;
         }
-        
-        public override IProjection Projection
+
+        protected override IProjection Projection => _projection;
+
+        public override Stats Handle(IProjection projection, StatsQuery query)
         {
-            get => _projection;
-            set => _projection = value as IProjection<ValueState<Stats>>;
-        }
-        
-        public override Stats Handle(StatsQuery query)
-        {
-            return _projection.State.Value;
+            return (projection as IProjection<ValueState<Stats>>)?.State.Value;
         }
     }
 }

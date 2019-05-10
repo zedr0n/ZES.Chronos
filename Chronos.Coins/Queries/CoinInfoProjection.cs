@@ -9,8 +9,8 @@ namespace Chronos.Coins.Queries
 {
     public class CoinInfoProjection : Projection<CoinInfoProjection.StateType> 
     {
-        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog logger, IMessageQueue messageQueue)
-            : base(eventStore, logger, messageQueue)
+        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog log, IMessageQueue messageQueue, ITimeline timeline, ProjectionDispatcher.Builder streamDispatcher)
+            : base(eventStore, log, messageQueue, timeline, streamDispatcher)
         {
             Register<CoinCreated>(When);
         }

@@ -11,7 +11,7 @@
         </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.App" />
         <PackageReference Include="ZES.GraphQL">
-          <Version>1.0.159</Version>
+          <Version>1.0.211</Version>
         </PackageReference>
     </ItemGroup>
 
