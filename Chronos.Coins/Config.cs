@@ -4,6 +4,7 @@ using Chronos.Coins.Queries;
 using SimpleInjector;
 using ZES;
 using ZES.Infrastructure.Attributes;
+using ZES.Utils;
 
 namespace Chronos.Coins
 {

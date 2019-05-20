@@ -5,10 +5,11 @@ using Chronos.Coins.Queries;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure;
+using ZES.Infrastructure.Domain;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
-using static ZES.ObservableExtensions;
+using ZES.Utils;
 
 namespace Chronos.Tests
 {
