@@ -1,7 +1,13 @@
 namespace Chronos.Accounts
 {
+    /// <summary>
+    /// Currency enum
+    /// </summary>
     public enum Currency
     {
-        GBP
+        /// <summary>
+        /// British pound
+        /// </summary>
+        Gbp
     }
 }

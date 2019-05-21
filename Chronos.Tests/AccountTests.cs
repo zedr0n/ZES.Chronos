@@ -21,7 +21,7 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
 
-            await await bus.CommandAsync(new CreateAccount("Account", Currency.GBP, Account.Type.Saving));
+            await await bus.CommandAsync(new CreateAccount("Account", Currency.Gbp, Account.Type.Saving));
 
             var account = await repository.Find<Account>("Account");
             Assert.NotNull(account); 
