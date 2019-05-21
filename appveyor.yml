@@ -18,6 +18,7 @@ after_build:
 test_script:
   - cmd: dotnet test --filter CoinTests Chronos.Tests\Chronos.Tests.csproj
   - cmd: dotnet test --filter SchemaTests Chronos.Tests\Chronos.Tests.csproj
+  - cmd: dotnet test --filter AccountTests Chronos.Tests\Chronos.Tests.csproj    
 on_failure:
   #- cmd: 7z a SqlTests.zip Chronos.Tests\bin\Debug\netcoreapp2.0\*.db
   #- cmd: appveyor PushArtifact SqlTests.zip
