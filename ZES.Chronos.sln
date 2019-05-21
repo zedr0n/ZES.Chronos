@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Tests", "Chronos.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.GraphQL.AspNetCore", "Chronos.GraphQL.AspNetCore\Chronos.GraphQL.AspNetCore.csproj", "{18B7B266-A9CD-4843-B184-10DF8E367579}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Accounts", "Chronos.Accounts\Chronos.Accounts.csproj", "{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{18B7B266-A9CD-4843-B184-10DF8E367579}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18B7B266-A9CD-4843-B184-10DF8E367579}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18B7B266-A9CD-4843-B184-10DF8E367579}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

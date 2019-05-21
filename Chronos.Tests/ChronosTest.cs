@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Chronos.Coins;
 using SimpleInjector;
 using Xunit.Abstractions;
 using ZES.Tests;
@@ -18,7 +17,8 @@ namespace Chronos.Tests
         {
             var regs = new List<Action<Container>>
             {
-                Config.RegisterAll
+                Coins.Config.RegisterAll,
+                Accounts.Config.RegisterAll
             };
             if (registrations != null)
                 regs.AddRange(registrations);
