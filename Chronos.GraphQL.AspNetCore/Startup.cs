@@ -1,5 +1,4 @@
 ﻿using Chronos.Coins;
-using HotChocolate;
 using HotChocolate.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;

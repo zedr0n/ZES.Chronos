@@ -1,11 +1,12 @@
 using ZES.Infrastructure.Domain;
+using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Commands
 {
     /// <summary>
     /// Command to create account
     /// </summary>
-    public class CreateAccount : Command
+    public class CreateAccount : Command, ICreateCommand
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="CreateAccount"/> class.
@@ -16,12 +17,10 @@ namespace Chronos.Accounts.Commands
         /// Initializes a new instance of the <see cref="CreateAccount"/> class.
         /// </summary>
         /// <param name="name">Account identifier</param>
-        /// <param name="currency">Account currency</param>
         /// <param name="type">Account type</param>
-        public CreateAccount(string name, Currency currency, Account.Type type)
+        public CreateAccount(string name, Account.Type type)
         {
             Name = name;
-            Currency = currency;
             Type = type;
         }
 
@@ -36,14 +35,6 @@ namespace Chronos.Accounts.Commands
             get => Target;
             set => Target = value;
         }
-
-        /// <summary>
-        /// Gets or sets account currency
-        /// </summary>
-        /// <value>
-        /// <placeholder>Account currency</placeholder>
-        /// </value>
-        public Currency Currency { get; set; }
 
         /// <summary>
         /// Gets or sets account type 

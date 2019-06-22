@@ -2,7 +2,6 @@ using System.Reflection;
 using Chronos.Coins.Commands;
 using Chronos.Coins.Queries;
 using SimpleInjector;
-using ZES;
 using ZES.Infrastructure.Attributes;
 using ZES.Utils;
 

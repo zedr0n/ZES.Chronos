@@ -2,6 +2,7 @@
 using Chronos.Coins.Events;
 using ZES.Infrastructure.Projections;
 using ZES.Interfaces;
+using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Pipes;
 
@@ -9,7 +10,7 @@ namespace Chronos.Coins.Queries
 {
     public class CoinInfoProjection : Projection<CoinInfoProjection.StateType> 
     {
-        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog log, IMessageQueue messageQueue, ITimeline timeline, ProjectionDispatcher.Builder streamDispatcher)
+        public CoinInfoProjection(IEventStore<IAggregate> eventStore, ILog log, IMessageQueue messageQueue, ITimeline timeline, Dispatcher.Builder streamDispatcher)
             : base(eventStore, log, messageQueue, timeline, streamDispatcher)
         {
             Register<CoinCreated>(When);

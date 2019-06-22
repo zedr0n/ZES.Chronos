@@ -1,23 +1,16 @@
-﻿using ZES.Infrastructure;
-using ZES.Infrastructure.Domain;
+﻿using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins.Queries
 {
-    public class CoinInfoQueryHandler : QueryHandler<CoinInfoQuery, CoinInfo>
+    public class CoinInfoQueryHandler : QueryHandlerBase<CoinInfoQuery, CoinInfo, CoinInfoProjection.StateType>
     {
-        private IProjection<CoinInfoProjection.StateType> _projection;
-            
         public CoinInfoQueryHandler(IProjection<CoinInfoProjection.StateType> projection)
+            : base(projection)
         {
-            _projection = projection;
         }
 
-        protected override IProjection Projection => _projection;
-
-        public override CoinInfo Handle(IProjection projection, CoinInfoQuery query)
-        {
-            return (projection as IProjection<CoinInfoProjection.StateType>)?.State.Get(query.Name);
-        }
+        protected override CoinInfo Handle(IProjection<CoinInfoProjection.StateType> projection, CoinInfoQuery query)
+            => projection?.State.Get(query.Name);
     }
 }

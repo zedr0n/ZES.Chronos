@@ -11,12 +11,10 @@ namespace Chronos.Accounts.Events
         /// Initializes a new instance of the <see cref="AccountCreated"/> class.
         /// </summary>
         /// <param name="name">Account identifier</param>
-        /// <param name="currency">Account currency</param>
         /// <param name="type">Account type</param>
-        public AccountCreated(string name, Currency currency, Account.Type type)
+        public AccountCreated(string name,  Account.Type type)
         {
             Name = name;
-            Currency = currency;
             Type = type;
         }
 
@@ -28,14 +26,6 @@ namespace Chronos.Accounts.Events
         /// </value>
         public string Name { get; }
         
-        /// <summary>
-        /// Gets or sets account currency
-        /// </summary>
-        /// <value>
-        /// <placeholder>Account currency</placeholder>
-        /// </value>
-        public Currency Currency { get; set; }
-
         /// <summary>
         /// Gets or sets account type 
         /// </summary>

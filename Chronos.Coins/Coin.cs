@@ -1,6 +1,6 @@
 ﻿using Chronos.Coins.Events;
 using ZES.Infrastructure.Domain;
-using ZES.Interfaces;
+using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins
 {

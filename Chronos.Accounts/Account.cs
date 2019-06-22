@@ -1,33 +1,36 @@
+using System.Collections.Concurrent;
 using Chronos.Accounts.Events;
+using Chronos.Core;
 using ZES.Infrastructure.Domain;
-using ZES.Interfaces;
+using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts
 {
     /// <inheritdoc cref="EventSourced" />
     public class Account : EventSourced, IAggregate
     {
+        private readonly ConcurrentDictionary<Asset, double> _assets = new ConcurrentDictionary<Asset, double>();
+        
         private Type _type;
-        private Currency _currency;
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="Account"/> class.
         /// </summary>
         public Account()
         {
             Register<AccountCreated>(When);
+            Register<AssetDeposited>(When);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Account"/> class.
         /// </summary>
         /// <param name="name">Account identifier</param>
-        /// <param name="currency">Account currency</param>
         /// <param name="type">Account type</param>
-        public Account(string name, Currency currency, Type type)
+        public Account(string name, Type type)
             : this()
         {
-            base.When(new AccountCreated(name, currency, type));    
+            base.When(new AccountCreated(name, type));    
         }
         
         /// <summary>
@@ -46,11 +49,28 @@ namespace Chronos.Accounts
             Trading
         }
 
+        /// <summary>
+        /// Deposit an asset to account 
+        /// </summary>
+        /// <param name="assetId">Asset identifier</param>
+        /// <param name="quantity">Quantity to deposit</param>
+        public void DepositAsset(string assetId, double quantity)
+        {
+            base.When(new AssetDeposited(assetId, quantity));
+        }
+
         private void When(AccountCreated e)
         {
             Id = e.Name;
             _type = e.Type;
-            _currency = e.Currency;
+        }
+
+        private void When(AssetDeposited e)
+        {
+            var asset = new Asset(e.AssetId, Asset.Type.Coin);
+            _assets.TryAdd(asset, 0.0);
+            
+            _assets[asset] += e.Quantity;
         }
     }
 }
