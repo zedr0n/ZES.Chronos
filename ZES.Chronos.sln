@@ -8,8 +8,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.GraphQL.AspNetCore"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Accounts", "Chronos.Accounts\Chronos.Accounts.csproj", "{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Acl", "Chronos.Acl\Chronos.Acl.csproj", "{179221D7-6900-4D34-B965-C42D64EA9BBB}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Core", "Chronos.Core\Chronos.Core.csproj", "{04991067-DDD0-4E14-A3D6-F1812CA92275}"
 EndProject
 Global
@@ -34,10 +32,6 @@ Global
 		{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5F4D7E03-F70B-42DE-92AF-3E8F221E7C22}.Release|Any CPU.Build.0 = Release|Any CPU
-		{179221D7-6900-4D34-B965-C42D64EA9BBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{179221D7-6900-4D34-B965-C42D64EA9BBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{179221D7-6900-4D34-B965-C42D64EA9BBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{179221D7-6900-4D34-B965-C42D64EA9BBB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{04991067-DDD0-4E14-A3D6-F1812CA92275}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{04991067-DDD0-4E14-A3D6-F1812CA92275}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04991067-DDD0-4E14-A3D6-F1812CA92275}.Release|Any CPU.ActiveCfg = Release|Any CPU
