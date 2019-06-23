@@ -16,16 +16,16 @@ namespace Chronos.Coins
         }
         
         [RootQuery]
-        public class Query
+        public abstract class Query
         {
-            public CoinInfo CoinInfo(CoinInfoQuery query) => null;
-            public Stats Stats(StatsQuery query) => null;
+            public abstract CoinInfo CoinInfo(CoinInfoQuery query);
+            public abstract Stats Stats(StatsQuery query);
         }
 
         [RootMutation]
-        public class Mutation
+        public abstract class Mutation
         {
-            public bool CreateCoin(CreateCoin command) => true;
+            public abstract bool CreateCoin(CreateCoin command);
         }
     }
 }
