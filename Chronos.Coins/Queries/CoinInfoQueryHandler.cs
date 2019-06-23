@@ -3,7 +3,7 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins.Queries
 {
-    public class CoinInfoQueryHandler : QueryHandlerBase<CoinInfoQuery, CoinInfo, CoinInfoProjection.StateType>
+    public class CoinInfoQueryHandler : QueryHandlerBaseEx<CoinInfoQuery, CoinInfo, CoinInfoProjection.StateType>
     {
         public CoinInfoQueryHandler(IProjection<CoinInfoProjection.StateType> projection)
             : base(projection)

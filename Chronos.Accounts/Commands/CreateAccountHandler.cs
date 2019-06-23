@@ -15,6 +15,7 @@ namespace Chronos.Accounts.Commands
         {
         }
 
+        /// <inheritdoc />
         protected override Account Create(CreateAccount command) => new Account(command.Name, command.Type);
     }
 }

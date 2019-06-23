@@ -2,6 +2,7 @@ using ZES.Infrastructure.Domain;
 
 namespace Chronos.Accounts.Commands
 {
+    /// <inheritdoc />
     public class DepositAsset : Command
     {
         /// <summary>

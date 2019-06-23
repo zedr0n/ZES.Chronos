@@ -3,6 +3,9 @@ using ZES.Infrastructure;
 
 namespace Chronos.Core
 {
+    /// <summary>
+    /// Book value object
+    /// </summary>
     public class BookValue : ValueObject
     {
         /// <summary>
