@@ -2,7 +2,10 @@ using System.Reflection;
 using Chronos.Coins.Commands;
 using Chronos.Coins.Queries;
 using SimpleInjector;
+using ZES.Infrastructure;
 using ZES.Infrastructure.Attributes;
+using ZES.Interfaces;
+using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
 namespace Chronos.Coins
@@ -16,16 +19,26 @@ namespace Chronos.Coins
         }
         
         [RootQuery]
-        public abstract class Query
+        public class Query : GraphQlQuery
         {
-            public abstract CoinInfo CoinInfo(CoinInfoQuery query);
-            public abstract Stats Stats(StatsQuery query);
+            public Query(IBus bus)
+                : base(bus)
+            {
+            }
+
+            public CoinInfo CoinInfo(CoinInfoQuery query) => Resolve(query);
+            public Stats Stats(StatsQuery query) => Resolve(query);
         }
 
         [RootMutation]
-        public abstract class Mutation
+        public class Mutation : GraphQlMutation
         {
-            public abstract bool CreateCoin(CreateCoin command);
+            public Mutation(IBus bus, ILog log)
+                : base(bus, log)
+            {
+            }
+
+            public bool CreateCoin(CreateCoin command) => Resolve(command);
         }
     }
 }
