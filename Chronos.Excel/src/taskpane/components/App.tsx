@@ -66,6 +66,10 @@ export default class App extends React.Component<AppProps, AppState> {
     catch(e) { console.error(e); }
   }
   
+  createAccount = async() => {
+    await this.doRange(this.createAccountEx);
+  }
+  
   createAccountEx = async(range : Excel.Range) => {
     var data = range.values;
     var rInput = new RangeInput(data);
@@ -76,13 +80,19 @@ export default class App extends React.Component<AppProps, AppState> {
     const rows = rInput.getRows();
     const nRows = rows.length;
     names = rows.map(v => v.get("Name"));
-    types = rows.map(v => v.get("Type")).map(v => v == "Trading" ? 1 : 0);
+    types = rows.map(v => v.get("Type"));
+    
+    if (names == undefined || types == undefined)
+      return;
     
     for(var i = 0; i < nRows; i++)
     {
-      
+      const mutation = `mutation {
+        createAccount( name : "${names[i]}", type : "${types[i]}")
+      }`;
+      console.log(mutation);
+      await request('https://localhost:5001', mutation);
     }
-    
   }
   
   createCoinEx = async(range : Excel.Range) => {
@@ -140,6 +150,7 @@ export default class App extends React.Component<AppProps, AppState> {
       <div className='ms-welcome'>
         <Header logo='assets/logo-filled.png' title={this.props.title} message='Welcome' />
         <HeroList message='' items={this.state.listItems}>
+          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createAccount}>Create account</Button>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createCoin}>Create coin</Button>
         </HeroList>
       </div>
