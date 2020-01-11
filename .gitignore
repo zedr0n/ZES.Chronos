@@ -9,6 +9,7 @@ lib/
 data/
 dist/
 ZES.Taskpane/
+*.xlsx
 
 # User-specific files
 *.suo

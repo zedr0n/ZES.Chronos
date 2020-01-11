@@ -32,7 +32,12 @@ namespace Chronos.Core
             /// <summary>
             /// Regular equity
             /// </summary>
-            Equity
+            Equity,
+            
+            /// <summary>
+            /// Currency
+            /// </summary>
+            Currency
         }
 
         /// <summary>
