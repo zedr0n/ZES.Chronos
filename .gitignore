@@ -5,6 +5,10 @@
 html
 *.db
 lib/
+.vscode
+data/
+dist/
+ZES.Taskpane/
 
 # User-specific files
 *.suo
@@ -12,6 +16,9 @@ lib/
 *.userosscache
 *.sln.docstates
 *.DotSettings
+*.json
+*.odb
+*.html
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -171,7 +178,6 @@ PublishScripts/
 # NuGet v3's project.json files produces more ignoreable files
 *.nuget.props
 *.nuget.targets
-NuGet.Config
 
 # Microsoft Azure Build Output
 csx/
