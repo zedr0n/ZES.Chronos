@@ -4,6 +4,7 @@ using Chronos.Coins.Queries;
 using SimpleInjector;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Attributes;
+using ZES.Infrastructure.GraphQl;
 using ZES.Interfaces;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
@@ -18,7 +19,6 @@ namespace Chronos.Coins
             c.RegisterAll(Assembly.GetExecutingAssembly());
         }
         
-        [RootQuery]
         public class Query : GraphQlQuery
         {
             public Query(IBus bus)
@@ -30,7 +30,6 @@ namespace Chronos.Coins
             public Stats Stats(StatsQuery query) => Resolve(query);
         }
 
-        [RootMutation]
         public class Mutation : GraphQlMutation
         {
             public Mutation(IBus bus, ILog log)

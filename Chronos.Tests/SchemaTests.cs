@@ -20,8 +20,8 @@ namespace Chronos.Tests
             var log = container.GetInstance<ZES.Interfaces.ILog>(); 
             
             var schemaProvider = container.GetInstance<ISchemaProvider>();
-            
-            var executor = schemaProvider.Generate(typeof(Config.Query), typeof(Config.Mutation));            
+
+            var executor = schemaProvider.Build();
             
             await executor.ExecuteAsync(@"mutation { createCoin( command : { name : ""Bitcoin"", ticker : ""BTC"" } ) }");
             

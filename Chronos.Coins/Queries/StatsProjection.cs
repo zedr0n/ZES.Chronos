@@ -7,14 +7,14 @@ using ZES.Interfaces.Pipes;
 
 namespace Chronos.Coins.Queries
 {
-    public class StatsProjection : Projection<Stats>
+    public class StatsProjection : SingleProjection<Stats>
     {
-        public StatsProjection(IEventStore<IAggregate> eventStore, ILog log, IMessageQueue messageQueue, ITimeline timeline, Dispatcher.Builder streamDispatcher)
-            : base(eventStore, log, messageQueue, timeline, streamDispatcher)
+        public StatsProjection(IEventStore<IAggregate> eventStore, ILog log, ITimeline timeline, IMessageQueue messageQueue) 
+            : base(eventStore, log, timeline, messageQueue)
         {
             Register<CoinCreated>(When);
         }
-        
+
         private static Stats When(IEvent e, Stats state)
         {
             lock (state)

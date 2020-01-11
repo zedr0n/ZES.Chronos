@@ -23,7 +23,6 @@ namespace Chronos.Accounts
         /// <summary>
         /// Root graphql query for Accounts damain
         /// </summary>
-        [RootQuery]
         public class Query
         {
         }
@@ -31,7 +30,6 @@ namespace Chronos.Accounts
         /// <summary>
         /// Root graphql mutation for Accounts domain
         /// </summary>
-        [RootMutation]
         public class Mutation
         {
         }
