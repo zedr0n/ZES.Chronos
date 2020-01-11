@@ -2,6 +2,7 @@ using System;
 using Chronos.Hashflare.Commands;
 using Xunit;
 using Xunit.Abstractions;
+using ZES.Interfaces.Causality;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
 
@@ -28,6 +29,9 @@ namespace Chronos.Tests
             var hashflare = await repository.Find<Hashflare.Hashflare>("Hashflare");
             Assert.NotNull(hashflare);
             Assert.Equal("zedr0nre@gmail.com", hashflare.Username);
+
+            var graph = container.GetInstance<IQGraph>();
+            graph.Serialise(nameof(CanRegisterHashflare));
         }
     }
 }
