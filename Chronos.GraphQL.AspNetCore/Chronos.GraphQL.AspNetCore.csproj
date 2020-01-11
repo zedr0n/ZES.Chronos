@@ -11,11 +11,12 @@
         </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.App" />
         <PackageReference Include="ZES.GraphQL">
-          <Version>1.0.400</Version>
+          <Version>1.0.401</Version>
         </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Chronos.Accounts\Chronos.Accounts.csproj" />
       <ProjectReference Include="..\Chronos.Coins\Chronos.Coins.csproj" />
     </ItemGroup>
 

@@ -15,7 +15,7 @@ namespace Chronos.GraphQL.AspNetCore
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
-            services.UseGraphQl(typeof(Config));
+            services.UseGraphQl(new[] { typeof(Chronos.Coins.Config), typeof(Chronos.Accounts.Config) });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

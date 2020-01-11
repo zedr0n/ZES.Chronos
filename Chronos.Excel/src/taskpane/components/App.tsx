@@ -41,13 +41,10 @@ export default class App extends React.Component<AppProps, AppState> {
       ]
     });
   }
-
-  createCoin = async() => {
+  
+  doRange = async(fn : (data : Excel.Range) => Promise<void>) => {
     try{
       await Excel.run(async context => {
-        /**
-         * Insert your Excel code here
-         */
         const range = context.workbook.getSelectedRange();
 
         // Read the range address
@@ -55,48 +52,72 @@ export default class App extends React.Component<AppProps, AppState> {
         range.load("values");
 
         await context.sync();
-        
+
         try {
-          var data = range.values;
-          var rInput = new RangeInput(data);
-          
-          var names : any[];
-          var tickers: any[];
-          if (data.length == 1 && data[0].length == 2) {
-            names = data[0][0];
-            tickers = data[0][1];
-          }
-          else {
-            const rows = rInput.getRows();
-            names = rows.map(v => v.get("Name"));
-            tickers = rows.map(v => v.get("Ticker"));
-          }
-          
-          if (names != undefined && tickers != undefined) {
-            for( var n of names.map((x, i) => [x, tickers[i]] ))
-            {
-              const mutation = `mutation { 
-                createCoin( command : { name : "${n[0]}", ticker : "${n[1]}" } )
-              }`;
-              console.log(mutation);
-              await request('https://localhost:5001', mutation);
-            }
-          }
-          else {
-            console.error("Name header not found!")
-          }
-          
-              
-        }
-        catch (error) {
+          await fn(range);
+        } catch (error) {
           range.values[0][0] = JSON.stringify(error.message, undefined, 2);
           console.error(error);
         }
-        
+
         await context.sync();
-      })
-    } 
-    catch (error) {console.error(error);}
+      });
+    }
+    catch(e) { console.error(e); }
+  }
+  
+  createAccountEx = async(range : Excel.Range) => {
+    var data = range.values;
+    var rInput = new RangeInput(data);
+    
+    var names : any[];
+    var types : any[];
+
+    const rows = rInput.getRows();
+    const nRows = rows.length;
+    names = rows.map(v => v.get("Name"));
+    types = rows.map(v => v.get("Type")).map(v => v == "Trading" ? 1 : 0);
+    
+    for(var i = 0; i < nRows; i++)
+    {
+      
+    }
+    
+  }
+  
+  createCoinEx = async(range : Excel.Range) => {
+    var data = range.values;
+    var rInput = new RangeInput(data);
+
+    var names : any[];
+    var tickers: any[];
+    if (data.length == 1 && data[0].length == 2) {
+      names = data[0][0];
+      tickers = data[0][1];
+    }
+    else {
+      const rows = rInput.getRows();
+      names = rows.map(v => v.get("Name"));
+      tickers = rows.map(v => v.get("Ticker"));
+    }
+
+    if (names != undefined && tickers != undefined) {
+      for( var n of names.map((x, i) => [x, tickers[i]] ))
+      {
+        const mutation = `mutation { 
+                createCoin( command : { name : "${n[0]}", ticker : "${n[1]}" } )
+              }`;
+        console.log(mutation);
+        await request('https://localhost:5001', mutation);
+      }
+    }
+    else {
+      console.error("Name header not found!")
+    }
+  }
+
+  createCoin = async() => {
+    await this.doRange(this.createCoinEx);
   }
   
   render() {
