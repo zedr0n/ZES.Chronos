@@ -11,11 +11,11 @@ namespace Chronos.Hashflare
            Register<HashflareRegistered>(ApplyEvent); 
         }
         
-        public Hashflare(string id, string username)
+        public Hashflare(string id, string username, long timestamp)
             : this()
         {
             Id = id;
-            base.When(new HashflareRegistered(username));
+            base.When(new HashflareRegistered(username, timestamp));
         }
         
         public string Username { get; private set; }

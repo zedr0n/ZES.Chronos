@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="ZES" Version="1.0.401" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Commands\RegisterHashflare.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>RegisterHashflare.cs</LastGenOutput>
+      </None>
+      <None Update="Commands\RegisterHashflareHandler.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>RegisterHashflareHandler.cs</LastGenOutput>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Commands\RegisterHashflare.cs">
+        <DependentUpon>RegisterHashflare.tt</DependentUpon>
+      </Compile>
+      <Compile Update="Commands\RegisterHashflareHandler.cs">
+        <DependentUpon>RegisterHashflareHandler.tt</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+</Project>

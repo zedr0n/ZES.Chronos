@@ -12,6 +12,6 @@ namespace <#= GetNamespace() #>
         public <#=  GetFilename() #>(IEsRepository<IAggregate> repository)
             : base(repository) { }
 
-        protected override <#= GetRootName() #> Create(<#= GetCommandName() #> command) => new <#= GetRootName() #>(command.Target, command.Username);
+        protected override <#= GetRootName() #> Create(<#= GetCommandName() #> command) => new <#= GetRootName() #>(command.Target, command.Username, command.Timestamp);
     }
 }<#@ include file="../Command.ttinclude" #>
