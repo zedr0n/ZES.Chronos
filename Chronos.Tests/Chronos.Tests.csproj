@@ -17,6 +17,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Chronos.Accounts\Chronos.Accounts.csproj" />
       <ProjectReference Include="..\Chronos.Coins\Chronos.Coins.csproj" />
+      <ProjectReference Include="..\Chronos.Hashflare\Chronos.Hashflare.csproj" />
     </ItemGroup>
 
 </Project>

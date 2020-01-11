@@ -19,6 +19,20 @@ function statsQuery(url : string, period: number,invocation: CustomFunctions.Str
  * @customfunction
  * @param url Server url
  * @param period Update period
+ * @param invocation Stats query custom function handler
+ */
+function accountStatsQuery(url : string, period: number,invocation: CustomFunctions.StreamingInvocation<string>): void {
+  const query = `{
+      accountStats() { numberOfAccounts }
+  }`;
+
+  graphQlQuery(url, query, data => data.accountStats.numberOfAccounts.toString(), period, invocation);
+}
+
+/**
+ * @customfunction
+ * @param url Server url
+ * @param period Update period
  * @param invocation Custom function handler
  */
 function activeBranch(url : string, period : number, invocation : CustomFunctions.StreamingInvocation<string>) : void {

@@ -18,7 +18,8 @@ namespace Chronos.Tests
             var regs = new List<Action<Container>>
             {
                 Coins.Config.RegisterAll,
-                Accounts.Config.RegisterAll
+                Accounts.Config.RegisterAll,
+                Hashflare.Config.RegisterAll
             };
             if (registrations != null)
                 regs.AddRange(registrations);

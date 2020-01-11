@@ -13,10 +13,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Queries" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\Chronos.Core\Chronos.Core.csproj" />
     </ItemGroup>
 

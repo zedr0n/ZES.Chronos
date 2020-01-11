@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using Chronos.Accounts.Commands;
+using Chronos.Accounts.Queries;
 using SimpleInjector;
 using ZES.Infrastructure.Attributes;
 using ZES.Infrastructure.GraphQl;
@@ -38,12 +39,12 @@ namespace Chronos.Accounts
                 : base(bus)
             {
             }
-            
+
             /// <summary>
-            /// Query placeholder
+            /// Account stats GraphQL query
             /// </summary>
-            /// <returns>Empty</returns>
-            public string Empty() => string.Empty;
+            /// <returns>Account stats</returns>
+            public AccountStats AccountStats() => Resolve(new AccountStatsQuery());
         }
 
         /// <summary>
