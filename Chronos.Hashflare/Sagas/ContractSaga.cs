@@ -46,8 +46,8 @@ namespace Chronos.Hashflare.Sagas
                 .Permit(Trigger.ContractCreated, State.Complete);
 
             StateMachine.Configure(State.Complete)
-                .Ignore(Trigger.ContractCreated)
-                .OnEntry(() => SendCommand(new ExpireContract(_txId, _type, _quantity, _expiry)));
+                .Ignore(Trigger.ContractCreated);
+                // .OnEntry(() => SendCommand(new ExpireContract(_txId, _type, _quantity, _expiry)));
             base.ConfigureStateMachine();
         }
     }

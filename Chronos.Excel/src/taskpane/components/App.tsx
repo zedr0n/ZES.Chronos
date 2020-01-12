@@ -108,18 +108,45 @@ export default class App extends React.Component<AppProps, AppState> {
     await this.doRange(this.registerHashflareEx);
   }
   
+  addMinedEx = async(range : Excel.Range) => {
+    var data = range.values;
+    var input = new RangeInput(data);
+
+    for(var m of input.getRows())
+    {
+      var timestamp = this.ExcelDateToJSDate(m.get("Date")).getTime();
+      const mutation = `mutation {
+        addMinedAmount (type : "${m.get("Product")}", quantity : ${m.get("Quantity")},  timestamp : ${timestamp} )
+      }`;
+      console.log(mutation);
+      await request(this.server, mutation);
+    }
+  }
+  
+  addMined = async() => {
+    await this.doRange(this.addMinedEx)
+  }
+  
   buyHashrateEx = async(range : Excel.Range) => {
     var data = range.values;
     var input = new RangeInput(data);
     
+    var mutations : {mutation : string, timestamp : number}[] = [];
     for(var m of input.getRows())
     {
       var timestamp = this.ExcelDateToJSDate(m.get("Date")).getTime();
       const mutation = `mutation {
         buyHashrate ( txId : "${m.get("TxId")}", type : "${m.get("Product")}", quantity : ${m.get("Quantity")}, total : ${m.get("Total")}, timestamp : ${timestamp} )
       }`;
-      console.log(mutation);
-      await request(this.server, mutation);
+      // console.log(mutation);
+      mutations.push({mutation, timestamp});
+      // await request(this.server, mutation);
+    }
+    
+    mutations.sort((a, b) => a.timestamp > b.timestamp ? 1 : -1);
+    for(var x of mutations) {
+      console.log(x.mutation);
+      await request(this.server, x.mutation);
     }
   }
 
@@ -213,6 +240,7 @@ export default class App extends React.Component<AppProps, AppState> {
         <HeroList message='' items={this.state.listItems}>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.registerHashflare}>Register hashflare</Button>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.buyHashrate}>Buy hashrate</Button>
+          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.addMined}>Add mined amount</Button>
 
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createAccount}>Create account</Button>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createCoin}>Create coin</Button>

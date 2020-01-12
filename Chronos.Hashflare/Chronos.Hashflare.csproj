@@ -38,6 +38,24 @@
         <LastGenOutput>ExpireContractHandler.cs</LastGenOutput>
         <DependentUpon>ExpireContractHashflare.tt</DependentUpon>
       </None>
+      <None Update="Commands\AddMinedToHashflare.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>AddMinedToHashflare.cs</LastGenOutput>
+      </None>
+      <None Update="Commands\AddMinedToHashflareHandler.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>AddMinedToHashflareHandler.cs</LastGenOutput>
+        <DependentUpon>AddMinedToHashflare.tt</DependentUpon>
+      </None>
+      <None Update="Commands\AdjustRatioForContract.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>AdjustRatioForContract.cs</LastGenOutput>
+      </None>
+      <None Update="Commands\AdjustRatioForContractHandler.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>AdjustRatioForContractHandler.cs</LastGenOutput>
+        <DependentUpon>AdjustRatioForContract.tt</DependentUpon>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -58,6 +76,18 @@
       </Compile>
       <Compile Update="Commands\ExpireContractHandler.cs">
         <DependentUpon>ExpireContractHandler.tt</DependentUpon>
+      </Compile>
+      <Compile Update="Commands\AddMinedToHashflare.cs">
+        <DependentUpon>AddMinedToHashflare.tt</DependentUpon>
+      </Compile>
+      <Compile Update="Commands\AddMinedToHashflareHandler.cs">
+        <DependentUpon>AddMinedToHashflareHandler.tt</DependentUpon>
+      </Compile>
+      <Compile Update="Commands\AdjustRatioForContract.cs">
+        <DependentUpon>AdjustRatioForContract.tt</DependentUpon>
+      </Compile>
+      <Compile Update="Commands\AdjustRatioForContractHandler.cs">
+        <DependentUpon>AdjustRatioForContractHandler.tt</DependentUpon>
       </Compile>
     </ItemGroup>
 

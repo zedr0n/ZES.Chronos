@@ -34,6 +34,13 @@ namespace Chronos.Hashflare
 
             public HashflareStats HashflareStatsAsOf(long timestamp) =>
                 Resolve(new HistoricalQuery<StatsQuery, HashflareStats>(new StatsQuery(), timestamp));
+
+            public ContractStats ContractStats(string txId) =>
+                Resolve(new ContractStatsQuery(txId));
+
+            public ContractStats ContractStatsAsOf(string txId, long timestamp) =>
+                Resolve(new HistoricalQuery<ContractStatsQuery, ContractStats>(
+                    new ContractStatsQuery(txId), timestamp));
         }
 
         public class Mutations : GraphQlMutation
@@ -47,6 +54,9 @@ namespace Chronos.Hashflare
 
             public bool BuyHashrate(string txId, string type, int quantity, int total, long timestamp) =>
                 Resolve(new CreateContract(txId, type, quantity, total, timestamp));
+
+            public bool AddMinedAmount(string type, double quantity, long timestamp) =>
+                Resolve(new AddMinedToHashflare(type, quantity, timestamp));
         }
     }
 }

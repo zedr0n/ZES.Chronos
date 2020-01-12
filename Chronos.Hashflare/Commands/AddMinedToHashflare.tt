@@ -1,0 +1,24 @@
+<#@ template language="C#" #>
+<#@ import namespace="System.IO"#>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ZES.Infrastructure.Domain;
+using ZES.Interfaces.Domain;
+
+namespace <#= GetNamespace() #>
+{
+    public class <#= GetFilename() #> : Command
+    {
+        public <#= GetFilename() #>() { }
+        public <#= GetFilename() #>(string type, double quantity, long timestamp) 
+            : base("Hashflare") 
+        {
+            Type = type;
+            Quantity = quantity;
+            Timestamp = timestamp; 
+        }
+
+        public string Type { get; }
+        public double Quantity { get; }
+    }
+}<#@ include file="../Command.ttinclude" #>

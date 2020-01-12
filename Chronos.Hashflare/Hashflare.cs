@@ -19,6 +19,12 @@ namespace Chronos.Hashflare
         }
 
         public string Username { get; private set; }
+
+        public void AddAmountMined(string type, double amount, long timestamp)
+        {
+            if (amount > 0)
+                When(new AmountMined(type, amount, timestamp));
+        }
         
         private void ApplyEvent(HashflareRegistered e)
         {

@@ -1,0 +1,22 @@
+<#@ template language="C#" #>
+<#@ import namespace="System.IO"#>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ZES.Infrastructure.Domain;
+using ZES.Interfaces.Domain;
+
+namespace <#= GetNamespace() #>
+{
+    public class <#= GetFilename() #> : Command
+    {
+        public <#= GetFilename() #>() { }
+        public <#= GetFilename() #>(string txId, double ratio, long timestamp) 
+            : base(txId) 
+        {
+            Ratio = ratio;
+            Timestamp = timestamp; 
+        }
+
+        public double Ratio { get; }
+    }
+}<#@ include file="../Command.ttinclude" #>
