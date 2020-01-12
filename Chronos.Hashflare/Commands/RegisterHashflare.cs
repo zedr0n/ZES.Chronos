@@ -14,6 +14,5 @@ namespace Chronos.Hashflare.Commands
         }
         
         public string Username { get; }
-        public long Timestamp { get; }
     }
 }

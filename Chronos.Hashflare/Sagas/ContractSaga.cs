@@ -12,7 +12,7 @@ namespace Chronos.Hashflare.Sagas
         private int _quantity;
         public ContractSaga()
         {
-            Register<HashrateBought>(e => e.TxId, Trigger.ContractCreated, e =>
+            Register<HashrateBought>(e => e.Type == "SHA-256" ? e.TxId : null, Trigger.ContractCreated, e =>
             {
                 _expiry = e.Timestamp;
                 long dt = 365 * 24 * 60 * 60;

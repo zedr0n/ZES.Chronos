@@ -20,6 +20,9 @@ namespace Chronos.Hashflare
             base.When(new HashflareRegistered(username, timestamp));
         }
 
+        public int BitcoinHashRate { get; private set; }
+        public string Username { get; private set; }
+        
         public void BuyHashrate(string type, int quantity, int total, long timestamp)
         {
             base.When(new HashrateBought(string.Empty, type, quantity, total, timestamp));
@@ -29,9 +32,6 @@ namespace Chronos.Hashflare
         {
             base.When(new ContractExpired(type, quantity, timestamp));
         }
-        
-        public int BitcoinHashRate { get; private set; }
-        public string Username { get; private set; }
 
         private void ApplyEvent(HashflareRegistered e)
         {

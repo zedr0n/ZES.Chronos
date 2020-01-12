@@ -116,7 +116,7 @@ export default class App extends React.Component<AppProps, AppState> {
     {
       var timestamp = this.ExcelDateToJSDate(m.get("Date")).getTime();
       const mutation = `mutation {
-        buyHashrate ( type : "${m.get("Product")}", quantity : ${m.get("Quantity")}, total : ${m.get("Total")}, timestamp : ${timestamp} )
+        buyHashrate ( txId : "${m.get("TxId")}", type : "${m.get("Product")}", quantity : ${m.get("Quantity")}, total : ${m.get("Total")}, timestamp : ${timestamp} )
       }`;
       console.log(mutation);
       await request(this.server, mutation);
