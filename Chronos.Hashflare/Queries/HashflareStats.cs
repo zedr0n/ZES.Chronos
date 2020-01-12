@@ -4,5 +4,6 @@ namespace Chronos.Hashflare.Queries
     {
         public HashflareStats() { }
         public int BitcoinHashRate { get; set; }     
+        public int ScryptHashRate { get; set; }
     }
 }

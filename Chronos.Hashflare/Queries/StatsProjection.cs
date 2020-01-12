@@ -22,6 +22,8 @@ namespace Chronos.Hashflare.Queries
             {
                 if (e.Type == "SHA-256")
                     state.BitcoinHashRate += e.Quantity;
+                else
+                    state.ScryptHashRate += e.Quantity;
             }
             
             return state;
@@ -33,6 +35,8 @@ namespace Chronos.Hashflare.Queries
             {
                 if (e.Type == "SHA-256")
                     state.BitcoinHashRate -= e.Quantity;
+                else
+                    state.ScryptHashRate -= e.Quantity;
             }
 
             return state;
