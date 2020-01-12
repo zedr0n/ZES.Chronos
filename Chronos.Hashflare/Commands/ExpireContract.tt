@@ -10,8 +10,8 @@ namespace <#= GetNamespace() #>
     public class <#= GetFilename() #> : Command
     {
         public <#= GetFilename() #>() { }
-        public <#= GetFilename() #>(string type, int quantity, long timestamp) 
-            : base("Hashflare") 
+        public <#= GetFilename() #>(string txId, string type, int quantity, long timestamp) 
+            : base(txId) 
         {
             Type = type;
             Quantity = quantity;
