@@ -7,7 +7,7 @@ namespace Chronos.Hashflare.Commands
     {
         public CreatePurchase() { }
         public CreatePurchase(string txId, string type, int quantity, int total, long timestamp) 
-            : base("Hashflare") 
+            : base(txId) 
         {
             TxId = txId;
             Type = type;

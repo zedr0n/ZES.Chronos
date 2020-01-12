@@ -3,6 +3,7 @@ using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
 using SimpleInjector;
 using ZES.Infrastructure.Attributes;
+using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
 using ZES.Interfaces;
 using ZES.Interfaces.Pipes;
@@ -30,6 +31,9 @@ namespace Chronos.Hashflare
             }
 
             public HashflareStats HashflareStats() => Resolve(new StatsQuery());
+
+            public HashflareStats HashflareStatsAsOf(long timestamp) =>
+                Resolve(new HistoricalQuery<StatsQuery, HashflareStats>(new StatsQuery(), timestamp));
         }
 
         public class Mutations : GraphQlMutation
@@ -42,7 +46,7 @@ namespace Chronos.Hashflare
             public bool RegisterHashflare(string username, long timestamp) => Resolve(new RegisterHashflare(username, timestamp));
 
             public bool BuyHashrate(string txId, string type, int quantity, int total, long timestamp) =>
-                Resolve(new CreatePurchase(txId, type, quantity, total, quantity));
+                Resolve(new CreatePurchase(txId, type, quantity, total, timestamp));
         }
     }
 }

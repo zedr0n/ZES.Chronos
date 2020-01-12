@@ -11,7 +11,7 @@ namespace <#= GetNamespace() #>
     {
         public <#= GetFilename() #>() { }
         public <#= GetFilename() #>(string txId, string type, int quantity, int total, long timestamp) 
-            : base("Hashflare") 
+            : base(txId) 
         {
             TxId = txId;
             Type = type;
