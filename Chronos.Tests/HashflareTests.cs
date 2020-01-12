@@ -46,11 +46,11 @@ namespace Chronos.Tests
             var time = ((DateTimeOffset)new DateTime(1970, 1, 1, 0, 0, 10, DateTimeKind.Utc)).ToUnixTimeMilliseconds(); 
 
             await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com", time));
-            await await bus.CommandAsync(new CreatePurchase("0", "SHA-256", 100, 1000, time));
+            await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000, time));
 
             await bus.Equal(new StatsQuery(), s => s.BitcoinHashRate, 0);
             
-            var historicalQuery = new HistoricalQuery<StatsQuery,HashflareStats>(new StatsQuery(), time + 100);
+            var historicalQuery = new HistoricalQuery<StatsQuery, HashflareStats>(new StatsQuery(), time + 100);
             var result = await bus.QueryAsync(historicalQuery);
             Assert.Equal(100, result.BitcoinHashRate);
         }

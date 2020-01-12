@@ -46,7 +46,7 @@ namespace Chronos.Hashflare
             public bool RegisterHashflare(string username, long timestamp) => Resolve(new RegisterHashflare(username, timestamp));
 
             public bool BuyHashrate(string txId, string type, int quantity, int total, long timestamp) =>
-                Resolve(new CreatePurchase(txId, type, quantity, total, timestamp));
+                Resolve(new CreateContract(txId, type, quantity, total, timestamp));
         }
     }
 }

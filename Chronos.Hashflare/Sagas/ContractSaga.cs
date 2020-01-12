@@ -10,6 +10,7 @@ namespace Chronos.Hashflare.Sagas
     {
         private long _expiry;
         private int _quantity;
+        private string _txId;
         public ContractSaga()
         {
             Register<HashrateBought>(e => e.Type == "SHA-256" ? e.TxId : null, Trigger.ContractCreated, e =>
@@ -20,6 +21,7 @@ namespace Chronos.Hashflare.Sagas
                 _expiry += dt;
 
                 _quantity = e.Quantity;
+                _txId = e.TxId;
             });    
         }
          
@@ -43,7 +45,7 @@ namespace Chronos.Hashflare.Sagas
 
             StateMachine.Configure(State.Complete)
                 .Ignore(Trigger.ContractCreated)
-                .OnEntry(() => SendCommand(new ExpireContractHashflare("SHA-256", _quantity, _expiry)));
+                .OnEntry(() => SendCommand(new ExpireContract(_txId, "SHA-256", _quantity, _expiry)));
             base.ConfigureStateMachine();
         }
     }

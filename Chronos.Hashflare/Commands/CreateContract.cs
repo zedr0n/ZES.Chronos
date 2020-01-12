@@ -3,10 +3,10 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare.Commands
 {
-    public class CreatePurchase : Command, ICreateCommand
+    public class CreateContract : Command, ICreateCommand
     {
-        public CreatePurchase() { }
-        public CreatePurchase(string txId, string type, int quantity, int total, long timestamp) 
+        public CreateContract() { }
+        public CreateContract(string txId, string type, int quantity, int total, long timestamp) 
             : base(txId) 
         {
             TxId = txId;

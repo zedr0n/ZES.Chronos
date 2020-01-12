@@ -21,29 +21,21 @@
         <Generator>TextTemplatingFileGenerator</Generator>
         <LastGenOutput>RegisterHashflareHandler.cs</LastGenOutput>
       </None>
-      <None Update="Commands\BuyHashrateAtHashflare.tt">
+      <None Update="Commands\ExpireContract.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>BuyHashrateAtHashflare.cs</LastGenOutput>
+        <LastGenOutput>ExpireContract.cs</LastGenOutput>
       </None>
-      <None Update="Commands\BuyHashrateAtHashflareHandler.tt">
+      <None Update="Commands\CreateContract.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>BuyHashrateAtHashflareHandler.cs</LastGenOutput>
+        <LastGenOutput>CreateContract.cs</LastGenOutput>
       </None>
-      <None Update="Commands\ExpireContractHashflare.tt">
+      <None Update="Commands\CreateContractHandler.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>ExpireContractHashflare.cs</LastGenOutput>
+        <LastGenOutput>CreateContractHandler.cs</LastGenOutput>
       </None>
-      <None Update="Commands\CreatePurchase.tt">
+      <None Update="Commands\ExpireContractHandler.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>CreatePurchase.cs</LastGenOutput>
-      </None>
-      <None Update="Commands\CreatePurchaseHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>CreatePurchaseHandler.cs</LastGenOutput>
-      </None>
-      <None Update="Commands\ExpireContractHashflareHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>ExpireContractHashflareHandler.cs</LastGenOutput>
+        <LastGenOutput>ExpireContractHandler.cs</LastGenOutput>
         <DependentUpon>ExpireContractHashflare.tt</DependentUpon>
       </None>
     </ItemGroup>
@@ -55,23 +47,17 @@
       <Compile Update="Commands\RegisterHashflareHandler.cs">
         <DependentUpon>RegisterHashflareHandler.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\BuyHashrateAtHashflare.cs">
-        <DependentUpon>BuyHashrateAtHashflare.tt</DependentUpon>
+      <Compile Update="Commands\ExpireContract.cs">
+        <DependentUpon>ExpireContract.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\BuyHashrateAtHashflareHandler.cs">
-        <DependentUpon>BuyHashrateAtHashflareHandler.tt</DependentUpon>
+      <Compile Update="Commands\CreateContract.cs">
+        <DependentUpon>CreateContract.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\ExpireContractHashflare.cs">
-        <DependentUpon>ExpireContractHashflare.tt</DependentUpon>
+      <Compile Update="Commands\CreateContractHandler.cs">
+        <DependentUpon>CreateContractHandler.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\CreatePurchase.cs">
-        <DependentUpon>CreatePurchase.tt</DependentUpon>
-      </Compile>
-      <Compile Update="Commands\CreatePurchaseHandler.cs">
-        <DependentUpon>CreatePurchaseHandler.tt</DependentUpon>
-      </Compile>
-      <Compile Update="Commands\ExpireContractHashflareHandler.cs">
-        <DependentUpon>ExpireContractHashflareHandler.tt</DependentUpon>
+      <Compile Update="Commands\ExpireContractHandler.cs">
+        <DependentUpon>ExpireContractHandler.tt</DependentUpon>
       </Compile>
     </ItemGroup>
 

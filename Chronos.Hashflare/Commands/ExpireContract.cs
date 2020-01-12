@@ -3,16 +3,15 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare.Commands
 {
-    public class BuyHashrateAtHashflare : Command
+    public class ExpireContract : Command
     {
-        public BuyHashrateAtHashflare() { }
-        public BuyHashrateAtHashflare(string type, int quantity, int total, long timestamp) 
-            : base("Hashflare") 
+        public ExpireContract() { }
+        public ExpireContract(string txId, string type, int quantity, long timestamp) 
+            : base(txId) 
         {
             Type = type;
             Quantity = quantity;
-            Total = total; 
-            Timestamp = timestamp;
+            Timestamp = timestamp; 
         }
 
         public string Type { get; }
