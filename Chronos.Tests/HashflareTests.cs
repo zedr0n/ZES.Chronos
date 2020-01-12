@@ -3,6 +3,7 @@ using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
 using Xunit;
 using Xunit.Abstractions;
+using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Causality;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
@@ -48,6 +49,10 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new CreatePurchase("0", "SHA-256", 100, 1000, time));
 
             await bus.Equal(new StatsQuery(), s => s.BitcoinHashRate, 0);
+            
+            var historicalQuery = new HistoricalQuery<StatsQuery,HashflareStats>(new StatsQuery(), time + 100);
+            var result = await bus.QueryAsync(historicalQuery);
+            Assert.Equal(100, result.BitcoinHashRate);
         }
     }
 }
