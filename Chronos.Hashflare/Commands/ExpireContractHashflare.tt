@@ -7,17 +7,19 @@ using ZES.Interfaces.Domain;
 
 namespace <#= GetNamespace() #>
 {
-    public class <#= GetFilename() #> : Command, ICreateCommand   
+    public class <#= GetFilename() #> : Command
     {
         public <#= GetFilename() #>() { }
-        public <#= GetFilename() #>(string username, long timestamp)
-            : base("Hashflare")
+        public <#= GetFilename() #>(string type, int quantity, long timestamp) 
+            : base("Hashflare") 
         {
-            Username = username;
-            Timestamp = timestamp;
+            Type = type;
+            Quantity = quantity;
+            Timestamp = timestamp; 
         }
-        
-        public string Username { get; }
-        public long Timestamp { get; }
+
+        public string Type { get; }
+        public int Quantity { get; }
+        public int Total { get; }
     }
 }<#@ include file="../Command.ttinclude" #>

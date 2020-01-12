@@ -108,6 +108,25 @@ export default class App extends React.Component<AppProps, AppState> {
     await this.doRange(this.registerHashflareEx);
   }
   
+  buyHashrateEx = async(range : Excel.Range) => {
+    var data = range.values;
+    var input = new RangeInput(data);
+    
+    for(var m of input.getRows())
+    {
+      var timestamp = this.ExcelDateToJSDate(m.get("Date")).getTime();
+      const mutation = `mutation {
+        buyHashrate ( type : "${m.get("Product")}", quantity : ${m.get("Quantity")}, total : ${m.get("Total")}, timestamp : ${timestamp} )
+      }`;
+      console.log(mutation);
+      await request(this.server, mutation);
+    }
+  }
+
+  buyHashrate = async() => {
+    await this.doRange(this.buyHashrateEx)
+  }
+  
   createAccount = async() => {
     await this.doRange(this.createAccountEx);
   }
@@ -193,6 +212,8 @@ export default class App extends React.Component<AppProps, AppState> {
         <Header logo='assets/logo-filled.png' title={this.props.title} message='Welcome' />
         <HeroList message='' items={this.state.listItems}>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.registerHashflare}>Register hashflare</Button>
+          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.buyHashrate}>Buy hashrate</Button>
+
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createAccount}>Create account</Button>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createCoin}>Create coin</Button>
         </HeroList>

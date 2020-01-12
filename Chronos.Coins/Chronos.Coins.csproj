@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="ZES" Version="1.0.402" />
+      <PackageReference Include="ZES" Version="1.0.403" />
     </ItemGroup>
 
 </Project>

@@ -6,7 +6,6 @@ namespace Chronos.Hashflare.Commands
     public class RegisterHashflare : Command, ICreateCommand   
     {
         public RegisterHashflare() { }
-
         public RegisterHashflare(string username, long timestamp)
             : base("Hashflare")
         {

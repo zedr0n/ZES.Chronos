@@ -1,5 +1,6 @@
 using System.Reflection;
 using Chronos.Hashflare.Commands;
+using Chronos.Hashflare.Queries;
 using SimpleInjector;
 using ZES.Infrastructure.Attributes;
 using ZES.Infrastructure.GraphQl;
@@ -27,6 +28,8 @@ namespace Chronos.Hashflare
                 : base(bus)
             {
             }
+
+            public HashflareStats HashflareStats() => Resolve(new StatsQuery());
         }
 
         public class Mutations : GraphQlMutation
@@ -37,6 +40,9 @@ namespace Chronos.Hashflare
             }
 
             public bool RegisterHashflare(string username, long timestamp) => Resolve(new RegisterHashflare(username, timestamp));
+
+            public bool BuyHashrate(string txId, string type, int quantity, int total, long timestamp) =>
+                Resolve(new CreatePurchase(txId, type, quantity, total, quantity));
         }
     }
 }

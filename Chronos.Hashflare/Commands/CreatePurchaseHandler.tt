@@ -1,0 +1,18 @@
+<#@ template language="C#" #>
+<#@ import namespace="System.IO"#>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+using ZES.Infrastructure.Domain;
+using ZES.Interfaces.Domain;
+
+namespace <#= GetNamespace() #>
+{
+    public class <#= GetFilename() #> : CreateCommandHandlerBase<<#= GetCommandName() #>, <#= GetRootName() #>>
+    {
+        public <#=  GetFilename() #>(IEsRepository<IAggregate> repository)
+            : base(repository) { }
+
+        protected override <#= GetRootName() #> Create(<#= GetCommandName() #> command) => new Purchase(
+            command.Target, command.Type, command.Quantity, command.Total, command.Timestamp);
+    }
+}<#@ include file="../Command.ttinclude" #>
