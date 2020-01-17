@@ -21,7 +21,7 @@ namespace Chronos.Hashflare.Sagas
                 if (e.Type == "SHA-256")
                     _bitcoinHashRate += e.Quantity;
                 else
-                    _scryptHashRate -= e.Quantity;
+                    _scryptHashRate += e.Quantity;
 
                 _contracts[e.TxId] = new Contract(e.Type, e.Quantity);
                 _timestamp = e.Timestamp;
