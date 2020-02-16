@@ -103,21 +103,5 @@ namespace Chronos.Tests
             await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + 1000), c => c.Mined, 0.01 * 1.5);
             await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("1"), lastTime + 1000), c => c.Mined, 0.01 * 0.5);
         }
-
-        [Fact]
-        public async void CanRetroactivelyAdjustContract()
-        {
-            var container = CreateContainer();
-            var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
-
-            var time = timeline.Now;
-
-            await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com"));
-            
-            await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000, time));
-            var lastTime = time + (60 * 1000);
-            var midTime = (time + lastTime) / 2;
-        }
     }
 }
