@@ -7,6 +7,7 @@ using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
+using ZES.Tests;
 using ZES.Utils;
 
 namespace Chronos.Tests
@@ -57,20 +58,14 @@ namespace Chronos.Tests
             var coinInfo = await bus.QueryUntil(new CoinInfoQuery("Bitcoin"));
             
             await bus.CommandAsync(new CreateCoin("Ethereum", "ETH"));
-            
-            var query = new StatsQuery(); 
-            var stats = await bus.QueryUntil(query, s => s.NumberOfCoins > 0);
 
-            Assert.Equal(2, stats.NumberOfCoins);
+            await bus.Equal(new StatsQuery(), s => s.NumberOfCoins, 2);
             
-            var historicalQuery = new HistoricalQuery<StatsQuery, Stats>(query, coinInfo.CreatedAt);
-            var historicalStats = await bus.QueryAsync(historicalQuery);
+            var historicalQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), coinInfo.CreatedAt);
+            await bus.Equal(historicalQuery, s => s.NumberOfCoins, 1);
             
-            Assert.Equal(1, historicalStats.NumberOfCoins);
-            
-            var liveQuery = new HistoricalQuery<StatsQuery, Stats>(query, DateTime.UtcNow.Ticks);
-            var liveStats = await bus.QueryAsync(liveQuery);
-            Assert.Equal(2, liveStats.NumberOfCoins);
+            var liveQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), DateTime.UtcNow.Ticks);
+            await bus.Equal(liveQuery, s => s.NumberOfCoins, 2);
         }
     }
 }
