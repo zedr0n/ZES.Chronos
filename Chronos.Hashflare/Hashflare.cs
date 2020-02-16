@@ -15,7 +15,7 @@ namespace Chronos.Hashflare
             : this()
         {
             Id = id;
-            base.When(new HashflareRegistered(username, timestamp));
+            When(new HashflareRegistered(username, timestamp));
         }
 
         public string Username { get; private set; }

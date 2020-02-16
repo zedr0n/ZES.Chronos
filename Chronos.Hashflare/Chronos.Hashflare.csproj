@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="ZES" Version="1.0.412" />
+      <PackageReference Include="ZES" Version="1.0.460" />
     </ItemGroup>
 
     <ItemGroup>
@@ -56,6 +56,15 @@
         <LastGenOutput>AdjustRatioForContractHandler.cs</LastGenOutput>
         <DependentUpon>AdjustRatioForContract.tt</DependentUpon>
       </None>
+      <None Update="Commands\AddMinedToContract.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>AddMinedToContract.cs</LastGenOutput>
+      </None>
+      <None Update="Commands\AddMinedToContractHandler.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>AddMinedToContractHandler.cs</LastGenOutput>
+        <DependentUpon>AddMinedToContract.tt</DependentUpon>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -88,6 +97,12 @@
       </Compile>
       <Compile Update="Commands\AdjustRatioForContractHandler.cs">
         <DependentUpon>AdjustRatioForContractHandler.tt</DependentUpon>
+      </Compile>
+      <Compile Update="Commands\AddMinedToContract.cs">
+        <DependentUpon>AddMinedToContract.tt</DependentUpon>
+      </Compile>
+      <Compile Update="Commands\AddMinedToContractHandler.cs">
+        <DependentUpon>AddMinedToContractHandler.tt</DependentUpon>
       </Compile>
     </ItemGroup>
 

@@ -27,7 +27,7 @@ namespace Chronos.Tests
             foreach (var e in commandResult.Errors)
                 log.Error(e.Message, this);
 
-            var statsResult = await executor.ExecuteAsync(@"{ stats( query : {  } ) { numberOfCoins } }") as IReadOnlyQueryResult;
+            var statsResult = await executor.ExecuteAsync(@"{ stats { numberOfCoins } }") as IReadOnlyQueryResult;
             dynamic statsDict = statsResult?.Data["stats"];
             log.Info(statsDict);
             Assert.NotNull(statsDict);

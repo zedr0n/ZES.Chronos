@@ -18,8 +18,8 @@ namespace Chronos.Accounts
         /// </summary>
         public Account()
         {
-            Register<AccountCreated>(When);
-            Register<AssetDeposited>(When);
+            Register<AccountCreated>(ApplyEvent);
+            Register<AssetDeposited>(ApplyEvent);
         }
 
         /// <summary>
@@ -59,13 +59,13 @@ namespace Chronos.Accounts
             base.When(new AssetDeposited(assetId, quantity));
         }
 
-        private void When(AccountCreated e)
+        private void ApplyEvent(AccountCreated e)
         {
             Id = e.Name;
             _type = e.Type;
         }
 
-        private void When(AssetDeposited e)
+        private void ApplyEvent(AssetDeposited e)
         {
             var asset = new Asset(e.AssetId, Asset.Type.Coin);
             _assets.TryAdd(asset, 0.0);

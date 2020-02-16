@@ -27,7 +27,7 @@ namespace Chronos.Coins
             }
 
             public CoinInfo CoinInfo(CoinInfoQuery query) => Resolve(query);
-            public Stats Stats(StatsQuery query) => Resolve(query);
+            public Stats Stats() => Resolve(new StatsQuery());
         }
 
         public class Mutation : GraphQlMutation

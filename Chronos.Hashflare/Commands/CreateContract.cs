@@ -6,7 +6,7 @@ namespace Chronos.Hashflare.Commands
     public class CreateContract : Command, ICreateCommand
     {
         public CreateContract() { }
-        public CreateContract(string txId, string type, int quantity, int total, long timestamp) 
+        public CreateContract(string txId, string type, int quantity, int total, long timestamp = default(long)) 
             : base(txId) 
         {
             TxId = txId;

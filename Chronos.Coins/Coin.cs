@@ -14,16 +14,16 @@ namespace Chronos.Coins
 
         public Coin()
         {
-            Register<CoinCreated>(When);
+            Register<CoinCreated>(ApplyEvent);
         }
         
         public Coin(string ticker, string name)
             : this()
         {
-            base.When(new CoinCreated(name, ticker));
+            When(new CoinCreated(name, ticker));
         }
 
-        private void When(CoinCreated e)
+        private void ApplyEvent(CoinCreated e)
         {
             Id = e.Name;
             _ticker = e.Ticker;
