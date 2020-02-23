@@ -2,13 +2,10 @@ namespace Chronos.Hashflare.Queries
 {
     public class ContractStats
     {
-        public ContractStats(string txId, double ratio)
-            : this(txId, "SHA-256", ratio, 0) { }
-        public ContractStats(string txId, string type, double ratio, double mined)
+        public ContractStats(string txId, string type = "SHA-256", double mined = 0)
         {
             TxId = txId;
             Type = type;
-            Ratio = ratio;
             Mined = mined;
         }
 
@@ -18,7 +15,6 @@ namespace Chronos.Hashflare.Queries
 
         public string TxId { get; set; }
         public string Type { get; set; }
-        public double Ratio { get; set; }
         public double Mined { get; set; }
     }
 }

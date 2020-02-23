@@ -16,19 +16,12 @@ namespace Chronos.Hashflare.Queries
         {
             State = new Results();
             Register<HashrateBought>(When);
-            Register<ContractRatioAdjusted>(When);
             Register<AmountMinedByContract>(When);
         }
 
         private static Results When(HashrateBought e, Results state)
         {
             state.SetType(e.TxId, e.Type);
-            return state;
-        }
-
-        private static Results When(ContractRatioAdjusted e, Results state)
-        {
-            state.SetRatio(e.TxId, e.Ratio);
             return state;
         }
 
@@ -40,7 +33,6 @@ namespace Chronos.Hashflare.Queries
         
         public class Results
         {
-            private readonly ConcurrentDictionary<string, double> _ratios = new ConcurrentDictionary<string, double>(); 
             private readonly ConcurrentDictionary<string, double> _mined = new ConcurrentDictionary<string, double>();
             private readonly ConcurrentDictionary<string, string> _types = new ConcurrentDictionary<string, string>();
 
@@ -51,11 +43,6 @@ namespace Chronos.Hashflare.Queries
                 _types[txId] = type;
             }
             
-            public double Ratio(string txId)
-            {
-                return _ratios.TryGetValue(txId, out var ratio) ? ratio : -1.0;
-            }
-
             public double Mined(string txId)
             {
                 return _mined.TryGetValue(txId, out var mined) ? mined : 0.0;
@@ -65,11 +52,6 @@ namespace Chronos.Hashflare.Queries
             {
                 var q = _mined.GetOrAdd(txId, 0);
                 _mined[txId] = q + quantity;
-            }
-
-            public void SetRatio(string txId, double ratio)
-            {
-                _ratios[txId] = ratio;
             }
         }
     }

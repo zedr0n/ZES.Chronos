@@ -79,7 +79,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var timeline = container.GetInstance<ITimeline>();
-            var manager = container.GetInstance<IBranchManager>();
+            var graph = container.GetInstance<IGraph>();
 
             var time = timeline.Now;
             var lastTime = time + (60 * 1000);
@@ -90,18 +90,18 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("1", "SHA-256", 100, 1000), lastTime));
 
-            await manager.Ready;
             await await bus.CommandAsync(
                 new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.01), midTime));
 
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.01);
 
-            await manager.Ready;
             await await bus.CommandAsync(
                 new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.01), lastTime + 500));
             
             await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + 1000), c => c.Mined, 0.01 * 1.5);
             await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("1"), lastTime + 1000), c => c.Mined, 0.01 * 0.5);
+
+            await graph.Serialise(nameof(CanRetroactivelyAddMinedToContract));
         }
     }
 }

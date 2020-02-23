@@ -11,6 +11,6 @@ namespace Chronos.Hashflare.Queries
         }
 
         protected override ContractStats Handle(IProjection<ContractStatsProjection.Results> projection, ContractStatsQuery query)
-         => new ContractStats(query.TxId, projection.State.Type(query.TxId), projection.State.Ratio(query.TxId), projection.State.Mined(query.TxId));
+         => new ContractStats(query.TxId, projection.State.Type(query.TxId), projection.State.Mined(query.TxId));
     }
 }
