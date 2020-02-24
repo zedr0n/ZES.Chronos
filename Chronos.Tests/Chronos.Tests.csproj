@@ -4,14 +4,51 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
         <IsPackable>false</IsPackable>
+        <Configurations>Debug;Release;DebugLocal</Configurations>
+        <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
+    <Choose>
+        <When Condition="'$(Configuration)' == 'DebugLocal'">
+            <ItemGroup>
+                <Reference Include="ZES.Interfaces">
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES.Infrastructure">
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES">
+                    <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES.Tests">
+                    <HintPath>../../ZES/ZES.Tests/bin/Debug/netcoreapp3.1/ZES.Tests.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES.GraphQL">
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
+                </Reference>
+                <PackageReference Include="HotChocolate" Version="10.3.5" />
+                <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+                <PackageReference Include="HotChocolate.Stitching" Version="10.3.5" />
+                <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
+                <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
+                <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="SqlStreamStore" Version="1.2.0-beta.7" />
+                <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
+                <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
+            </ItemGroup>
+        </When>
+        <Otherwise>
+            <ItemGroup>
+                <PackageReference Include="ZES.GraphQL" Version="1.0.466" />
+                <PackageReference Include="ZES.Tests" Version="1.0.454" />
+            </ItemGroup>
+        </Otherwise>
+    </Choose>
+    
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
         <PackageReference Include="xunit" Version="2.3.1" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
-        <PackageReference Include="ZES.GraphQL" Version="1.0.466" />
-        <PackageReference Include="ZES.Tests" Version="1.0.454" />
     </ItemGroup>
 
     <ItemGroup>

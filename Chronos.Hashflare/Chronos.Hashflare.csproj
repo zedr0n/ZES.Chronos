@@ -6,12 +6,34 @@
       <Version>1.0.0</Version>
       <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
       <GenerateDocumentationFile>true</GenerateDocumentationFile>
+      <Configurations>Debug;Release;DebugLocal</Configurations>
+      <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
-    <ItemGroup>
-      <PackageReference Include="ZES" Version="1.0.467" />
-    </ItemGroup>
-
+    <Choose> 
+      <When Condition="'$(Configuration)' == 'DebugLocal'"> 
+        <ItemGroup>
+          <Reference Include="ZES.Interfaces">
+            <HintPath>../../ZES/ZES.Interfaces/bin/Debug/netstandard2.0/ZES.Interfaces.dll</HintPath>
+          </Reference>
+          <Reference Include="ZES.Infrastructure">
+            <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+          </Reference>
+          <Reference Include="ZES">
+            <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath> 
+          </Reference>
+          <PackageReference Include="SimpleInjector" Version="4.4.2" />
+          <PackageReference Include="Stateless" Version="3.0.0" />
+          <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+        </ItemGroup> 
+      </When> 
+      <Otherwise> 
+        <ItemGroup>
+          <PackageReference Include="ZES" Version="1.0.470" />
+        </ItemGroup> 
+      </Otherwise> 
+    </Choose>
+    
     <ItemGroup>
       <None Update="Commands\RegisterHashflare.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
