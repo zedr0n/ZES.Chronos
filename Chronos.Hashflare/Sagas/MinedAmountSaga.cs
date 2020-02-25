@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Events;
@@ -11,6 +13,35 @@ namespace Chronos.Hashflare.Sagas
     {
         private readonly Dictionary<string, double> _contracts = new Dictionary<string, double>();
         private double _quantity;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public Dictionary<string, double> Contracts
+        {
+            get
+            {
+                Hash(_contracts);
+                return _contracts;
+            }
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        public double Quantity
+        {
+            get
+            {
+                Hash(_quantity);
+                return _quantity;
+            }
+        }
+
+        private class MinedAmountTrigger 
+            : StateMachine<State, Trigger>.TriggerWithParameters
+        {
+            public MinedAmountTrigger(Trigger underlyingTrigger, params Type[] argumentTypes) : base(underlyingTrigger, argumentTypes)
+            {
+            }
+        }
+
         public MinedAmountSaga()
         {
             Register<HashrateBought>(e => "MinedAmountSaga", Trigger.ContractCreated, AddHashrate);
@@ -53,9 +84,9 @@ namespace Chronos.Hashflare.Sagas
                 .Permit(Trigger.Completed, State.Active)
                 .OnEntry(() =>
                 {
-                    var total = _contracts.Values.Sum();
-                    foreach (var c in _contracts)
-                        SendCommand(new AddMinedToContract(c.Key, string.Empty, c.Value / total * _quantity));
+                    var total = Contracts.Values.Sum();
+                    foreach (var c in Contracts)
+                        SendCommand(new AddMinedToContract(c.Key, string.Empty, c.Value / total * Quantity));
                     StateMachine.Fire(Trigger.Completed);
                 });
             base.ConfigureStateMachine();
