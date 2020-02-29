@@ -14,7 +14,7 @@ namespace Chronos.Hashflare.Commands
             Timestamp = timestamp; 
         }
 
-        public string Type { get; }
-        public double Quantity { get; }
+        public string Type { get; set; }
+        public double Quantity { get; set; }
     }
 }

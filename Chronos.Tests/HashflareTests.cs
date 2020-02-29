@@ -111,7 +111,6 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var timeline = container.GetInstance<ITimeline>();
-            var repo = container.GetInstance<IEsRepository<IAggregate>>();
             
             var time = timeline.Now;
             var lastTime = time + (60 * 1000);
@@ -125,9 +124,8 @@ namespace Chronos.Tests
             
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("1", "SHA-256", 100, 1000), midTime));
             
-            await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.01);
-            var contract = await repo.Find<Contract>("1");
-            Assert.Null(contract);
+            await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.005);
+            await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.005);
         }
     }
 }
