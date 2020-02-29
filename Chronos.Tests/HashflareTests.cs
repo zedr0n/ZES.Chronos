@@ -115,6 +115,7 @@ namespace Chronos.Tests
             var time = timeline.Now;
             var lastTime = time + (60 * 1000);
             var midTime = (time + lastTime) / 2;
+            var lastQuarterTime = (midTime + lastTime) / 2;
             
             await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com"));
  
@@ -126,6 +127,11 @@ namespace Chronos.Tests
             
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.005);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.005);
+            
+            await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("2", "SHA-256", 200, 1000), lastQuarterTime));
+            await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.0025);
+            await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
+            await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);
         }
     }
 }
