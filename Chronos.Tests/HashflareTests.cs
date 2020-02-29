@@ -30,11 +30,11 @@ namespace Chronos.Tests
             
             var time = ((DateTimeOffset)new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).ToUnixTimeMilliseconds(); 
 
-            await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com", time));
+            await await bus.CommandAsync(new RegisterHashflare("user@mail.com", time));
 
             var hashflare = await repository.Find<Hashflare.Hashflare>("Hashflare");
             Assert.NotNull(hashflare);
-            Assert.Equal("zedr0nre@gmail.com", hashflare.Username);
+            Assert.Equal("user@mail.com", hashflare.Username);
 
             var graph = container.GetInstance<IGraph>();
             await graph.Serialise(nameof(CanRegisterHashflare));
@@ -48,7 +48,7 @@ namespace Chronos.Tests
             
             var time = ((DateTimeOffset)new DateTime(1970, 1, 1, 0, 0, 10, DateTimeKind.Utc)).ToUnixTimeMilliseconds(); 
 
-            await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com", time));
+            await await bus.CommandAsync(new RegisterHashflare("user@mail.com", time));
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000, time));
 
             await bus.Equal(new StatsQuery(), s => s.BitcoinHashRate, 100);
@@ -63,7 +63,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com"));
+            await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
  
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(new CreateContract("1", "SHA-256", 100, 1000));
@@ -86,7 +86,7 @@ namespace Chronos.Tests
             var lastTime = time + (60 * 1000);
             var midTime = (time + lastTime) / 2;
             
-            await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com"));
+            await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
  
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("1", "SHA-256", 100, 1000), lastTime));
@@ -117,7 +117,7 @@ namespace Chronos.Tests
             var midTime = (time + lastTime) / 2;
             var lastQuarterTime = (midTime + lastTime) / 2;
             
-            await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com"));
+            await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
  
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(
@@ -146,7 +146,7 @@ namespace Chronos.Tests
             var ultimateTime = lastTime + (60 * 1000);
             var midTime = (time + lastTime) / 2;
             
-            await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com"));
+            await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
  
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(
