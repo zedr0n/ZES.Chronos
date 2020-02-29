@@ -106,7 +106,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanHandleInvalidRetroactiveSaga()
+        public async void CanRetroactivelyAddPurchase()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -133,5 +133,32 @@ namespace Chronos.Tests
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);
         }
+        
+        [Fact]
+        public async void CanRetroactivelyAddPurchaseWithSeveralMined()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var timeline = container.GetInstance<ITimeline>();
+            
+            var time = timeline.Now;
+            var lastTime = time + (60 * 1000);
+            var ultimateTime = lastTime + (60 * 1000);
+            var midTime = (time + lastTime) / 2;
+            
+            await await bus.CommandAsync(new RegisterHashflare("zedr0nre@gmail.com"));
+ 
+            await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
+            await await bus.CommandAsync(
+                new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.01), lastTime));
+            await await bus.CommandAsync(
+                new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.1), ultimateTime));
+            
+            await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("1", "SHA-256", 100, 1000), midTime));
+            
+            await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.055);
+            await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.055);
+        }
+
     }
 }
