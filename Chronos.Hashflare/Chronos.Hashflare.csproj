@@ -29,7 +29,7 @@
       </When> 
       <Otherwise> 
         <ItemGroup>
-          <PackageReference Include="ZES" Version="1.0.470" />
+          <PackageReference Include="ZES" Version="1.0.471" />
         </ItemGroup> 
       </Otherwise> 
     </Choose>

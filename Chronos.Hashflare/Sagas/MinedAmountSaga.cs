@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -9,13 +8,14 @@ using ZES.Infrastructure.Sagas;
 
 namespace Chronos.Hashflare.Sagas
 {
+    /// <inheritdoc />
     public class MinedAmountSaga : StatelessSaga<MinedAmountSaga.State, MinedAmountSaga.Trigger>
     {
         private readonly Dictionary<string, double> _contracts = new Dictionary<string, double>();
         private double _quantity;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public Dictionary<string, double> Contracts
+        private Dictionary<string, double> Contracts
         {
             get
             {
@@ -25,7 +25,7 @@ namespace Chronos.Hashflare.Sagas
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public double Quantity
+        private double Quantity
         {
             get
             {
@@ -34,14 +34,7 @@ namespace Chronos.Hashflare.Sagas
             }
         }
 
-        private class MinedAmountTrigger 
-            : StateMachine<State, Trigger>.TriggerWithParameters
-        {
-            public MinedAmountTrigger(Trigger underlyingTrigger, params Type[] argumentTypes) : base(underlyingTrigger, argumentTypes)
-            {
-            }
-        }
-
+        /// <inheritdoc />
         public MinedAmountSaga()
         {
             Register<HashrateBought>(e => "MinedAmountSaga", Trigger.ContractCreated, AddHashrate);
@@ -69,6 +62,7 @@ namespace Chronos.Hashflare.Sagas
             Complete
         }
 
+        /// <inheritdoc />
         protected override void ConfigureStateMachine()
         {
             StateMachine = new StateMachine<State, Trigger>(State.Open);
