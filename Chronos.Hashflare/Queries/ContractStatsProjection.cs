@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using Chronos.Hashflare.Events;
-using QuickGraph.Serialization;
 using ZES.Infrastructure.Projections;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
@@ -10,48 +8,75 @@ using ZES.Interfaces.Pipes;
 
 namespace Chronos.Hashflare.Queries
 {
+    /// <inheritdoc />
     public class ContractStatsProjection : SingleProjection<ContractStatsProjection.Results>
     {
-        public ContractStatsProjection(IEventStore<IAggregate> eventStore, ILog log, ITimeline timeline, IMessageQueue messageQueue) : base(eventStore, log, timeline, messageQueue)
+        /// <inheritdoc />
+        public ContractStatsProjection(IEventStore<IAggregate> eventStore, ILog log, ITimeline timeline, IMessageQueue messageQueue)
+            : base(eventStore, log, timeline, messageQueue)
         {
             State = new Results();
-            Register<HashrateBought>(When);
-            Register<AmountMinedByContract>(When);
+            Register<ContractCreated>(When);
+            Register<CoinMinedByContract>(When);
         }
 
-        private static Results When(HashrateBought e, Results state)
+        private static Results When(ContractCreated e, Results state)
         {
-            state.SetType(e.TxId, e.Type);
+            state.SetType(e.ContractId, e.Type);
             return state;
         }
 
-        private static Results When(AmountMinedByContract e, Results state)
+        private static Results When(CoinMinedByContract e, Results state)
         {
-            state.AddMined(e.TxId, e.Quantity);
+            state.AddMined(e.ContractId, e.Quantity);
             return state;
         }
         
+        /// <summary>
+        /// Contract stats results class
+        /// </summary>
         public class Results
         {
             private readonly ConcurrentDictionary<string, double> _mined = new ConcurrentDictionary<string, double>();
             private readonly ConcurrentDictionary<string, string> _types = new ConcurrentDictionary<string, string>();
 
-            public string Type(string txId) => _types.TryGetValue(txId, out var type) ? type : string.Empty;
+            /// <summary>
+            /// Gets the hash type of the contract 
+            /// </summary>
+            /// <param name="contractId">Contract id</param>
+            /// <returns>Hash type of the contract</returns>
+            public string Type(string contractId) 
+                => _types.TryGetValue(contractId, out var type) ? type : string.Empty;
 
-            public void SetType(string txId, string type)
+            /// <summary>
+            /// Sets the type of the contract
+            /// </summary>
+            /// <param name="contractId">Contract id</param>
+            /// <param name="type">Hash type</param>
+            public void SetType(string contractId, string type)
             {
-                _types[txId] = type;
+                _types[contractId] = type;
             }
             
-            public double Mined(string txId)
+            /// <summary>
+            /// Gets the amount mined by the contract
+            /// </summary>
+            /// <param name="contractId">Contract id</param>
+            /// <returns>Total amount mined</returns>
+            public double Mined(string contractId)
             {
-                return _mined.TryGetValue(txId, out var mined) ? mined : 0.0;
+                return _mined.TryGetValue(contractId, out var mined) ? mined : 0.0;
             }
 
-            public void AddMined(string txId, double quantity)
+            /// <summary>
+            /// Adds the mined amount
+            /// </summary>
+            /// <param name="contractId">Contract id</param>
+            /// <param name="quantity">Hash rate quantity</param>
+            public void AddMined(string contractId, double quantity)
             {
-                var q = _mined.GetOrAdd(txId, 0);
-                _mined[txId] = q + quantity;
+                var q = _mined.GetOrAdd(contractId, 0);
+                _mined[contractId] = q + quantity;
             }
         }
     }
