@@ -5,6 +5,8 @@
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 
+#pragma warning disable 1591
+
 namespace <#= GetNamespace() #>
 {
     public class <#= GetFilename() #> : CreateCommandHandlerBase<<#= GetCommandName() #>, <#= GetRootName() #>>
@@ -13,6 +15,6 @@ namespace <#= GetNamespace() #>
             : base(repository) { }
 
         protected override <#= GetRootName() #> Create(<#= GetCommandName() #> command) => new <#= GetRootName() #> (
-            command.Target, command.Type, command.Quantity, command.Total, command.Timestamp);
+            command.Target, command.Type, command.Quantity, command.Total);
     }
 }<#@ include file="../Command.ttinclude" #>

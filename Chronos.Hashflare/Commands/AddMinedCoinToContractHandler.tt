@@ -5,6 +5,8 @@
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 
+#pragma warning disable 1591
+
 namespace <#= GetNamespace() #>
 {
     public class <#= GetFilename() #> : CommandHandlerBase<<#= GetCommandName() #>, <#= GetRootName() #>>
@@ -13,6 +15,6 @@ namespace <#= GetNamespace() #>
             : base(repository) { }
 
         protected override void Act(<#= GetRootName() #> <#= GetRootName().ToLower() #>, <#= GetCommandName() #> command) =>
-            <#= GetRootName().ToLower()#>.AddAmountMined(command.Quantity, command.Timestamp);
+            <#= GetRootName().ToLower()#>.AddAmountMined(command.Quantity);
     }
 }<#@ include file="../Command.ttinclude" #>

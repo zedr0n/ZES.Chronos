@@ -4,17 +4,24 @@ using Chronos.Hashflare.Events;
 using Stateless;
 using ZES.Infrastructure.Sagas;
 
+#pragma warning disable 1591
+
 namespace Chronos.Hashflare.Sagas
 {
+    /// <inheritdoc />
     public class ContractSaga : StatelessSaga<ContractSaga.State, ContractSaga.Trigger>
     {
         private long _expiry;
         private int _quantity;
         private string _txId;
         private string _type;
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ContractSaga"/> class.
+        /// </summary>
         public ContractSaga()
         {
-            Register<HashrateBought>(e => e.TxId, Trigger.ContractCreated, e =>
+            Register<ContractCreated>(e => e.ContractId, Trigger.ContractCreated, e =>
             {
                 _expiry = e.Timestamp;
                 long dt = 365 * 24 * 60 * 60;
@@ -23,7 +30,7 @@ namespace Chronos.Hashflare.Sagas
 
                 _type = e.Type;
                 _quantity = e.Quantity;
-                _txId = e.TxId;
+                _txId = e.ContractId;
             });    
         }
          
@@ -38,6 +45,7 @@ namespace Chronos.Hashflare.Sagas
             Complete
         }
 
+        /// <inheritdoc />
         protected override void ConfigureStateMachine()
         {
             StateMachine = new StateMachine<State, Trigger>(State.Open);
@@ -47,7 +55,6 @@ namespace Chronos.Hashflare.Sagas
 
             StateMachine.Configure(State.Complete)
                 .Ignore(Trigger.ContractCreated);
-                // .OnEntry(() => SendCommand(new ExpireContract(_txId, _type, _quantity, _expiry)));
             base.ConfigureStateMachine();
         }
     }

@@ -35,21 +35,9 @@
     </Choose>
     
     <ItemGroup>
-      <None Update="Commands\RegisterHashflare.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>RegisterHashflare.cs</LastGenOutput>
-      </None>
       <None Update="Commands\RegisterHashflareHandler.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
         <LastGenOutput>RegisterHashflareHandler.cs</LastGenOutput>
-      </None>
-      <None Update="Commands\ExpireContract.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>ExpireContract.cs</LastGenOutput>
-      </None>
-      <None Update="Commands\CreateContract.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>CreateContract.cs</LastGenOutput>
       </None>
       <None Update="Commands\CreateContractHandler.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
@@ -60,22 +48,14 @@
         <LastGenOutput>ExpireContractHandler.cs</LastGenOutput>
         <DependentUpon>ExpireContractHashflare.tt</DependentUpon>
       </None>
-      <None Update="Commands\AddMinedToHashflare.tt">
+      <None Update="Commands\AddMinedCoinToHashflareHandler.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>AddMinedToHashflare.cs</LastGenOutput>
-      </None>
-      <None Update="Commands\AddMinedToHashflareHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>AddMinedToHashflareHandler.cs</LastGenOutput>
+        <LastGenOutput>AddMinedCoinToHashflareHandler.cs</LastGenOutput>
         <DependentUpon>AddMinedToHashflare.tt</DependentUpon>
       </None>
-      <None Update="Commands\AddMinedToContract.tt">
+      <None Update="Commands\AddMinedCoinToContractHandler.tt">
         <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>AddMinedToContract.cs</LastGenOutput>
-      </None>
-      <None Update="Commands\AddMinedToContractHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>AddMinedToContractHandler.cs</LastGenOutput>
+        <LastGenOutput>AddMinedCoinToContractHandler.cs</LastGenOutput>
         <DependentUpon>AddMinedToContract.tt</DependentUpon>
       </None>
     </ItemGroup>
@@ -99,18 +79,22 @@
       <Compile Update="Commands\ExpireContractHandler.cs">
         <DependentUpon>ExpireContractHandler.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\AddMinedToHashflare.cs">
+      <Compile Update="Commands\AddMinedCoinToHashflare.cs">
         <DependentUpon>AddMinedToHashflare.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\AddMinedToHashflareHandler.cs">
-        <DependentUpon>AddMinedToHashflareHandler.tt</DependentUpon>
+      <Compile Update="Commands\AddMinedCoinToHashflareHandler.cs">
+        <DependentUpon>AddMinedCoinToHashflareHandler.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\AddMinedToContract.cs">
+      <Compile Update="Commands\AddMinedCoinToContract.cs">
         <DependentUpon>AddMinedToContract.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\AddMinedToContractHandler.cs">
-        <DependentUpon>AddMinedToContractHandler.tt</DependentUpon>
+      <Compile Update="Commands\AddMinedCoinToContractHandler.cs">
+        <DependentUpon>AddMinedCoinToContractHandler.tt</DependentUpon>
       </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="StyleCop.Analyzers" Version="1.0.2" />
     </ItemGroup>
 
 </Project>

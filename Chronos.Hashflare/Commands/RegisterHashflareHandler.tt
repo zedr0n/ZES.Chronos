@@ -5,6 +5,8 @@
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 
+#pragma warning disable 1591
+
 namespace <#= GetNamespace() #>
 {
     public class <#= GetFilename() #> : CreateCommandHandlerBase<<#= GetCommandName() #>, <#= GetRootName() #>>

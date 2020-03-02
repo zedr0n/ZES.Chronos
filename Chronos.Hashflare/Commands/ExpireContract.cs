@@ -3,19 +3,16 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare.Commands
 {
+    /// <inheritdoc />
     public class ExpireContract : Command
     {
+        /// <inheritdoc />
         public ExpireContract() { }
-        public ExpireContract(string txId, string type, int quantity, long timestamp) 
-            : base(txId) 
-        {
-            Type = type;
-            Quantity = quantity;
-            Timestamp = timestamp; 
-        }
 
-        public string Type { get; }
-        public int Quantity { get; }
-        public int Total { get; }
+        /// <inheritdoc />
+        public ExpireContract(string contractId) 
+            : base(contractId) 
+        {
+        }
     }
 }

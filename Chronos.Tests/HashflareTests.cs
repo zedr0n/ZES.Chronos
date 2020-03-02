@@ -1,6 +1,4 @@
 using System;
-using System.Reactive.Linq;
-using Chronos.Hashflare;
 using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
 using Xunit;
@@ -30,7 +28,7 @@ namespace Chronos.Tests
             
             var time = ((DateTimeOffset)new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).ToUnixTimeMilliseconds(); 
 
-            await await bus.CommandAsync(new RegisterHashflare("user@mail.com", time));
+            await await bus.CommandAsync(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare("user@mail.com"), time));
 
             var hashflare = await repository.Find<Hashflare.Hashflare>("Hashflare");
             Assert.NotNull(hashflare);
@@ -48,8 +46,8 @@ namespace Chronos.Tests
             
             var time = ((DateTimeOffset)new DateTime(1970, 1, 1, 0, 0, 10, DateTimeKind.Utc)).ToUnixTimeMilliseconds(); 
 
-            await await bus.CommandAsync(new RegisterHashflare("user@mail.com", time));
-            await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000, time));
+            await await bus.CommandAsync(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare("user@mail.com"), time));
+            await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("0", "SHA-256", 100, 1000), time));
 
             await bus.Equal(new StatsQuery(), s => s.BitcoinHashRate, 100);
             
@@ -68,7 +66,7 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(new CreateContract("1", "SHA-256", 100, 1000));
 
-            await await bus.CommandAsync(new AddMinedToHashflare("SHA-256", 0.1));
+            await await bus.CommandAsync(new AddMinedCoinToHashflare("SHA-256", 0.1));
 
             await bus.Equal(new ContractStatsQuery("0"), c => c?.Mined, 0.05);
             await bus.Equal(new ContractStatsQuery("1"), c => c?.Mined, 0.05);
@@ -92,12 +90,12 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("1", "SHA-256", 100, 1000), lastTime));
 
             await await bus.CommandAsync(
-                new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.01), midTime));
+                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), midTime));
 
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.01);
 
             await await bus.CommandAsync(
-                new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.01), lastTime + 500));
+                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime + 500));
             
             await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + 1000), c => c.Mined, 0.01 * 1.5);
             await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("1"), lastTime + 1000), c => c.Mined, 0.01 * 0.5);
@@ -121,7 +119,7 @@ namespace Chronos.Tests
  
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(
-                new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.01), lastTime));
+                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime));
             
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("1", "SHA-256", 100, 1000), midTime));
             
@@ -150,15 +148,14 @@ namespace Chronos.Tests
  
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(
-                new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.01), lastTime));
+                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime));
             await await bus.CommandAsync(
-                new RetroactiveCommand<AddMinedToHashflare>(new AddMinedToHashflare("SHA-256", 0.1), ultimateTime));
+                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.1), ultimateTime));
             
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("1", "SHA-256", 100, 1000), midTime));
             
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.055);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.055);
         }
-
     }
 }

@@ -6,6 +6,8 @@ using Chronos.Hashflare.Events;
 using Stateless;
 using ZES.Infrastructure.Sagas;
 
+#pragma warning disable 1591
+
 namespace Chronos.Hashflare.Sagas
 {
     /// <inheritdoc />
@@ -13,6 +15,31 @@ namespace Chronos.Hashflare.Sagas
     {
         private readonly Dictionary<string, double> _contracts = new Dictionary<string, double>();
         private double _quantity;
+        
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MinedAmountSaga"/> class.
+        /// </summary>
+        public MinedAmountSaga()
+        {
+            Register<ContractCreated>(e => "MinedAmountSaga", Trigger.ContractCreated, AddHashrate);
+            Register<CoinMined>(e => "MinedAmountSaga", Trigger.MinedAmountAdded, e => _quantity = e.Quantity);
+        }
+
+        /// <inheritdoc />
+        public enum Trigger
+        {
+            ContractCreated,
+            MinedAmountAdded,
+            Completed
+        }
+
+        /// <inheritdoc />
+        public enum State
+        {
+            Open,
+            Active,
+            Complete
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Dictionary<string, double> Contracts
@@ -33,35 +60,7 @@ namespace Chronos.Hashflare.Sagas
                 return _quantity;
             }
         }
-
-        /// <inheritdoc />
-        public MinedAmountSaga()
-        {
-            Register<HashrateBought>(e => "MinedAmountSaga", Trigger.ContractCreated, AddHashrate);
-            Register<AmountMined>(e => "MinedAmountSaga", Trigger.MinedAmountAdded, e => _quantity = e.Quantity);
-        }
-
-        private void AddHashrate(HashrateBought e)
-        {
-            _contracts.TryGetValue(e.TxId, out var quantity);
-            quantity += e.Quantity; 
-            _contracts[e.TxId] = quantity;
-        }
         
-        public enum Trigger
-        {
-            ContractCreated,
-            MinedAmountAdded,
-            Completed
-        }
-
-        public enum State
-        {
-            Open,
-            Active,
-            Complete
-        }
-
         /// <inheritdoc />
         protected override void ConfigureStateMachine()
         {
@@ -80,10 +79,17 @@ namespace Chronos.Hashflare.Sagas
                 {
                     var total = Contracts.Values.Sum();
                     foreach (var c in Contracts)
-                        SendCommand(new AddMinedToContract(c.Key, string.Empty, c.Value / total * Quantity));
+                        SendCommand(new AddMinedCoinToContract(c.Key, string.Empty, c.Value / total * Quantity));
                     StateMachine.Fire(Trigger.Completed);
                 });
             base.ConfigureStateMachine();
+        }
+        
+        private void AddHashrate(ContractCreated e)
+        {
+            _contracts.TryGetValue(e.ContractId, out var quantity);
+            quantity += e.Quantity; 
+            _contracts[e.ContractId] = quantity;
         }
     }
 }

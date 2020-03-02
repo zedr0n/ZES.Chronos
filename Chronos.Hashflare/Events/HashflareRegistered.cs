@@ -2,14 +2,18 @@ using ZES.Infrastructure.Domain;
 
 namespace Chronos.Hashflare.Events
 {
+    /// <inheritdoc />
     public class HashflareRegistered : Event
     {
-        public HashflareRegistered(string username, long timestamp)
+        /// <inheritdoc />
+        public HashflareRegistered(string username)
         {
             Username = username;
-            Timestamp = timestamp;
         }
         
+        /// <summary>
+        /// Gets username/email
+        /// </summary>
         public string Username { get; }
     }
 }

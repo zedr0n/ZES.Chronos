@@ -7,19 +7,23 @@ using ZES.Interfaces.Pipes;
 
 namespace Chronos.Hashflare.Queries
 {
+    /// <inheritdoc />
     public class StatsProjection : SingleProjection<HashflareStats>
     {
+        /// <inheritdoc />
         public StatsProjection(IEventStore<IAggregate> eventStore, ILog log, ITimeline timeline, IMessageQueue messageQueue) 
             : base(eventStore, log, timeline, messageQueue)
         {
-            Register<HashrateBought>(When);
+            Register<ContractCreated>(When);
             Register<ContractExpired>(When);
         }
 
-        private static HashflareStats When(HashrateBought e, HashflareStats state)
+        private static HashflareStats When(ContractCreated e, HashflareStats state)
         {
             lock (state)
             {
+                state.Details[e.ContractId] = new HashflareStats.ContractDetails(e.Type, e.Quantity);
+                
                 if (e.Type == "SHA-256")
                     state.BitcoinHashRate += e.Quantity;
                 else
@@ -33,10 +37,15 @@ namespace Chronos.Hashflare.Queries
         {
             lock (state)
             {
-                if (e.Type == "SHA-256")
-                    state.BitcoinHashRate -= e.Quantity;
+                if (!state.Details.ContainsKey(e.ContractId))
+                    return state;
+                
+                var details = state.Details[e.ContractId];
+                
+                if (details.Type == "SHA-256")
+                    state.BitcoinHashRate -= details.Quantity;
                 else
-                    state.ScryptHashRate -= e.Quantity;
+                    state.ScryptHashRate -= details.Quantity;
             }
 
             return state;

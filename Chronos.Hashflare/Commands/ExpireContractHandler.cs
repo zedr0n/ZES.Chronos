@@ -1,6 +1,8 @@
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 
+#pragma warning disable 1591
+
 namespace Chronos.Hashflare.Commands
 {
     public class ExpireContractHandler : CommandHandlerBase<ExpireContract, Contract>
@@ -9,6 +11,6 @@ namespace Chronos.Hashflare.Commands
             : base(repository) { }
 
         protected override void Act(Contract contract, ExpireContract command) =>
-            contract.Expire(command.Type, command.Quantity, command.Timestamp);
+            contract.Expire();
     }
 }

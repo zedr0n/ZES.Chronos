@@ -4,26 +4,39 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare
 {
+    /// <summary>
+    /// Hashflare aggregate root
+    /// </summary>
     public class Hashflare : EventSourced, IAggregate
     {
+        /// <inheritdoc />
         public Hashflare()
         {
            Register<HashflareRegistered>(ApplyEvent);
         }
-        
-        public Hashflare(string id, string username, long timestamp)
+
+        /// <inheritdoc />
+        public Hashflare(string id, string username)
             : this()
         {
             Id = id;
-            When(new HashflareRegistered(username, timestamp));
+            When(new HashflareRegistered(username));
         }
 
+        /// <summary>
+        /// Gets username / email
+        /// </summary>
         public string Username { get; private set; }
 
-        public void AddAmountMined(string type, double amount, long timestamp)
+        /// <summary>
+        /// Add mined coin
+        /// </summary>
+        /// <param name="type">Coin type</param>
+        /// <param name="amount">Coin amount</param>
+        public void AddAmountMined(string type, double amount)
         {
             if (amount > 0)
-                When(new AmountMined(type, amount, timestamp));
+                When(new CoinMined(type, amount));
         }
         
         private void ApplyEvent(HashflareRegistered e)

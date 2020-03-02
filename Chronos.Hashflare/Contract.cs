@@ -4,34 +4,44 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare
 {
+    /// <summary>
+    /// Hashflare contract
+    /// </summary>
     public class Contract : EventSourced, IAggregate
     {
-        public int Quantity { get; }
         private string _type;
 
+        /// <inheritdoc />
         public Contract()
         {
-            Register<HashrateBought>(ApplyEvent);
-        }
-        
-        public Contract(string txId, string type, int quantity, int total, long timestamp)
-        {
-            Id = txId;
-            When(new HashrateBought(txId, type, quantity, total, timestamp));
+            Register<ContractCreated>(ApplyEvent);
         }
 
-        public void AddAmountMined(double quantity, long timestamp = default(long))
+        /// <inheritdoc />
+        public Contract(string contractId, string type, int quantity, int total)
         {
-           // When(new AmountMinedByContract(Id, _type, quantity * Ratio, timestamp)); 
-           When(new AmountMinedByContract(Id, _type, quantity, timestamp)); 
+            Id = contractId;
+            When(new ContractCreated(contractId, type, quantity, total));
         }
 
-        public void Expire(string type, int quantity, long timestamp)
+        /// <summary>
+        /// Add mined coin to contract
+        /// </summary>
+        /// <param name="quantity">Mined amount</param>
+        public void AddAmountMined(double quantity)
         {
-            When(new ContractExpired(Id, type, quantity, timestamp));
+           When(new CoinMinedByContract(Id, _type, quantity));
         }
 
-        private void ApplyEvent(HashrateBought e)
+        /// <summary>
+        /// Expire the contract
+        /// </summary>
+        public void Expire()
+        {
+            When(new ContractExpired(Id));
+        }
+
+        private void ApplyEvent(ContractCreated e)
         {
             _type = e.Type;
         }

@@ -2,18 +2,21 @@ using ZES.Infrastructure.Domain;
 
 namespace Chronos.Hashflare.Events
 {
+    /// <inheritdoc />
     public class ContractExpired : Event
     {
-        public ContractExpired(string txId, string type, int quantity, long timestamp)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ContractExpired"/> class.
+        /// </summary>
+        /// <param name="contractId">Contract identifier</param>
+        public ContractExpired(string contractId)
         {
-            Type = type;
-            Quantity = quantity;
-            Timestamp = timestamp;
-            TxId = txId;
+            ContractId = contractId;
         }
-
-        public string TxId { get; }
-        public string Type { get; }
-        public int Quantity { get; }
+        
+        /// <summary>
+        /// Gets contract identifier
+        /// </summary>
+        public string ContractId { get; }
     }
 }
