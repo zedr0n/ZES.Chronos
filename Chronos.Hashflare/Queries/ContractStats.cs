@@ -28,17 +28,17 @@ namespace Chronos.Hashflare.Queries
         }
 
         /// <summary>
-        /// Gets contract identifier 
+        /// Gets or sets gets contract identifier 
         /// </summary>
         public string ContractId { get; set; }
         
         /// <summary>
-        /// Gets coin type
+        /// Gets or sets gets coin type
         /// </summary>
         public string Type { get; set; }
         
         /// <summary>
-        /// Gets total amount mined
+        /// Gets or sets gets total amount mined
         /// </summary>
         public double Mined { get; set; }
     }
