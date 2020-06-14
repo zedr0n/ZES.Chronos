@@ -1,11 +1,12 @@
 using System.Threading;
+using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries
 {
     /// <summary>
     /// Account stats
     /// </summary>
-    public class AccountStats
+    public class AccountStats : IState
     {
         private int _numberOfAccounts;
         

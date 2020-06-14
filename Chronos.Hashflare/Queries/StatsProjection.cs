@@ -8,7 +8,7 @@ using ZES.Interfaces.Pipes;
 namespace Chronos.Hashflare.Queries
 {
     /// <inheritdoc />
-    public class StatsProjection : SingleProjection<HashflareStats>
+    public class StatsProjection : GlobalProjection<HashflareStats>
     {
         /// <inheritdoc />
         public StatsProjection(IEventStore<IAggregate> eventStore, ILog log, ITimeline timeline, IMessageQueue messageQueue) 

@@ -1,15 +1,16 @@
 ﻿using ZES.Infrastructure.Domain;
+using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins.Queries
 {
-    public class CoinInfoQuery : Query<CoinInfo> 
+    public class CoinInfoQuery : Query<CoinInfo>, ISingleQuery<CoinInfo>
     {
         public CoinInfoQuery() { }
-        public CoinInfoQuery(string name)
+        public CoinInfoQuery(string id)
         {
-            Name = name;
+            Id = id;
         }
         
-        public string Name { get; set; }
+        public string Id { get; set; }
     }
 }

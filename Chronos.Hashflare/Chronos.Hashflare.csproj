@@ -29,43 +29,14 @@
       </When> 
       <Otherwise> 
         <ItemGroup>
-          <PackageReference Include="ZES" Version="1.0.481" />
+          <PackageReference Include="ZES" Version="1.0.509" />
         </ItemGroup> 
       </Otherwise> 
     </Choose>
-    
-    <ItemGroup>
-      <None Update="Commands\RegisterHashflareHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>RegisterHashflareHandler.cs</LastGenOutput>
-      </None>
-      <None Update="Commands\CreateContractHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>CreateContractHandler.cs</LastGenOutput>
-      </None>
-      <None Update="Commands\ExpireContractHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>ExpireContractHandler.cs</LastGenOutput>
-        <DependentUpon>ExpireContractHashflare.tt</DependentUpon>
-      </None>
-      <None Update="Commands\AddMinedCoinToHashflareHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>AddMinedCoinToHashflareHandler.cs</LastGenOutput>
-        <DependentUpon>AddMinedToHashflare.tt</DependentUpon>
-      </None>
-      <None Update="Commands\AddMinedCoinToContractHandler.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>AddMinedCoinToContractHandler.cs</LastGenOutput>
-        <DependentUpon>AddMinedToContract.tt</DependentUpon>
-      </None>
-    </ItemGroup>
 
     <ItemGroup>
       <Compile Update="Commands\RegisterHashflare.cs">
         <DependentUpon>RegisterHashflare.tt</DependentUpon>
-      </Compile>
-      <Compile Update="Commands\RegisterHashflareHandler.cs">
-        <DependentUpon>RegisterHashflareHandler.tt</DependentUpon>
       </Compile>
       <Compile Update="Commands\ExpireContract.cs">
         <DependentUpon>ExpireContract.tt</DependentUpon>
@@ -73,23 +44,11 @@
       <Compile Update="Commands\CreateContract.cs">
         <DependentUpon>CreateContract.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\CreateContractHandler.cs">
-        <DependentUpon>CreateContractHandler.tt</DependentUpon>
-      </Compile>
-      <Compile Update="Commands\ExpireContractHandler.cs">
-        <DependentUpon>ExpireContractHandler.tt</DependentUpon>
-      </Compile>
       <Compile Update="Commands\AddMinedCoinToHashflare.cs">
         <DependentUpon>AddMinedToHashflare.tt</DependentUpon>
       </Compile>
-      <Compile Update="Commands\AddMinedCoinToHashflareHandler.cs">
-        <DependentUpon>AddMinedCoinToHashflareHandler.tt</DependentUpon>
-      </Compile>
       <Compile Update="Commands\AddMinedCoinToContract.cs">
         <DependentUpon>AddMinedToContract.tt</DependentUpon>
-      </Compile>
-      <Compile Update="Commands\AddMinedCoinToContractHandler.cs">
-        <DependentUpon>AddMinedCoinToContractHandler.tt</DependentUpon>
       </Compile>
     </ItemGroup>
 
