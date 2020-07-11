@@ -4,7 +4,7 @@ using ZES.Infrastructure.Projections;
 namespace Chronos.Accounts.Queries
 {
     /// <inheritdoc />
-    public class AccountStatsAccountCreatedHandler : ProjectionHandlerBase<AccountStats, AccountCreated>
+    public class AccountStatsHandler : ProjectionHandlerBase<AccountStats, AccountCreated>
     {
         /// <inheritdoc />
         public override AccountStats Handle(AccountCreated e, AccountStats state)

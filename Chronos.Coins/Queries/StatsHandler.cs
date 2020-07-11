@@ -3,7 +3,7 @@ using ZES.Infrastructure.Projections;
 
 namespace Chronos.Coins.Queries
 {
-    public class StatsCoinCreatedHandler : ProjectionHandlerBase<Stats, CoinCreated>
+    public class StatsHandler : ProjectionHandlerBase<Stats, CoinCreated>
     {
         public override Stats Handle(CoinCreated e, Stats state)
         {

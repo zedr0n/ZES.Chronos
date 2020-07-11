@@ -1,11 +1,12 @@
 using System.Collections.Concurrent;
+using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare.Queries
 {
     /// <summary>
     /// Hashflare statistics
     /// </summary>
-    public class HashflareStats
+    public class HashflareStats : IState
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HashflareStats"/> class.
