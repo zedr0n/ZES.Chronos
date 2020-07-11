@@ -1,24 +1,14 @@
 using Chronos.Hashflare.Events;
-using ZES.Infrastructure.Projections;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
-using ZES.Interfaces.EventStore;
-using ZES.Interfaces.Pipes;
 
 namespace Chronos.Hashflare.Queries
 {
-    /// <inheritdoc />
-    public class StatsProjection : GlobalProjection<HashflareStats>
+    public class HashflareStatsHandler : IProjectionHandler<HashflareStats, ContractCreated>, IProjectionHandler<HashflareStats, ContractExpired>
     {
-        /// <inheritdoc />
-        public StatsProjection(IEventStore<IAggregate> eventStore, ILog log, ITimeline timeline, IMessageQueue messageQueue) 
-            : base(eventStore, log, timeline, messageQueue)
-        {
-            Register<ContractCreated>(When);
-            Register<ContractExpired>(When);
-        }
+        public HashflareStats Handle(IEvent e, HashflareStats state) => Handle((dynamic) e, state);
 
-        private static HashflareStats When(ContractCreated e, HashflareStats state)
+        public HashflareStats Handle(ContractCreated e, HashflareStats state)
         {
             lock (state)
             {
@@ -33,7 +23,7 @@ namespace Chronos.Hashflare.Queries
             return state;
         }
 
-        private static HashflareStats When(ContractExpired e, HashflareStats state)
+        public HashflareStats Handle(ContractExpired e, HashflareStats state)
         {
             lock (state)
             {
