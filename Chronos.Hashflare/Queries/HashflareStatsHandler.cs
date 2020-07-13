@@ -4,10 +4,15 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare.Queries
 {
-    public class HashflareStatsHandler : IProjectionHandler<HashflareStats, ContractCreated>, IProjectionHandler<HashflareStats, ContractExpired>
+    /// <summary>
+    /// Projection handler for HashflareStats
+    /// </summary>
+    public class HashflareStatsHandler : IProjectionHandler<HashflareStats, ContractCreated>, IProjectionHandler<HashflareStats, ContractExpired>, IProjectionHandler<HashflareStats, HashflareRegistered>
     {
-        public HashflareStats Handle(IEvent e, HashflareStats state) => Handle((dynamic) e, state);
+        /// <inheritdoc />
+        public HashflareStats Handle(IEvent e, HashflareStats state) => Handle((dynamic)e, state);
 
+        /// <inheritdoc />
         public HashflareStats Handle(ContractCreated e, HashflareStats state)
         {
             lock (state)
@@ -23,6 +28,7 @@ namespace Chronos.Hashflare.Queries
             return state;
         }
 
+        /// <inheritdoc />
         public HashflareStats Handle(ContractExpired e, HashflareStats state)
         {
             lock (state)
@@ -38,6 +44,13 @@ namespace Chronos.Hashflare.Queries
                     state.ScryptHashRate -= details.Quantity;
             }
 
+            return state;
+        }
+
+        /// <inheritdoc />
+        public HashflareStats Handle(HashflareRegistered e, HashflareStats state)
+        {
+            state.Username = e.Username;
             return state;
         }
     }

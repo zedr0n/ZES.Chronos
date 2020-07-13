@@ -19,6 +19,11 @@ namespace Chronos.Hashflare.Queries
         public ConcurrentDictionary<string, ContractDetails> Details { get; } = new ConcurrentDictionary<string, ContractDetails>();
         
         /// <summary>
+        /// Gets or sets the account username 
+        /// </summary>
+        public string Username { get; set; }
+        
+        /// <summary>
         /// Gets or sets total SHA-256 hash rate
         /// </summary>
         public int BitcoinHashRate { get; set; }     

@@ -46,7 +46,7 @@ namespace Chronos.Hashflare.Sagas
         {
             get
             {
-                Hash(_contracts);
+                Hash(_contracts.Values.ToList());
                 return _contracts;
             }
         }

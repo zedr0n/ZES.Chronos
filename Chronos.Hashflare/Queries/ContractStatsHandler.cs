@@ -4,10 +4,15 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare.Queries
 {
+    /// <summary>
+    /// Projection handler for ContractStats
+    /// </summary>
     public class ContractStatsHandler : IProjectionHandler<ContractStats, ContractCreated>, IProjectionHandler<ContractStats, CoinMinedByContract>
     {
+        /// <inheritdoc />
         public ContractStats Handle(IEvent e, ContractStats state) => Handle((dynamic)e, state);
 
+        /// <inheritdoc />
         public ContractStats Handle(ContractCreated e, ContractStats state)
         {
             state.Type = e.Type;
@@ -16,6 +21,7 @@ namespace Chronos.Hashflare.Queries
             return state;
         }
 
+        /// <inheritdoc />
         public ContractStats Handle(CoinMinedByContract e, ContractStats state)
         {
             state.Mined += e.Quantity;

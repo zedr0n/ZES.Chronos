@@ -21,23 +21,30 @@ namespace Chronos.Hashflare.Events
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="ContractCreated"/> class.
+        /// </summary>
+        public ContractCreated()
+        {
+        }
+
+        /// <summary>
         /// Gets contract identifier
         /// </summary>
-        public string ContractId { get; }
+        public string ContractId { get; internal set; }
         
         /// <summary>
         /// Gets coin type
         /// </summary>
-        public string Type { get; }
+        public string Type { get; internal set; }
         
         /// <summary>
         /// Gets hash rate quantity 
         /// </summary>
-        public int Quantity { get; }
+        public int Quantity { get; internal set; }
         
         /// <summary>
         /// Gets total contract cost ( in USD ) 
         /// </summary>
-        public int Total { get; }
+        public int Total { get; internal set; }
     }
 }

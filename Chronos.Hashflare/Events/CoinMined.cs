@@ -5,6 +5,9 @@ namespace Chronos.Hashflare.Events
     /// <inheritdoc />
     public class CoinMined : Event
     {
+        /// <inheritdoc />
+        public CoinMined() { }
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="CoinMined"/> class.
         /// </summary>
@@ -19,11 +22,11 @@ namespace Chronos.Hashflare.Events
         /// <summary>
         /// Gets mined coin type
         /// </summary>
-        public string Type { get; }
+        public string Type { get; internal set; }
         
         /// <summary>
         /// Gets quantity of coin mined
         /// </summary>
-        public double Quantity { get; }
+        public double Quantity { get; internal set; }
     }
 }

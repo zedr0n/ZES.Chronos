@@ -1,11 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp2.2</TargetFramework>
-        <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
         <Configurations>Debug;Release;DebugLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
     </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Chronos.Hashflare\Chronos.Hashflare.csproj" />
+    </ItemGroup>
 
     <Choose>
         <When Condition="'$(Configuration)' == 'DebugLocal'">
@@ -22,37 +28,33 @@
                 <Reference Include="ZES.GraphQL">
                     <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
-                <PackageReference Include="HotChocolate" Version="10.3.5" />
+                <Reference Include="ZES.Replay">
+                    <HintPath>../../ZES/ZES.Replay/bin/Debug/netcoreapp3.1/ZES.Replay.dll</HintPath>
+                </Reference>
+                <PackageReference Include="SimpleInjector" Version="4.4.2" />
+                <PackageReference Include="Stateless" Version="3.0.0" />
+                <PackageReference Include="Crc32.NET" Version="1.2.0" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+                <PackageReference Include="NLog" Version="4.6.8" />
+                <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
                 <PackageReference Include="HotChocolate.Stitching" Version="10.3.5" />
-                <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
-                <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
-                <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.2" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
+                <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+                <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
+                <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
+                <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
-                <PackageReference Include="Microsoft.AspNetCore.App" />
-                <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.522" />
-                <PackageReference Include="HotChocolate.AspNetCore">
-                    <Version>9.0.4</Version>
-                </PackageReference>
-                <PackageReference Include="Microsoft.AspNetCore.App" />
+                <PackageReference Include="ZES.Replay" Version="1.0.522" />
             </ItemGroup>
         </Otherwise>
     </Choose>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Chronos.Accounts\Chronos.Accounts.csproj" />
-      <ProjectReference Include="..\Chronos.Coins\Chronos.Coins.csproj" />
-      <ProjectReference Include="..\Chronos.Hashflare\Chronos.Hashflare.csproj" />
-    </ItemGroup>
-
 </Project>

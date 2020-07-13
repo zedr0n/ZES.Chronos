@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Core", "Chronos.Cor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Hashflare", "Chronos.Hashflare\Chronos.Hashflare.csproj", "{BC01C241-F20A-4CB3-A49B-78147DE158BE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chronos.Replay", "Chronos.Replay\Chronos.Replay.csproj", "{3A254530-267C-45C7-B2CC-0D6196ED7E48}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,5 +57,11 @@ Global
 		{BC01C241-F20A-4CB3-A49B-78147DE158BE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BC01C241-F20A-4CB3-A49B-78147DE158BE}.DebugLocal|Any CPU.ActiveCfg = DebugLocal|Any CPU
 		{BC01C241-F20A-4CB3-A49B-78147DE158BE}.DebugLocal|Any CPU.Build.0 = DebugLocal|Any CPU
+		{3A254530-267C-45C7-B2CC-0D6196ED7E48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A254530-267C-45C7-B2CC-0D6196ED7E48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A254530-267C-45C7-B2CC-0D6196ED7E48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A254530-267C-45C7-B2CC-0D6196ED7E48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A254530-267C-45C7-B2CC-0D6196ED7E48}.DebugLocal|Any CPU.ActiveCfg = DebugLocal|Any CPU
+		{3A254530-267C-45C7-B2CC-0D6196ED7E48}.DebugLocal|Any CPU.Build.0 = DebugLocal|Any CPU
 	EndGlobalSection
 EndGlobal
