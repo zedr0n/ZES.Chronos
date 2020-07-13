@@ -15,6 +15,7 @@ namespace Chronos.Hashflare.Sagas
     {
         private readonly Dictionary<string, double> _contracts = new Dictionary<string, double>();
         private double _quantity;
+        private string _type;
         
         /// <summary>
         /// Initializes a new instance of the <see cref="MinedAmountSaga"/> class.
@@ -22,7 +23,11 @@ namespace Chronos.Hashflare.Sagas
         public MinedAmountSaga()
         {
             Register<ContractCreated>(e => "MinedAmountSaga", Trigger.ContractCreated, AddHashrate);
-            Register<CoinMined>(e => "MinedAmountSaga", Trigger.MinedAmountAdded, e => _quantity = e.Quantity);
+            Register<CoinMined>(e => "MinedAmountSaga", Trigger.MinedAmountAdded, e =>
+            {
+                _quantity = e.Quantity;
+                _type = e.Type;
+            });
         }
 
         /// <inheritdoc />
@@ -87,6 +92,9 @@ namespace Chronos.Hashflare.Sagas
         
         private void AddHashrate(ContractCreated e)
         {
+            if (e.Type != "SHA-256")
+                return;
+            
             _contracts.TryGetValue(e.ContractId, out var quantity);
             quantity += e.Quantity; 
             _contracts[e.ContractId] = quantity;
