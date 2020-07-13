@@ -31,10 +31,10 @@ namespace Chronos.Hashflare
             }
 
             public HashflareStats HashflareStats() 
-                => Resolve(new StatsQuery());
+                => Resolve(new HashflareStatsQuery());
 
             public HashflareStats HashflareStatsAsOf(long timestamp) 
-                => Resolve(new HistoricalQuery<StatsQuery, HashflareStats>(new StatsQuery(), timestamp));
+                => Resolve(new HistoricalQuery<HashflareStatsQuery, HashflareStats>(new HashflareStatsQuery(), timestamp));
 
             public ContractStats ContractStats(string txId) 
                 => Resolve(new ContractStatsQuery(txId));

@@ -49,9 +49,9 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare("user@mail.com"), time));
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("0", "SHA-256", 100, 1000), time));
 
-            await bus.Equal(new StatsQuery(), s => s.BitcoinHashRate, 100);
+            await bus.Equal(new HashflareStatsQuery(), s => s.BitcoinHashRate, 100);
             
-            var historicalQuery = new HistoricalQuery<StatsQuery, HashflareStats>(new StatsQuery(), time + 100);
+            var historicalQuery = new HistoricalQuery<HashflareStatsQuery, HashflareStats>(new HashflareStatsQuery(), time + 100);
             var result = await bus.QueryAsync(historicalQuery);
             Assert.Equal(100, result.BitcoinHashRate);
         }

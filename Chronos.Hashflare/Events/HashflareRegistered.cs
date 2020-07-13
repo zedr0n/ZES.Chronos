@@ -10,10 +10,17 @@ namespace Chronos.Hashflare.Events
         {
             Username = username;
         }
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HashflareRegistered"/> class.
+        /// </summary>
+        public HashflareRegistered()
+        {
+        }
+
         /// <summary>
         /// Gets username/email
         /// </summary>
-        public string Username { get; }
+        public string Username { get; internal set; }
     }
 }

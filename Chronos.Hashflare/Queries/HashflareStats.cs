@@ -1,11 +1,12 @@
 using System.Collections.Concurrent;
+using ZES.Interfaces.Domain;
 
 namespace Chronos.Hashflare.Queries
 {
     /// <summary>
     /// Hashflare statistics
     /// </summary>
-    public class HashflareStats
+    public class HashflareStats : IState
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="HashflareStats"/> class.
@@ -16,6 +17,11 @@ namespace Chronos.Hashflare.Queries
         /// Gets contract details
         /// </summary>
         public ConcurrentDictionary<string, ContractDetails> Details { get; } = new ConcurrentDictionary<string, ContractDetails>();
+        
+        /// <summary>
+        /// Gets or sets the account username 
+        /// </summary>
+        public string Username { get; set; }
         
         /// <summary>
         /// Gets or sets total SHA-256 hash rate

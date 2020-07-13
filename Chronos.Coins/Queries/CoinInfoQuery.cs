@@ -2,14 +2,12 @@
 
 namespace Chronos.Coins.Queries
 {
-    public class CoinInfoQuery : Query<CoinInfo> 
+    public class CoinInfoQuery : SingleQuery<CoinInfo>
     {
         public CoinInfoQuery() { }
         public CoinInfoQuery(string name)
+            : base(name)
         {
-            Name = name;
         }
-        
-        public string Name { get; set; }
     }
 }

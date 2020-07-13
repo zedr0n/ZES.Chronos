@@ -1,9 +1,11 @@
+using ZES.Interfaces.Domain;
+
 namespace Chronos.Hashflare.Queries
 {
     /// <summary>
     /// Contract statistics
     /// </summary>
-    public class ContractStats
+    public class ContractStats : ISingleState
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ContractStats"/> class.
@@ -26,18 +28,18 @@ namespace Chronos.Hashflare.Queries
         }
 
         /// <summary>
-        /// Gets contract identifier 
+        /// Gets or sets gets contract identifier 
         /// </summary>
-        public string ContractId { get; }
+        public string ContractId { get; set; }
         
         /// <summary>
-        /// Gets coin type
+        /// Gets or sets gets coin type
         /// </summary>
-        public string Type { get; }
+        public string Type { get; set; }
         
         /// <summary>
-        /// Gets total amount mined
+        /// Gets or sets gets total amount mined
         /// </summary>
-        public double Mined { get; }
+        public double Mined { get; set; }
     }
 }

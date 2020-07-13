@@ -30,7 +30,7 @@ namespace Chronos.Accounts
         public Account(string name, Type type)
             : this()
         {
-            base.When(new AccountCreated(name, type));    
+            When(new AccountCreated(name, type));    
         }
         
         /// <summary>
@@ -56,7 +56,7 @@ namespace Chronos.Accounts
         /// <param name="quantity">Quantity to deposit</param>
         public void DepositAsset(string assetId, double quantity)
         {
-            base.When(new AssetDeposited(assetId, quantity));
+            When(new AssetDeposited(assetId, quantity));
         }
 
         private void ApplyEvent(AccountCreated e)

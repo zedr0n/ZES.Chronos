@@ -28,7 +28,7 @@
                 <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
-                <PackageReference Include="SqlStreamStore" Version="1.2.0-beta.7" />
+                <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.2" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
                 <PackageReference Include="HotChocolate.AspNetCore">
@@ -40,7 +40,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.481" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.522" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
