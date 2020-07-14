@@ -17,7 +17,7 @@ ZES.Taskpane/
 *.userosscache
 *.sln.docstates
 *.DotSettings
-*.json
+ZES*.json
 *.odb
 *.html
 
