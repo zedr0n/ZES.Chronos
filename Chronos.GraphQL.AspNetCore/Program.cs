@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore;
+﻿using System.Linq;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 
 namespace Chronos.GraphQL.AspNetCore
@@ -13,6 +14,7 @@ namespace Chronos.GraphQL.AspNetCore
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
+                .UseKestrel(options => options.ConfigureEndpoints())
                 .UseUrls("http://localhost:5000", "https://localhost:5001");
     }
 }
