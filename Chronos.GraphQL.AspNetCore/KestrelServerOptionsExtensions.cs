@@ -23,8 +23,8 @@ namespace Chronos.GraphQL.AspNetCore
                     Port = 5001,
                     Scheme = "https",
                     StoreName = "My",
-                    StoreLocation = "CurrentUser"
-                }    
+                    StoreLocation = "CurrentUser",
+                },
             };
         
             foreach (var endpoint in endpoints)

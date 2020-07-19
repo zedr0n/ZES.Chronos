@@ -27,5 +27,19 @@ namespace Chronos.Tests
             Assert.NotNull(account); 
             Assert.Equal("Account", account.Id);
         }
+
+        [Fact]
+        public async void CanDepositAsset()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var repository = container.GetInstance<IEsRepository<IAggregate>>();
+            
+            await await bus.CommandAsync(new CreateAccount("Account", Account.Type.Trading));
+            await await bus.CommandAsync(new DepositAsset("Account", "Bitcoin", 1.0));
+            
+            var account = await repository.Find<Account>("Account");
+            Assert.Equal("Bitcoin", account.Assets[0]);
+        }
     }
 }

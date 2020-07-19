@@ -22,7 +22,7 @@ namespace Chronos.Accounts.Events
         /// Gets asset identifier 
         /// </summary>
         /// <value>
-        /// <placeholder>Asset identifier</placeholder>
+        /// Asset identifier
         /// </value>
         public string AssetId { get; private set; }
 
@@ -30,7 +30,7 @@ namespace Chronos.Accounts.Events
         /// Gets quantity of asset deposited
         /// </summary>
         /// <value>
-        /// <placeholder>Quantity of asset deposited</placeholder>
+        /// Quantity of asset deposited
         /// </value>
         public double Quantity { get; private set; }
     }

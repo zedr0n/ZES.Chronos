@@ -11,13 +11,21 @@ namespace Chronos.Hashflare
     {
         private string _type;
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Contract"/> class.
+        /// </summary>
         public Contract()
         {
             Register<ContractCreated>(ApplyEvent);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Contract"/> class.
+        /// </summary>
+        /// <param name="contractId">Contract identifier</param>
+        /// <param name="type">Algo type</param>
+        /// <param name="quantity">Hashrate amount</param>
+        /// <param name="total">Total price (in USD ) </param>
         public Contract(string contractId, string type, int quantity, int total)
         {
             Id = contractId;

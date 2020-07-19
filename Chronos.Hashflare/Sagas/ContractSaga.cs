@@ -36,13 +36,13 @@ namespace Chronos.Hashflare.Sagas
          
         public enum Trigger
         {
-            ContractCreated
+            ContractCreated,
         }
         
         public enum State 
         {
             Open,
-            Complete
+            Complete,
         }
 
         /// <inheritdoc />

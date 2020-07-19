@@ -7,8 +7,15 @@ using ZES.Replay;
 #pragma warning disable 1591
 namespace Chronos.Replay
 {
-    public class Program
+    /// <summary>
+    /// Main program class
+    /// </summary>
+    public static class Program
     {
+        /// <summary>
+        /// Main program entrypoint
+        /// </summary>
+        /// <param name="args">Arguments</param>
         public static void Main(string[] args)
         {
             var player = new Replayer();

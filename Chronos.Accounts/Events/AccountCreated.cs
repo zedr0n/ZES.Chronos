@@ -21,16 +21,14 @@ namespace Chronos.Accounts.Events
         /// <summary>
         /// Gets account name ( identifier )
         /// </summary>
-        /// <value>
-        /// <placeholder>Account name ( identifier )</placeholder>
-        /// </value>
+        /// <value>Account name ( identifier )</value>
         public string Name { get; }
         
         /// <summary>
         /// Gets or sets account type 
         /// </summary>
         /// <value>
-        /// <placeholder>Account type </placeholder>
+        /// Account type 
         /// </value>
         public Account.Type Type { get; set; }
     }

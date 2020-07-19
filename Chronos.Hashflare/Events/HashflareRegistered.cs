@@ -5,7 +5,10 @@ namespace Chronos.Hashflare.Events
     /// <inheritdoc />
     public class HashflareRegistered : Event
     {
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HashflareRegistered"/> class.
+        /// </summary>
+        /// <param name="username">User e-mail</param>
         public HashflareRegistered(string username)
         {
             Username = username;

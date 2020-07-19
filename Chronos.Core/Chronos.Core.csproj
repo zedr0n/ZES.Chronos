@@ -10,6 +10,10 @@
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
+    </ItemGroup>
+
     <Choose>
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
@@ -20,7 +24,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.524" />
+                <PackageReference Include="ZES" Version="1.0.528" />
             </ItemGroup>
         </Otherwise>
     </Choose>

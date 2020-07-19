@@ -13,6 +13,9 @@ using ZES.Utils;
 
 namespace Chronos.Hashflare
 {
+    /// <summary>
+    /// Hashflare config class
+    /// </summary>
     public class Config
     {
         [Registration]
@@ -24,7 +27,10 @@ namespace Chronos.Hashflare
         /// <inheritdoc />
         public class Queries : GraphQlQuery
         {
-            /// <inheritdoc />
+            /// <summary>
+            /// Initializes a new instance of the <see cref="Queries"/> class.
+            /// </summary>
+            /// <param name="bus">Message bus</param>
             public Queries(IBus bus) 
                 : base(bus)
             {

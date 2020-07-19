@@ -37,7 +37,7 @@ namespace Chronos.Core
             /// <summary>
             /// Currency
             /// </summary>
-            Currency
+            Currency,
         }
 
         /// <summary>

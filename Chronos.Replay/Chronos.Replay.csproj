@@ -53,7 +53,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.Replay" Version="1.0.524" />
+                <PackageReference Include="ZES.Replay" Version="1.0.528" />
             </ItemGroup>
         </Otherwise>
     </Choose>

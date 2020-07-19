@@ -28,20 +28,18 @@ namespace Chronos.Hashflare.Sagas
             });
         }
 
-        /// <inheritdoc />
         public enum Trigger
         {
             ContractCreated,
             MinedAmountAdded,
-            Completed
+            Completed,
         }
 
-        /// <inheritdoc />
         public enum State
         {
             Open,
             Active,
-            Complete
+            Complete,
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]

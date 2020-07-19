@@ -19,7 +19,7 @@ namespace Chronos.Tests
             {
                 Coins.Config.RegisterAll,
                 Accounts.Config.RegisterAll,
-                Hashflare.Config.RegisterAll
+                Hashflare.Config.RegisterAll,
             };
             if (registrations != null)
                 regs.AddRange(registrations);

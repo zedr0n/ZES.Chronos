@@ -9,13 +9,19 @@ namespace Chronos.Hashflare
     /// </summary>
     public class Hashflare : EventSourced, IAggregate
     {
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Hashflare"/> class.
+        /// </summary>
         public Hashflare()
         {
            Register<HashflareRegistered>(ApplyEvent);
         }
 
-        /// <inheritdoc />
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Hashflare"/> class.
+        /// </summary>
+        /// <param name="id">Account id</param>
+        /// <param name="username">E-mail username</param>
         public Hashflare(string id, string username)
             : this()
         {

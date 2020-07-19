@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using Chronos.Accounts.Events;
 using Chronos.Core;
 using ZES.Infrastructure.Domain;
@@ -32,7 +34,7 @@ namespace Chronos.Accounts
         {
             When(new AccountCreated(name, type));    
         }
-        
+
         /// <summary>
         /// Account type enum
         /// </summary>
@@ -46,8 +48,10 @@ namespace Chronos.Accounts
             /// <summary>
             /// Trading account ( stocks, crypto, etc... ) 
             /// </summary>
-            Trading
+            Trading,
         }
+
+        public List<string> Assets => _assets.Keys.Select(k => k.AssetId).ToList();
 
         /// <summary>
         /// Deposit an asset to account 
