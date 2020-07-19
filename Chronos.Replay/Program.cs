@@ -2,7 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 using Chronos.Hashflare;
-using ZES.Replay;
+using ZES.GraphQL;
 
 #pragma warning disable 1591
 namespace Chronos.Replay

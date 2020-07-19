@@ -28,9 +28,6 @@
                 <Reference Include="ZES.GraphQL">
                     <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
-                <Reference Include="ZES.Replay">
-                    <HintPath>../../ZES/ZES.Replay/bin/Debug/netcoreapp3.1/ZES.Replay.dll</HintPath>
-                </Reference>
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="Crc32.NET" Version="1.2.0" />
@@ -53,7 +50,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.Replay" Version="1.0.528" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.529" />
             </ItemGroup>
         </Otherwise>
     </Choose>
