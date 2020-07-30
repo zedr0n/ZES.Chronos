@@ -2,7 +2,7 @@ using System.Reflection;
 using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
 using SimpleInjector;
-using ZES.Infrastructure.Attributes;
+using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
 using ZES.Interfaces;

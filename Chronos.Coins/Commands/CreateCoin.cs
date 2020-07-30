@@ -13,11 +13,7 @@ namespace Chronos.Coins.Commands
             Ticker = ticker;
         }
         
-        public string Name 
-        { 
-            get => Target;
-            set => Target = value;
-        }
+        public string Name { get; set; }
         
         public string Ticker { get; set; }
     }

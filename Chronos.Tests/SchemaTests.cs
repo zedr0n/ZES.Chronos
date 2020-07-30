@@ -1,4 +1,3 @@
-using Chronos.Coins;
 using HotChocolate.Execution;
 using Xunit;
 using Xunit.Abstractions;

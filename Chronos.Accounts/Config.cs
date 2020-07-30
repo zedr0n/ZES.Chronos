@@ -3,7 +3,7 @@ using System.Reflection;
 using Chronos.Accounts.Commands;
 using Chronos.Accounts.Queries;
 using SimpleInjector;
-using ZES.Infrastructure.Attributes;
+using ZES.Infrastructure;
 using ZES.Infrastructure.GraphQl;
 using ZES.Interfaces;
 using ZES.Interfaces.Pipes;

@@ -1,8 +1,6 @@
-using System.Collections.Generic;
-using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Events;
 using Stateless;
-using ZES.Infrastructure.Sagas;
+using ZES.Infrastructure.Domain;
 
 #pragma warning disable 1591
 

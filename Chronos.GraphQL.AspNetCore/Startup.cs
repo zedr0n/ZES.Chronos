@@ -1,9 +1,7 @@
-﻿using Chronos.Coins;
-using HotChocolate.AspNetCore;
+﻿using HotChocolate.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using SimpleInjector;
 using ZES.GraphQL;
 
 namespace Chronos.GraphQL.AspNetCore

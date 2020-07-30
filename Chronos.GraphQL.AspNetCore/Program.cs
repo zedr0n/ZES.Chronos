@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using Microsoft.AspNetCore;
+﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 
 namespace Chronos.GraphQL.AspNetCore

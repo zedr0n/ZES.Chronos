@@ -3,7 +3,6 @@ using Chronos.Coins.Commands;
 using Chronos.Coins.Queries;
 using SimpleInjector;
 using ZES.Infrastructure;
-using ZES.Infrastructure.Attributes;
 using ZES.Infrastructure.GraphQl;
 using ZES.Interfaces;
 using ZES.Interfaces.Pipes;
