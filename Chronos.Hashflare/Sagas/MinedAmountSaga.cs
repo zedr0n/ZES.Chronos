@@ -62,7 +62,6 @@ namespace Chronos.Hashflare.Sagas
             }
             set
             {
-                AddHash(_quantity);
                 AddHash(value);
                 _quantity = value;
             }
