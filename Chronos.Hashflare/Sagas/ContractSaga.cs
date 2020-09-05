@@ -46,14 +46,13 @@ namespace Chronos.Hashflare.Sagas
         /// <inheritdoc />
         protected override void ConfigureStateMachine()
         {
-            StateMachine = new StateMachine<State, Trigger>(State.Open);
+            base.ConfigureStateMachine();
 
             StateMachine.Configure(State.Open)
                 .Permit(Trigger.ContractCreated, State.Complete);
 
             StateMachine.Configure(State.Complete)
                 .Ignore(Trigger.ContractCreated);
-            base.ConfigureStateMachine();
         }
     }
 }

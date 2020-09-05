@@ -24,7 +24,7 @@ namespace Chronos.Hashflare.Sagas
             Register<ContractCreated>(e => $"MinedAmountSaga[{e.Type}]", Trigger.ContractCreated, AddHashrate);
             Register<CoinMined>(e => $"MinedAmountSaga[{e.Type}]", Trigger.MinedAmountAdded, e =>
             {
-                _quantity = e.Quantity;
+                Quantity = e.Quantity;
             });
         }
 
@@ -47,7 +47,7 @@ namespace Chronos.Hashflare.Sagas
         {
             get
             {
-                Hash(_contracts.Values.ToList());
+                AddHash(_contracts.Values.ToList());
                 return _contracts;
             }
         }
@@ -57,15 +57,21 @@ namespace Chronos.Hashflare.Sagas
         {
             get
             {
-                Hash(_quantity);
+                AddHash(_quantity);
                 return _quantity;
+            }
+            set
+            {
+                AddHash(_quantity);
+                AddHash(value);
+                _quantity = value;
             }
         }
         
         /// <inheritdoc />
         protected override void ConfigureStateMachine()
         {
-            StateMachine = new StateMachine<State, Trigger>(State.Open);
+            base.ConfigureStateMachine();
 
             StateMachine.Configure(State.Open)
                 .Permit(Trigger.ContractCreated, State.Active);
@@ -83,7 +89,6 @@ namespace Chronos.Hashflare.Sagas
                         SendCommand(new AddMinedCoinToContract(c.Key, string.Empty, c.Value / total * Quantity));
                     StateMachine.Fire(Trigger.Completed);
                 });
-            base.ConfigureStateMachine();
         }
         
         private void AddHashrate(ContractCreated e)
