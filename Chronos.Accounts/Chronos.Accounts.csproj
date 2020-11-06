@@ -7,7 +7,7 @@
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
         <NoWarn>1587;1591</NoWarn>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <Configurations>Debug;Release;DebugLocal</Configurations>
+        <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
@@ -26,9 +26,23 @@
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
             </ItemGroup>
         </When>
+        <When Condition="'$(Configuration)' == 'ReleaseLocal'">
+            <ItemGroup>
+                <Reference Include="ZES.Interfaces">
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES.Infrastructure">
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES">
+                    <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
+                </Reference>
+                <PackageReference Include="SimpleInjector" Version="4.4.2" />
+            </ItemGroup>
+        </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.591" />
+                <PackageReference Include="ZES" Version="1.0.597" />
             </ItemGroup>
         </Otherwise>
     </Choose>

@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp2.2</TargetFramework>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
-        <Configurations>Debug;Release;DebugLocal</Configurations>
+        <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
@@ -35,17 +35,45 @@
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
-                <PackageReference Include="Microsoft.AspNetCore.App" />
+                <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+            </ItemGroup>
+        </When>
+        <When Condition="'$(Configuration)' == 'ReleaseLocal'">
+            <ItemGroup>
+                <Reference Include="ZES.Interfaces">
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES.Infrastructure">
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES">
+                    <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
+                </Reference>
+                <Reference Include="ZES.GraphQL">
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/netstandard2.0/ZES.GraphQL.dll</HintPath>
+                </Reference>
+                <PackageReference Include="HotChocolate" Version="10.3.5" />
+                <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+                <PackageReference Include="HotChocolate.Stitching" Version="10.3.5" />
+                <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
+                <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
+                <PackageReference Include="Crc32.NET" Version="1.2.0" />
+                <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.2" />
+                <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
+                <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
+                <PackageReference Include="HotChocolate.AspNetCore">
+                    <Version>9.0.4</Version>
+                </PackageReference>
                 <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.591" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.597" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
-                <PackageReference Include="Microsoft.AspNetCore.App" />
             </ItemGroup>
         </Otherwise>
     </Choose>
