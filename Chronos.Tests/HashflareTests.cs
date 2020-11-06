@@ -115,9 +115,9 @@ namespace Chronos.Tests
             var graph = container.GetInstance<IGraph>();
 
             var time = timeline.Now;
-            var nAdds = 50;
+            var nAdds = 20;
             var totalBefore = 0.0;
-            var lastTime = time + (60 * 1000 * ( nAdds * 2 + 1 ));
+            var lastTime = time + (60 * 1000 * ( (nAdds * 2) + 1 ));
             var midTime = (time + lastTime) / 2;
             
             await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using ZES.GraphQL;
 
+#pragma warning disable CS0618
+
 namespace Chronos.GraphQL.AspNetCore
 {
     public class Startup
