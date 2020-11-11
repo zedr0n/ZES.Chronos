@@ -7,7 +7,6 @@ namespace Chronos.Coins.Commands
     {
         public CreateCoin() { }
         public CreateCoin(string name, string ticker)
-            : base(name)
         {
             Name = name;
             Ticker = ticker;
@@ -16,5 +15,7 @@ namespace Chronos.Coins.Commands
         public string Name { get; set; }
         
         public string Ticker { get; set; }
+
+        public override string Target => Name;
     }
 }

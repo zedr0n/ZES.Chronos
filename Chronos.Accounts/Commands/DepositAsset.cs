@@ -10,18 +10,28 @@
     public DepositAsset() 
     {
     }  
+    public string Name
+    {
+       get;
+    }  
     public string AssetId
     {
-       get; 
-       set;
+       get;
     }  
     public double Quantity
     {
-       get; 
-       set;
+       get;
     }  
-    public DepositAsset(string target, string assetId, double quantity) : base(target) 
+    public override string Target
     {
+       get
+      {
+        return Name;
+      }
+    }  
+    public DepositAsset(string name, string assetId, double quantity) 
+    {
+      Name = name; 
       AssetId = assetId; 
       Quantity = quantity;
     }

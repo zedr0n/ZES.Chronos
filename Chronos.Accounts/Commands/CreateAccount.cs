@@ -10,13 +10,24 @@
     public CreateAccount() 
     {
     }  
+    public string Name
+    {
+       get;
+    }  
     public Account.Type Type
     {
-       get; 
-       set;
+       get;
     }  
-    public CreateAccount(string target, Account.Type type) : base(target) 
+    public override string Target
     {
+       get
+      {
+        return Name;
+      }
+    }  
+    public CreateAccount(string name, Account.Type type) 
+    {
+      Name = name; 
       Type = type;
     }
   }

@@ -7,9 +7,6 @@ namespace Chronos.Hashflare.Events
     {
         public override void Write(JsonTextWriter writer, CoinMinedByContract e)
         {
-           writer.WritePropertyName(nameof(CoinMinedByContract.ContractId));
-           writer.WriteValue(e.ContractId);
-           
            writer.WritePropertyName(nameof(CoinMinedByContract.Type));
            writer.WriteValue(e.Type);
            

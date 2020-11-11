@@ -12,7 +12,7 @@
     }  
     protected override Account Create (CreateAccount command)
     {
-      return new Account(command.Target, command.Type);
+      return new Account(command.Name, command.Type);
     }
   }
 }

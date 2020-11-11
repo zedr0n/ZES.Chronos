@@ -14,9 +14,6 @@ namespace Chronos.Hashflare.Events
         {
             switch (reader.TokenType)
             {
-                case JsonToken.String when currentProperty == nameof(CoinMinedByContract.ContractId):
-                    e.ContractId = (string)reader.Value;
-                    break;
                 case JsonToken.String when currentProperty == nameof(CoinMinedByContract.Type):
                     e.Type = (string)reader.Value;
                     break;
