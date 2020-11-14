@@ -1,4 +1,5 @@
 using Chronos.Hashflare.Events;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
@@ -33,10 +34,10 @@ namespace Chronos.Hashflare.Queries
         {
             lock (state)
             {
-                if (!state.Details.ContainsKey(e.ContractId))
+                if (!state.Details.ContainsKey(e.AggregateRootId()))
                     return state;
                 
-                var details = state.Details[e.ContractId];
+                var details = state.Details[e.AggregateRootId()];
                 
                 if (details.Type == "SHA-256")
                     state.BitcoinHashRate -= details.Quantity;

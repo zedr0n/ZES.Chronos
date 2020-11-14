@@ -9,15 +9,6 @@
   {
     public ContractExpired() 
     {
-    }  
-    public string ContractId
-    {
-       get; 
-       set;
-    }  
-    public ContractExpired(string contractId) 
-    {
-      ContractId = contractId;
     }
   }
 }

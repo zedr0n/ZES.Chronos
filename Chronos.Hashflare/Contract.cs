@@ -17,9 +17,9 @@
     {
       When(new Chronos.Hashflare.Events.ContractCreated(contractId, type, quantity, total));
     }  
-    public void Expire (string contractId)
+    public void Expire ()
     {
-      When(new Chronos.Hashflare.Events.ContractExpired(contractId));
+      When(new Chronos.Hashflare.Events.ContractExpired());
     }  
     public void AddAmountMined (string type, double quantity)
     {

@@ -12,7 +12,7 @@
     }  
     protected override void Act (Contract contract, ExpireContract command)
     {
-      contract.Expire(command.ContractId);
+      contract.Expire();
     }
   }
 }
