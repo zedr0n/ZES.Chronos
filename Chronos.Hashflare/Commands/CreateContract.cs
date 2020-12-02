@@ -25,7 +25,7 @@
        get; 
        set;
     }  
-    public int Total
+    public double Total
     {
        get; 
        set;
@@ -37,7 +37,7 @@
         return ContractId;
       }
     }  
-    public CreateContract(string contractId, string type, int quantity, int total) 
+    public CreateContract(string contractId, string type, int quantity, double total) 
     {
       ContractId = contractId; 
       Type = type; 

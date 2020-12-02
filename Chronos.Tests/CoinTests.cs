@@ -1,10 +1,13 @@
 using System;
+using System.Threading;
 using Chronos.Coins;
 using Chronos.Coins.Commands;
+using Chronos.Coins.Events;
 using Chronos.Coins.Queries;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
+using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
 using ZES.Tests;
@@ -53,19 +56,52 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            var timeline = container.GetInstance<ITimeline>();
+           
+            await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
+            var now = timeline.Now;
+            Thread.Sleep(50);
             
-            await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
-            var coinInfo = await bus.QueryUntil(new CoinInfoQuery("Bitcoin"));
-            
-            await bus.CommandAsync(new CreateCoin("Ethereum", "ETH"));
+            await await bus.CommandAsync(new CreateCoin("Ethereum", "ETH"));
 
             await bus.Equal(new StatsQuery(), s => s.NumberOfCoins, 2);
             
-            var historicalQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), coinInfo.CreatedAt);
+            var historicalQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), now);
             await bus.Equal(historicalQuery, s => s.NumberOfCoins, 1);
             
             var liveQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), DateTime.UtcNow.Ticks);
             await bus.Equal(liveQuery, s => s.NumberOfCoins, 2);
+        }
+
+        [Fact]
+        public async void CanGetWalletInfo()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            
+            await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
+            await await bus.CommandAsync(new CreateWallet("0x1"));
+
+            await await bus.CommandAsync(new ChangeWalletBalance("0x1", 0.1, null));
+
+            await bus.Equal(new WalletInfoQuery("0x1"), s => s.Balance, 0.1);
+        }
+
+        [Fact]
+        public async void CanTransferCoins()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            
+            await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
+            await await bus.CommandAsync(new CreateWallet("0x1"));
+            await await bus.CommandAsync(new CreateWallet("0x2"));
+            
+            await await bus.CommandAsync(new ChangeWalletBalance("0x1", 0.1, null));
+
+            await await bus.CommandAsync(new TransferCoins("0x0", "0x1", "0x2", 0.05, 0.001));
+            await bus.Equal(new WalletInfoQuery("0x1"), s => s.Balance, 0.049);
+            await bus.Equal(new WalletInfoQuery("0x2"), s => s.Balance, 0.05);
         }
     }
 }

@@ -15,6 +15,7 @@ namespace Chronos.Hashflare.Sagas
     {
         private readonly Dictionary<string, double> _contracts = new Dictionary<string, double>();
         private double _quantity;
+        private string _type;
         
         /// <summary>
         /// Initializes a new instance of the <see cref="MinedAmountSaga"/> class.
@@ -85,13 +86,14 @@ namespace Chronos.Hashflare.Sagas
                 {
                     var total = Contracts.Values.Sum();
                     foreach (var c in Contracts)
-                        SendCommand(new AddMinedCoinToContract(c.Key, string.Empty, c.Value / total * Quantity));
+                        SendCommand(new AddMinedCoinToContract(c.Key, _type, c.Value / total * Quantity));
                     StateMachine.Fire(Trigger.Completed);
                 });
         }
         
         private void AddHashrate(ContractCreated e)
         {
+            _type = e.Type;
             _contracts.TryGetValue(e.ContractId, out var quantity);
             quantity += e.Quantity; 
             _contracts[e.ContractId] = quantity;

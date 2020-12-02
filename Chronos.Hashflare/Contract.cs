@@ -13,7 +13,7 @@
       Register<Chronos.Hashflare.Events.ContractExpired>(ApplyEvent); 
       Register<Chronos.Hashflare.Events.CoinMinedByContract>(ApplyEvent);
     }  
-    public Contract(string contractId, string type, int quantity, int total) : this() 
+    public Contract(string contractId, string type, int quantity, double total) : this() 
     {
       When(new Chronos.Hashflare.Events.ContractCreated(contractId, type, quantity, total));
     }  

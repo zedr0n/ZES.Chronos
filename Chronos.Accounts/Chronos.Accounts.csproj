@@ -51,4 +51,8 @@
       <ProjectReference Include="..\Chronos.Core\Chronos.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Sagas" />
+    </ItemGroup>
+
 </Project>

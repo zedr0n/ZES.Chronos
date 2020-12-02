@@ -23,8 +23,8 @@ namespace Chronos.Hashflare.Events
                 case JsonToken.Integer when currentProperty == nameof(ContractCreated.Quantity):
                     e.Quantity = (int)(long)reader.Value;
                     break;
-                case JsonToken.Integer when currentProperty == nameof(ContractCreated.Total):
-                    e.Total = (int)(long)reader.Value;
+                case JsonToken.Float when currentProperty == nameof(ContractCreated.Total):
+                    e.Total = (double)reader.Value;
                     break;
             }
         }

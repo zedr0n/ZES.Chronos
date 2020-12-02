@@ -21,7 +21,9 @@
                 <Reference Include="ZES">
                     <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath>
                 </Reference>
+                <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
+                <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -35,7 +37,9 @@
                 <Reference Include="ZES">
                     <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
                 </Reference>
+                <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
+                <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
             </ItemGroup>
         </When>
         <Otherwise>
