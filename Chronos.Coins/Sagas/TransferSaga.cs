@@ -23,7 +23,6 @@ namespace Chronos.Coins.Sagas
                 _quantity = e.Quantity;
             });
             Register<WalletBalanceChanged>(e => e.TxId, e => e.AggregateRootId() == _fromAddress ? Trigger.FeePaid : Trigger.BalanceUpdated);
-            // Register<WalletBalanceChanged>(e => e.AggregateRootId() == _toAddress ? Id : null, Trigger.BalanceUpdated);
         }
         
         public enum State
