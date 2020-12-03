@@ -115,14 +115,14 @@ namespace Chronos.Tests
             var graph = container.GetInstance<IGraph>();
 
             var time = timeline.Now;
-            var nAdds = 20;
+            var nAdds = 50;
             var totalBefore = 0.0;
             var lastTime = time + (60 * 1000 * ( (nAdds * 2) + 1 ));
             var midTime = (time + lastTime) / 2;
             
             await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
 
-            var nContracts = 10;
+            var nContracts = 20;
             var addAfter = 0.01 / (nContracts + 1);
             var lastContractId = nContracts.ToString();
 
@@ -148,13 +148,13 @@ namespace Chronos.Tests
                 midTime -= 60 * 1000;
             }
 
-            await bus.Equal(new ContractStatsQuery("0"), c => Math.Round(c.Mined, 6), Math.Round(totalBefore, 6));
+            await bus.Equal(new ContractStatsQuery("0"), c => Math.Round(c.Mined, 6), Math.Round(totalBefore, 6), TimeSpan.FromSeconds(10));
 
             await await bus.CommandAsync(
                 new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime + 500));
 
-            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + 1000), c => Math.Round(c.Mined, 6), Math.Round(totalBefore + addAfter, 6));
-            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery(lastContractId), lastTime + 1000), c => Math.Round(c.Mined, 6), Math.Round(addAfter, 6));
+            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + 1000), c => Math.Round(c.Mined, 6), Math.Round(totalBefore + addAfter, 6), TimeSpan.FromSeconds(10));
+            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery(lastContractId), lastTime + 1000), c => Math.Round(c.Mined, 6), Math.Round(addAfter, 6), TimeSpan.FromSeconds(10));
 
             await graph.Serialise(nameof(CanRetroactivelyAddMinedToContract));
         }
