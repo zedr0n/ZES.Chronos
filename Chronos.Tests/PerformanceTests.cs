@@ -20,7 +20,7 @@ namespace Chronos.Tests
         {
         }
 
-        protected override string LogEnabled => "DEBUG";
+        protected override string LogEnabled => "INFO";
         
         [Fact]
         public async void CanRetroactivelyAddMinedToContractPerformance()
