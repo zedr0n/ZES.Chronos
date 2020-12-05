@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
 using Xunit;
@@ -8,6 +9,7 @@ using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces;
 using ZES.Interfaces.Causality;
+using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
 using ZES.Tests;
 
@@ -50,6 +52,7 @@ namespace Chronos.Tests
             {
                 await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(
                     new CreateContract(nContracts.ToString(), "SHA-256", 100, 1000), time));
+                
                 contractTimes.Add(time);
                 time -= 2 * 60 * 1000 * nAdds / nContracts;
             } 
@@ -57,7 +60,8 @@ namespace Chronos.Tests
             
             while (nAdds-- > 0)
             {
-                await await bus.CommandAsync(
+                // await await bus.CommandAsync(new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), midTime));
+                await bus.CommandWithRetryAsync(
                     new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), midTime));
                 var totalHash = contractTimes.Where(t => t <= midTime).Sum(t => 100);
                 totalBefore += 100.0 / totalHash * 0.01;
