@@ -60,9 +60,9 @@ namespace Chronos.Tests
             
             while (nAdds-- > 0)
             {
-                // await await bus.CommandAsync(new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), midTime));
-                await bus.CommandWithRetryAsync(
-                    new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), midTime));
+                await bus.Command(
+                    new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), midTime),
+                    1);
                 var totalHash = contractTimes.Where(t => t <= midTime).Sum(t => 100);
                 totalBefore += 100.0 / totalHash * 0.01;
                 midTime -= 60 * 1000;
