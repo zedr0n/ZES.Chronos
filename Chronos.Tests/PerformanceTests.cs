@@ -33,14 +33,14 @@ namespace Chronos.Tests
             var graph = container.GetInstance<IGraph>();
 
             var time = timeline.Now;
-            var nAdds = 50;
+            var nAdds = 25;
             var totalBefore = 0.0;
             var lastTime = time + (60 * 1000 * ( (nAdds * 2) + 1 ));
             var midTime = (time + lastTime) / 2;
             
             await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
 
-            var nContracts = 20;
+            var nContracts = 10;
             var addAfter = 0.01 / (nContracts + 1);
             var lastContractId = nContracts.ToString();
 
