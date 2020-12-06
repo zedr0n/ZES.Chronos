@@ -12,15 +12,18 @@
     }  
     public string Name
     {
-       get;
+       get; 
+       set;
     }  
     public string AssetId
     {
-       get;
+       get; 
+       set;
     }  
     public double Quantity
     {
-       get;
+       get; 
+       set;
     }  
     public override string Target
     {

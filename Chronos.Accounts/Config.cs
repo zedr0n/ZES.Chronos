@@ -70,7 +70,7 @@ namespace Chronos.Accounts
             /// <returns>True if successful</returns>
             public bool CreateAccount(string name, string type)
             {
-                Enum.TryParse<Account.Type>(type, out var accountType);
+                Enum.TryParse<AccountType>(type, out var accountType);
                 Resolve(new CreateAccount(name, accountType));
                 return true;
             }

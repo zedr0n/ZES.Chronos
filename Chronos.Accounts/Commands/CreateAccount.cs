@@ -12,11 +12,13 @@
     }  
     public string Name
     {
-       get;
+       get; 
+       set;
     }  
-    public Account.Type Type
+    public AccountType Type
     {
-       get;
+       get; 
+       set;
     }  
     public override string Target
     {
@@ -25,7 +27,7 @@
         return Name;
       }
     }  
-    public CreateAccount(string name, Account.Type type) 
+    public CreateAccount(string name, AccountType type) 
     {
       Name = name; 
       Type = type;
