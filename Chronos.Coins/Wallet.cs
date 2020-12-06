@@ -10,7 +10,8 @@
     public Wallet() 
     {
       Register<Chronos.Coins.Events.WalletCreated>(ApplyEvent); 
-      Register<Chronos.Coins.Events.WalletBalanceChanged>(ApplyEvent);
+      Register<Chronos.Coins.Events.WalletBalanceChanged>(ApplyEvent); 
+      Register<Chronos.Coins.Events.CoinMined>(ApplyEvent);
     }  
     public Wallet(string address) : this() 
     {
@@ -20,11 +21,19 @@
     {
       When(new Chronos.Coins.Events.WalletBalanceChanged(delta, txId));
     }  
+    public void MineCoin (double mineQuantity)
+    {
+      When(new Chronos.Coins.Events.CoinMined(mineQuantity));
+      When(new Chronos.Coins.Events.WalletBalanceChanged(mineQuantity, string.Empty));
+    }  
     private void ApplyEvent (Chronos.Coins.Events.WalletCreated e)
     {
       Id = e.Address;
     }  
     private void ApplyEvent (Chronos.Coins.Events.WalletBalanceChanged e)
+    {
+    }  
+    private void ApplyEvent (Chronos.Coins.Events.CoinMined e)
     {
     }
   }

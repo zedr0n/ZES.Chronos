@@ -20,10 +20,16 @@
        get; 
        set;
     }  
-    public WalletInfo(string address, double balance) 
+    public double MineQuantity
+    {
+       get; 
+       set;
+    }  
+    public WalletInfo(string address, double balance, double mineQuantity) 
     {
       Address = address; 
-      Balance = balance;
+      Balance = balance; 
+      MineQuantity = mineQuantity;
     }
   }
 }
