@@ -70,7 +70,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.648" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.650" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
