@@ -4,6 +4,7 @@ using Chronos.Coins;
 using Chronos.Coins.Commands;
 using Chronos.Coins.Events;
 using Chronos.Coins.Queries;
+using NodaTime.Extensions;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
@@ -69,7 +70,7 @@ namespace Chronos.Tests
             var historicalQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), now);
             await bus.Equal(historicalQuery, s => s.NumberOfCoins, 1);
             
-            var liveQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), DateTime.UtcNow.Ticks);
+            var liveQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), DateTime.UtcNow.ToInstant());
             await bus.Equal(liveQuery, s => s.NumberOfCoins, 2);
         }
 

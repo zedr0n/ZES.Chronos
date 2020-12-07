@@ -27,6 +27,7 @@
           <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
           <PackageReference Include="Stateless" Version="3.0.0" />
           <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+          <PackageReference Include="NodaTime" Version="3.0.3" />
           <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
         </ItemGroup> 
       </When>
@@ -46,11 +47,12 @@
           <PackageReference Include="Stateless" Version="3.0.0" />
           <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
           <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+          <PackageReference Include="NodaTime" Version="3.0.3" />
         </ItemGroup>
       </When>
       <Otherwise>
         <ItemGroup>
-          <PackageReference Include="ZES" Version="1.0.633" />
+          <PackageReference Include="ZES" Version="1.0.634" />
         </ItemGroup>
       </Otherwise> 
     </Choose>

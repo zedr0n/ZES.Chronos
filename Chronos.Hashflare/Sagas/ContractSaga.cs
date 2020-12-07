@@ -1,4 +1,5 @@
 using Chronos.Hashflare.Events;
+using NodaTime;
 using Stateless;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
@@ -10,7 +11,7 @@ namespace Chronos.Hashflare.Sagas
     /// <inheritdoc />
     public class ContractSaga : StatelessSaga<ContractSaga.State, ContractSaga.Trigger>
     {
-        private long _expiry;
+        private Instant _expiry;
         private int _quantity;
         private string _txId;
         private string _type;
@@ -23,9 +24,7 @@ namespace Chronos.Hashflare.Sagas
             Register<ContractCreated>(e => e.AggregateRootId(), Trigger.ContractCreated, e =>
             {
                 _expiry = e.Timestamp;
-                long dt = 365 * 24 * 60 * 60;
-                dt *= 1000;
-                _expiry += dt;
+                _expiry += Duration.FromDays(365);
 
                 _type = e.Type;
                 _quantity = e.Quantity;

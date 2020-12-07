@@ -4,6 +4,8 @@ using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
+using NodaTime;
+using NodaTime.Extensions;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
@@ -29,7 +31,7 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
             
-            var time = ((DateTimeOffset)new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).ToUnixTimeMilliseconds(); 
+            var time = new DateTime(1970, 1, 1, 12, 0, 10, DateTimeKind.Utc).ToInstant(); 
 
             await await bus.CommandAsync(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare("user@mail.com"), time));
 
@@ -47,14 +49,14 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
-            var time = ((DateTimeOffset)new DateTime(1970, 1, 1, 0, 0, 10, DateTimeKind.Utc)).ToUnixTimeMilliseconds(); 
+            var time = new DateTime(1970, 1, 1, 12, 0, 10, DateTimeKind.Utc).ToInstant(); 
 
             await await bus.CommandAsync(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare("user@mail.com"), time));
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("0", "SHA-256", 100, 1000), time));
 
             await bus.Equal(new HashflareStatsQuery(), s => s.BitcoinHashRate, 100);
             
-            var historicalQuery = new HistoricalQuery<HashflareStatsQuery, HashflareStats>(new HashflareStatsQuery(), time + 100);
+            var historicalQuery = new HistoricalQuery<HashflareStatsQuery, HashflareStats>(new HashflareStatsQuery(), time + Duration.FromMilliseconds(100));
             var result = await bus.QueryAsync(historicalQuery);
             Assert.Equal(100, result.BitcoinHashRate);
         }
@@ -84,8 +86,8 @@ namespace Chronos.Tests
             var graph = container.GetInstance<IGraph>();
 
             var time = timeline.Now;
-            var lastTime = time + (60 * 1000);
-            var midTime = (time + lastTime) / 2;
+            var lastTime = time + Duration.FromSeconds(1); 
+            var midTime = time + ((lastTime - time) / 2);
             
             await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
  
@@ -98,10 +100,10 @@ namespace Chronos.Tests
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.01);
 
             await await bus.CommandAsync(
-                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime + 500));
+                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime + Duration.FromMilliseconds(500)));
             
-            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + 1000), c => c.Mined, 0.01 * 1.5);
-            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("1"), lastTime + 1000), c => c.Mined, 0.01 * 0.5);
+            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + Duration.FromSeconds(1)), c => c.Mined, 0.01 * 1.5);
+            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("1"), lastTime + Duration.FromSeconds(1)), c => c.Mined, 0.01 * 0.5);
 
             await graph.Serialise(nameof(CanRetroactivelyAddMinedToContract));
         }
@@ -114,9 +116,9 @@ namespace Chronos.Tests
             var timeline = container.GetInstance<ITimeline>();
             
             var time = timeline.Now;
-            var lastTime = time + (60 * 1000);
-            var midTime = (time + lastTime) / 2;
-            var lastQuarterTime = (midTime + lastTime) / 2;
+            var lastTime = time + Duration.FromSeconds(1);
+            var midTime = time + ((lastTime - time) / 2);
+            var lastQuarterTime = midTime + ((lastTime - midTime) / 2);
             
             await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
  
@@ -143,9 +145,9 @@ namespace Chronos.Tests
             var timeline = container.GetInstance<ITimeline>();
             
             var time = timeline.Now;
-            var lastTime = time + (60 * 1000);
-            var ultimateTime = lastTime + (60 * 1000);
-            var midTime = (time + lastTime) / 2;
+            var lastTime = time + Duration.FromSeconds(1);
+            var ultimateTime = lastTime + Duration.FromSeconds(1);
+            var midTime = time + ((lastTime - time) / 2);
             
             await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
  
