@@ -116,7 +116,7 @@ namespace Chronos.Tests
             var timeline = container.GetInstance<ITimeline>();
             
             var time = timeline.Now;
-            var lastTime = time + Duration.FromSeconds(1);
+            var lastTime = time + Duration.FromSeconds(30);
             var midTime = time + ((lastTime - time) / 2);
             var lastQuarterTime = midTime + ((lastTime - midTime) / 2);
             
