@@ -37,6 +37,7 @@ namespace Chronos.Core.Queries
       var price = 1.0;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
       var info = projection.State;
+      info.Tree.Log = _log;
       if (info.Pairs.ToList().Contains(fordom))
       {
         price = _handler.HandleAsync(new AssetPriceQuery(fordom))
