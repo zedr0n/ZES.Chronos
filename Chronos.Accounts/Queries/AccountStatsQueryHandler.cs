@@ -7,6 +7,7 @@ using Chronos.Core.Queries;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
+using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries
@@ -14,11 +15,13 @@ namespace Chronos.Accounts.Queries
     public class AccountStatsQueryHandler : QueryHandlerBase<AccountStatsQuery, AccountStats, AccountStatsState>
     {
         private readonly IQueryHandler<GenericAssetPriceQuery, GenericAssetPrice> _handler;
+        private readonly ILog _log;
         
-        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<GenericAssetPriceQuery, GenericAssetPrice> handler) 
+        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<GenericAssetPriceQuery, GenericAssetPrice> handler, ILog log) 
             : base(manager)
         {
             _handler = handler;
+            _log = log;
         }
 
         protected override async Task<AccountStats> HandleAsync(AccountStatsQuery query)
@@ -38,7 +41,10 @@ namespace Chronos.Accounts.Queries
             {
                 var price = 1.0;
                 if (asset != query.Denominator)
-                    price = _handler.HandleAsync(new GenericAssetPriceQuery(asset, query.Denominator)).Timeout().Result.Price;
+                {
+                    price = _handler.HandleAsync(new GenericAssetPriceQuery(asset, query.Denominator)).Timeout().Result
+                        .Price;
+                }
 
                 total += amount * price;
             }

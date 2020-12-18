@@ -27,13 +27,9 @@ namespace Chronos.Core.Queries
       _log = log;
     }
 
-    public GenericAssetPrice Handle (ZES.Interfaces.IEvent e, GenericAssetPrice state)
-    {
-      return Handle((dynamic) e, state);
-    }
-
     protected override GenericAssetPrice Handle(IProjection<AssetPairsInfo> projection, GenericAssetPriceQuery query)
     {
+      _log.Info($"Getting generic price for {query.ForAsset.AssetId} in {query.DomAsset.Ticker}");
       var price = 1.0;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
       var info = projection.State;
@@ -54,7 +50,6 @@ namespace Chronos.Core.Queries
         
         _log.Info("Price triangulation path : " + path.Aggregate(string.Empty, (s, tuple) => s + tuple + "->"));
         
-        price = 1.0;
         var timestamp = Instant.MinValue;
         foreach (var n in path)
         {
