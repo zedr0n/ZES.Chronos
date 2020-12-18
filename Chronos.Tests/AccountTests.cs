@@ -57,5 +57,31 @@ namespace Chronos.Tests
             await bus.Equal(new AccountStatsQuery("Account", asset), s => s.Balance, new Quantity(1.0, asset));
             await bus.Equal(new AccountStatsQuery("Account", ccy), s => s.Balance, new Quantity(23000, ccy));
         }
+        
+        [Fact]
+        public async void CanGetAssetTriangulationPrice()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var repository = container.GetInstance<IEsRepository<IAggregate>>();
+            var timeline = container.GetInstance<ITimeline>();
+           
+            var usd = new Currency("USD");
+            var gbp = new Currency("GBP"); 
+            var asset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
+            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now, 23000));
+
+            await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(usd, gbp), usd, gbp));
+            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(usd, gbp), timeline.Now, 1.0 / 1.3));
+            
+            await await bus.CommandAsync(new CreateAccount("Account", AccountType.Trading));
+            await await bus.CommandAsync(new DepositAsset("Account", new Quantity(1.0, asset)));
+            
+            var account = await repository.Find<Account>("Account");
+            Assert.Equal("Bitcoin", account.Assets[0]);
+
+            await bus.Equal(new AccountStatsQuery("Account", gbp), s => s.Balance, new Quantity(23000 / 1.3, gbp));
+        }
     }
 }

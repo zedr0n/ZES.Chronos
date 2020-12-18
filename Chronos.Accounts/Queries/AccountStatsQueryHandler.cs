@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -13,11 +14,13 @@ namespace Chronos.Accounts.Queries
     public class AccountStatsQueryHandler : QueryHandlerBase<AccountStatsQuery, AccountStats, AccountStatsState>
     {
         private readonly IQueryHandler<AssetPriceQuery, AssetPrice> _handler;
+        private readonly IQueryHandler<AssetPairsInfoQuery, AssetPairsInfo> _allPairsHandler;
         
-        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler) 
+        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, IQueryHandler<AssetPairsInfoQuery, AssetPairsInfo> allPairsHandler) 
             : base(manager)
         {
             _handler = handler;
+            _allPairsHandler = allPairsHandler;
         }
 
         protected override async Task<AccountStats> HandleAsync(AccountStatsQuery query)
@@ -37,7 +40,29 @@ namespace Chronos.Accounts.Queries
             {
                 var price = 1.0;
                 if (asset != query.Denominator)
-                    price = _handler.HandleAsync(new AssetPriceQuery(AssetPair.Fordom(asset, query.Denominator))).Result.Price.Amount;
+                {
+                    var info = _allPairsHandler.HandleAsync(new AssetPairsInfoQuery()).Result;
+                    if (info.Pairs.Contains(AssetPair.Fordom(asset, query.Denominator)))
+                    {
+                        price = _handler.HandleAsync(new AssetPriceQuery(AssetPair.Fordom(asset, query.Denominator)))
+                            .Result
+                            .Price.Amount;
+                    }
+                    else 
+                    {
+                        // try to triangulate the price
+                        var path = info.Tree.GetPath(asset, query.Denominator);
+                        if (path == null)
+                            throw new InvalidOperationException($"No path found from {asset.AssetId} to {query.Denominator.AssetId}");
+                        price = 1.0;
+                        foreach (var fordom in path)
+                        {
+                            var pathPrice = _handler.HandleAsync(new AssetPriceQuery(fordom)).Result;
+                            price *= pathPrice.Price.Amount;
+                        }
+                    }
+                }
+
                 total += amount * price;
             }
 
