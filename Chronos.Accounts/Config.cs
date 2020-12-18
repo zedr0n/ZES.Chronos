@@ -44,7 +44,7 @@ namespace Chronos.Accounts
             /// Account stats GraphQL query
             /// </summary>
             /// <returns>Account stats</returns>
-            public AccountStats AccountStats() => Resolve(new AccountStatsQuery());
+            public Stats Stats() => Resolve(new StatsQuery());
         }
 
         /// <summary>

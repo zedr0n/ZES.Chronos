@@ -10,19 +10,13 @@
     public AssetDeposited() 
     {
     }  
-    public string AssetId
+    public Chronos.Core.Quantity Quantity
     {
        get; 
        set;
     }  
-    public double Quantity
+    public AssetDeposited(Chronos.Core.Quantity quantity) 
     {
-       get; 
-       set;
-    }  
-    public AssetDeposited(string assetId, double quantity) 
-    {
-      AssetId = assetId; 
       Quantity = quantity;
     }
   }

@@ -17,6 +17,7 @@ namespace Chronos.Tests
         {
             var regs = new List<Action<Container>>
             {
+                Core.Config.RegisterAll,
                 Coins.Config.RegisterAll,
                 Accounts.Config.RegisterAll,
                 Hashflare.Config.RegisterAll,

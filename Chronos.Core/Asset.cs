@@ -12,11 +12,13 @@ namespace Chronos.Core
         /// Initializes a new instance of the <see cref="Asset"/> class.
         /// </summary>
         /// <param name="assetId">Asset identifier</param>
+        /// <param name="ticker">Asset ticker</param>
         /// <param name="assetType">Asset type</param>
-        public Asset(string assetId, Type assetType)
+        public Asset(string assetId, string ticker, Type assetType)
         {
             AssetId = assetId;
             AssetType = assetType;
+            Ticker = ticker;
         }
             
         /// <summary>
@@ -43,17 +45,16 @@ namespace Chronos.Core
         /// <summary>
         /// Gets asset identifier
         /// </summary>
-        /// <value>
-        /// Asset identifier
-        /// </value>
         public string AssetId { get; private set; }
+        
+        /// <summary>
+        /// Gets asset ticker
+        /// </summary>
+        public string Ticker { get; private set; }
 
         /// <summary>
         /// Gets asset type
         /// </summary>
-        /// <value>
-        /// Asset type
-        /// </value>
         public Type AssetType { get; private set; }
 
         /// <inheritdoc />

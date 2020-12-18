@@ -40,10 +40,10 @@ namespace Chronos.Accounts
 
     public List<string> Assets => _assets.Keys.Select(k => k.AssetId).ToList();
 
-    public void DepositAsset(string assetId, double quantity)
+    public void DepositAsset (Chronos.Core.Quantity quantity)
     {
-      When(new Chronos.Accounts.Events.AssetDeposited(assetId, quantity));
-    }
+      When(new Chronos.Accounts.Events.AssetDeposited(quantity));
+    }  
 
     private void ApplyEvent(Chronos.Accounts.Events.AccountCreated e)
     {
@@ -53,10 +53,7 @@ namespace Chronos.Accounts
 
     private void ApplyEvent(Chronos.Accounts.Events.AssetDeposited e)
     {
-      var asset = new Chronos.Core.Asset(e.AssetId, Chronos.Core.Asset.Type.Coin);
-      _assets.TryAdd(asset, 0.0);
-
-      _assets[asset] += e.Quantity;
+      _assets.AddOrUpdate(e.Quantity.Denominator, e.Quantity.Amount, (a, d) => d + e.Quantity.Amount);
     }
   }
 }

@@ -24,7 +24,9 @@
                     <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath>
                 </Reference>
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
-	        <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
+                <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
+                <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -39,12 +41,17 @@
                     <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
                 </Reference>
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
-	        <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
+                <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
+                <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
                 <PackageReference Include="ZES" Version="1.0.652" />
+                <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+                <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
             </ItemGroup>
         </Otherwise>
     </Choose>

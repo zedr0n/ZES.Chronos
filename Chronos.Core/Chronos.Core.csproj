@@ -8,6 +8,7 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
+        <NoWarn>1587;1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -17,16 +18,32 @@
     <Choose>
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
+                <Reference Include="ZES.Interfaces">
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                </Reference>
                 <Reference Include="ZES.Infrastructure">
                     <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/netstandard2.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
+                <Reference Include="ZES">
+                    <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath>
+                </Reference>
+                <PackageReference Include="NodaTime" Version="3.0.3" />
+                <PackageReference Include="SimpleInjector" Version="4.4.2" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
             <ItemGroup>
+                <Reference Include="ZES.Interfaces">
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                </Reference>
                 <Reference Include="ZES.Infrastructure">
                     <HintPath>../../ZES/ZES.Infrastructure/bin/Release/netstandard2.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
+                <Reference Include="ZES">
+                    <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
+                </Reference>
+                <PackageReference Include="NodaTime" Version="3.0.3" />
+                <PackageReference Include="SimpleInjector" Version="4.4.2" />
             </ItemGroup>
         </When>
         <Otherwise>

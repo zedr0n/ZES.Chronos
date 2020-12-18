@@ -6,17 +6,17 @@ namespace Chronos.Core
     /// <summary>
     /// Book value object
     /// </summary>
-    public class BookValue : ValueObject
+    public class Quantity : ValueObject
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BookValue"/> class.
+        /// Initializes a new instance of the <see cref="Quantity"/> class.
         /// </summary>
+        /// <param name="amount">Value denominated in the asset</param>
         /// <param name="denominator">Denominator asset</param>
-        /// <param name="value">Value denominated in the asset</param>
-        public BookValue(Asset denominator, double value)
+        public Quantity(double amount, Asset denominator)
         {
             Denominator = denominator;
-            Value = value;
+            Amount = amount;
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace Chronos.Core
         /// <value>
         /// Value denominated in the denominator asset
         /// </value>
-        public double Value { get; private set; }
+        public double Amount { get; private set; }
         
         /// <inheritdoc />
         protected override IEnumerable<object> GetAtomicValues()

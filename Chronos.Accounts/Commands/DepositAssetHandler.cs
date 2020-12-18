@@ -12,7 +12,7 @@
     }  
     protected override void Act (Account account, DepositAsset command)
     {
-      account.DepositAsset(command.AssetId, command.Quantity);
+      account.DepositAsset(command.Quantity);
     }
   }
 }

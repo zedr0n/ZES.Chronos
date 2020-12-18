@@ -15,12 +15,7 @@
        get; 
        set;
     }  
-    public string AssetId
-    {
-       get; 
-       set;
-    }  
-    public double Quantity
+    public Chronos.Core.Quantity Quantity
     {
        get; 
        set;
@@ -32,10 +27,9 @@
         return Name;
       }
     }  
-    public DepositAsset(string name, string assetId, double quantity) 
+    public DepositAsset(string name, Chronos.Core.Quantity quantity) 
     {
       Name = name; 
-      AssetId = assetId; 
       Quantity = quantity;
     }
   }
