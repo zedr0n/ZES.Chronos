@@ -10,16 +10,6 @@ namespace Chronos.Core
     {
         private readonly BidirectionalGraph<string, Edge<string>> _graph = new BidirectionalGraph<string, Edge<string>>();
         
-        private class Vertex
-        {
-            public Vertex(string ticker)
-            {
-                Ticker = ticker;
-            }
-
-            public string Ticker { get; }
-        }
-
         public void Add(Asset forAsset, Asset domAsset)
         {
             if (!_graph.ContainsVertex(forAsset.Ticker))
@@ -30,14 +20,18 @@ namespace Chronos.Core
             var edge = new Edge<string>(forAsset.Ticker, domAsset.Ticker);
             if (!_graph.ContainsEdge(edge))
                 _graph.AddEdge(edge);
+            
+            var inverseEdge = new Edge<string>(domAsset.Ticker, forAsset.Ticker);
+            if (!_graph.ContainsEdge(inverseEdge))
+                _graph.AddEdge(inverseEdge);
         }
 
-        public IEnumerable<string> GetPath(Asset forAsset, Asset domAsset)
+        public IEnumerable<(string forAsset, string domAsset)> GetPath(Asset forAsset, Asset domAsset)
         {
             if (!_graph.ContainsVertex(forAsset.Ticker) || !_graph.ContainsVertex(domAsset.Ticker))
                 return null;
 
-            return _graph.RankedShortestPathHoffmanPavley(e => 1.0, forAsset.Ticker, domAsset.Ticker, 1).FirstOrDefault()?.Select(e => e.Source + e.Target);
+            return _graph.RankedShortestPathHoffmanPavley(e => 1.0, forAsset.Ticker, domAsset.Ticker, 1).FirstOrDefault()?.Select(e => (e.Source, e.Target));
         }
     }
 }

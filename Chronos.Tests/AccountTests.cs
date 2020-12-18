@@ -72,8 +72,8 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
             await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now, 23000));
 
-            await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(usd, gbp), usd, gbp));
-            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(usd, gbp), timeline.Now, 1.0 / 1.3));
+            await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd));
+            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(gbp, usd), timeline.Now, 1.3));
             
             await await bus.CommandAsync(new CreateAccount("Account", AccountType.Trading));
             await await bus.CommandAsync(new DepositAsset("Account", new Quantity(1.0, asset)));
