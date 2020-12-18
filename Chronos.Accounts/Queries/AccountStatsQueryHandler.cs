@@ -4,6 +4,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Core;
 using Chronos.Core.Queries;
+using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Domain;
@@ -23,7 +24,7 @@ namespace Chronos.Accounts.Queries
         protected override async Task<AccountStats> HandleAsync(AccountStatsQuery query)
         {
             Projection = Manager.GetProjection<AccountStatsState>(query.Name, query.Timeline);
-            await Projection.Ready;
+            await Projection.Ready.Timeout(Configuration.Timeout);
             return await base.HandleAsync(query);
         }
 
