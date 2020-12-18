@@ -42,7 +42,7 @@ namespace Chronos.Accounts.Queries
                 var price = 1.0;
                 if (asset != query.Denominator)
                 {
-                    var info = _allPairsHandler.HandleAsync(new AssetPairsInfoQuery()).Result;
+                    var info = _allPairsHandler.HandleAsync(new AssetPairsInfoQuery()).Timeout().Result;
                     if (info.Pairs.Contains(AssetPair.Fordom(asset, query.Denominator)))
                     {
                         price = _handler.HandleAsync(new AssetPriceQuery(AssetPair.Fordom(asset, query.Denominator)))
