@@ -10,6 +10,7 @@ using NodaTime;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
+using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Core.Queries
@@ -18,10 +19,12 @@ namespace Chronos.Core.Queries
   public class GenericAssetPriceHandler : QueryHandlerBase<GenericAssetPriceQuery, GenericAssetPrice, AssetPairsInfo>
   {
     private readonly IQueryHandler<AssetPriceQuery, AssetPrice> _handler;
+    private readonly ILog _log;
 
-    public GenericAssetPriceHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler) : base(manager)
+    public GenericAssetPriceHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, ILog log) : base(manager)
     {
       _handler = handler;
+      _log = log;
     }
 
     public GenericAssetPrice Handle (ZES.Interfaces.IEvent e, GenericAssetPrice state)
@@ -47,6 +50,9 @@ namespace Chronos.Core.Queries
         var path = info.Tree.GetPath(query.ForAsset, query.DomAsset);
         if (path == null)
           throw new InvalidOperationException($"No path found from {query.ForAsset} to {query.DomAsset}");
+        
+        _log.Info("Price triangulation path : " + path.Aggregate(string.Empty, (s, tuple) => s + tuple + "->"));
+        
         price = 1.0;
         var timestamp = Instant.MinValue;
         foreach (var n in path)
