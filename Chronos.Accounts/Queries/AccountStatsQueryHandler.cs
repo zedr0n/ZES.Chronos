@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Chronos.Core;
 using Chronos.Core.Queries;
 using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries
@@ -45,6 +46,7 @@ namespace Chronos.Accounts.Queries
                     if (info.Pairs.Contains(AssetPair.Fordom(asset, query.Denominator)))
                     {
                         price = _handler.HandleAsync(new AssetPriceQuery(AssetPair.Fordom(asset, query.Denominator)))
+                            .Timeout()
                             .Result
                             .Price.Amount;
                     }
@@ -57,7 +59,7 @@ namespace Chronos.Accounts.Queries
                         price = 1.0;
                         foreach (var fordom in path)
                         {
-                            var pathPrice = _handler.HandleAsync(new AssetPriceQuery(fordom)).Result;
+                            var pathPrice = _handler.HandleAsync(new AssetPriceQuery(fordom)).Timeout().Result;
                             price *= pathPrice.Price.Amount;
                         }
                     }
