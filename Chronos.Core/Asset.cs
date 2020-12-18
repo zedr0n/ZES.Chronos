@@ -1,12 +1,16 @@
+using System;
 using System.Collections.Generic;
 using ZES.Infrastructure;
+
+#pragma warning disable 660
+#pragma warning disable 661
 
 namespace Chronos.Core
 {
     /// <summary>
     /// Asset value object
     /// </summary>
-    public class Asset : ValueObject
+    public class Asset : ValueObject, IEquatable<Asset>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Asset"/> class.
@@ -56,6 +60,34 @@ namespace Chronos.Core
         /// Gets asset type
         /// </summary>
         public Type AssetType { get; private set; }
+
+        /// <summary>
+        /// Equal operator
+        /// </summary>
+        /// <param name="left">Left instance</param>
+        /// <param name="right">Right instance</param>
+        /// <returns>True if equal</returns>
+        public static bool operator ==(Asset left, Asset right)
+        {
+            return EqualOperator(left, right);
+        }
+
+        /// <summary>
+        /// Not equal operator
+        /// </summary>
+        /// <param name="left">Left instance</param>
+        /// <param name="right">Right instance</param>
+        /// <returns>True if not equal</returns>
+        public static bool operator !=(Asset left, Asset right)
+        {
+            return NotEqualOperator(left, right);
+        }
+
+        /// <inheritdoc />
+        public bool Equals(Asset other)
+        {
+            return base.Equals(other);
+        }
 
         /// <inheritdoc />
         protected override IEnumerable<object> GetAtomicValues()

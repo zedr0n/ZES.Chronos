@@ -11,18 +11,17 @@ namespace Chronos.Accounts.Queries
     {
         private readonly Dictionary<Asset, double> _positions = new Dictionary<Asset, double>();
 
-        public IEnumerable<Asset> Assets => _positions.Keys;
-        public IEnumerable<double> Quantities => _positions.Values;
-
         public AccountStatsState()
         {
-            
         }
         
         public AccountStatsState(AccountStatsState other)
         {
             _positions = new Dictionary<Asset, double>(other._positions);
         }
+        
+        public IEnumerable<Asset> Assets => _positions.Keys;
+        public IEnumerable<double> Quantities => _positions.Values;
 
         public void Add(Asset asset, double amount)
         {

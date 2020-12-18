@@ -9,11 +9,17 @@
   {
     public AssetPrice Handle (ZES.Interfaces.IEvent e, AssetPrice state)
     {
-      return Handle(e as Chronos.Core.Events.QuoteAdded, state);;
-    }  
+      return Handle((dynamic) e, state);;
+    }
+
+    public AssetPrice Handle(Chronos.Core.Events.AssetPairRegistered e, AssetPrice state)
+    {
+      return new AssetPrice(new Quantity(0.0, e.DomAsset));
+    }
+    
     public AssetPrice Handle (Chronos.Core.Events.QuoteAdded e, AssetPrice state)
     {
-      return state;
+      return new AssetPrice(new Quantity(e.Close, state.Price.Denominator));
     }
   }
 }

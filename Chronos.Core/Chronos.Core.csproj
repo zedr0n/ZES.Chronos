@@ -29,6 +29,7 @@
                 </Reference>
                 <PackageReference Include="NodaTime" Version="3.0.3" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
+                <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -44,6 +45,7 @@
                 </Reference>
                 <PackageReference Include="NodaTime" Version="3.0.3" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
+                <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
             </ItemGroup>
         </When>
         <Otherwise>
