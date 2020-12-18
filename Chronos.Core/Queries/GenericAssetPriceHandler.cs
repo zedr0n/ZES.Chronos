@@ -6,6 +6,7 @@
 
 using System;
 using System.Linq;
+using NodaTime;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
@@ -38,7 +39,7 @@ namespace Chronos.Core.Queries
         price = _handler.HandleAsync(new AssetPriceQuery(fordom))
           .Timeout()
           .Result
-          .Price.Amount;
+          .Price;
       }
       else 
       {
@@ -47,23 +48,28 @@ namespace Chronos.Core.Queries
         if (path == null)
           throw new InvalidOperationException($"No path found from {query.ForAsset} to {query.DomAsset}");
         price = 1.0;
+        var timestamp = Instant.MinValue;
         foreach (var n in path)
         {
           var pathForDom = n.forAsset + n.domAsset;
           var isInverse = info.Pairs.Contains(n.domAsset + n.forAsset);
           if (isInverse)
             pathForDom = n.domAsset + n.forAsset;
-          
-          var pathPrice = _handler.HandleAsync(new AssetPriceQuery(pathForDom))
+
+          var pathResult = _handler.HandleAsync(new AssetPriceQuery(pathForDom))
             .Timeout()
-            .Result
-            .Price
-            .Amount;
+            .Result;
+
+          if (timestamp == Instant.MinValue)
+            timestamp = pathResult.Timestamp;
           
+          if ( pathResult.Timestamp.Minus(timestamp).Days > 0 )
+            throw new InvalidOperationException($"Stale pricing date for {pathForDom}");
+
           if (isInverse)
-            pathPrice = 1.0 / pathPrice;
+            pathResult.Price = 1.0 / pathResult.Price;
           
-          price *= pathPrice;
+          price *= pathResult.Price;
         }
       }
       

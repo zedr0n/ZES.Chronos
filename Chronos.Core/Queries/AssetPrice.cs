@@ -10,14 +10,20 @@
     public AssetPrice() 
     {
     }  
-    public Chronos.Core.Quantity Price
+    public double Price
     {
        get; 
        set;
     }  
-    public AssetPrice(Chronos.Core.Quantity price) 
+    public NodaTime.Instant Timestamp
     {
-      Price = price;
+       get; 
+       set;
+    }  
+    public AssetPrice(double price, NodaTime.Instant timestamp) 
+    {
+      Price = price; 
+      Timestamp = timestamp;
     }
   }
 }
