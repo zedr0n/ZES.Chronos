@@ -4,9 +4,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Core;
 using Chronos.Core.Queries;
-using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
-using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
@@ -24,14 +22,14 @@ namespace Chronos.Accounts.Queries
             _log = log;
         }
 
-        protected override async Task<AccountStats> HandleAsync(AccountStatsQuery query)
+        protected override async Task<AccountStats> Handle(AccountStatsQuery query)
         {
             Projection = Manager.GetProjection<AccountStatsState>(query.Name, query.Timeline);
-            await Projection.Ready.Timeout(Configuration.Timeout);
-            return await base.HandleAsync(query);
+            await Projection.Ready;
+            return await base.Handle(query);
         }
 
-        protected override AccountStats Handle(IProjection<AccountStatsState> projection, AccountStatsQuery query)
+        protected override async Task<AccountStats> Handle(IProjection<AccountStatsState> projection, AccountStatsQuery query)
         {
             if (projection == null)
                 throw new ArgumentNullException(nameof(projection), $"{typeof(IProjection<AccountStatsState>).Name}");
@@ -41,10 +39,7 @@ namespace Chronos.Accounts.Queries
             {
                 var price = 1.0;
                 if (asset != query.Denominator)
-                {
-                    price = _handler.HandleAsync(new GenericAssetPriceQuery(asset, query.Denominator)).Timeout().Result
-                        .Price;
-                }
+                    price = (await _handler.Handle(new GenericAssetPriceQuery(asset, query.Denominator))).Price;
 
                 total += amount * price;
             }

@@ -6,6 +6,7 @@
 
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using NodaTime;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
@@ -27,7 +28,7 @@ namespace Chronos.Core.Queries
       _log = log;
     }
 
-    protected override GenericAssetPrice Handle(IProjection<AssetPairsInfo> projection, GenericAssetPriceQuery query)
+    protected override async Task<GenericAssetPrice> Handle(IProjection<AssetPairsInfo> projection, GenericAssetPriceQuery query)
     {
       _log.Info($"Getting generic price for {query.ForAsset.AssetId} in {query.DomAsset.Ticker}");
       var price = 1.0;
@@ -36,10 +37,7 @@ namespace Chronos.Core.Queries
       info.Tree.Log = _log;
       if (info.Pairs.ToList().Contains(fordom))
       {
-        price = _handler.HandleAsync(new AssetPriceQuery(fordom))
-          .Timeout()
-          .Result
-          .Price;
+        price = (await _handler.Handle(new AssetPriceQuery(fordom))).Price;
       }
       else 
       {
@@ -58,9 +56,7 @@ namespace Chronos.Core.Queries
           if (isInverse)
             pathForDom = n.domAsset + n.forAsset;
 
-          var pathResult = _handler.HandleAsync(new AssetPriceQuery(pathForDom))
-            .Timeout()
-            .Result;
+          var pathResult = await _handler.Handle(new AssetPriceQuery(pathForDom));
 
           if (timestamp == Instant.MinValue)
             timestamp = pathResult.Timestamp;
