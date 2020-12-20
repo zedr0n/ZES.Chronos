@@ -12,10 +12,10 @@ namespace Chronos.Accounts.Queries
 {
     public class AccountStatsQueryHandler : QueryHandlerBase<AccountStatsQuery, AccountStats, AccountStatsState>
     {
-        private readonly IQueryHandler<GenericAssetPriceQuery, GenericAssetPrice> _handler;
+        private readonly IQueryHandler<AssetPriceQuery, AssetPrice> _handler;
         private readonly ILog _log;
         
-        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<GenericAssetPriceQuery, GenericAssetPrice> handler, ILog log) 
+        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, ILog log) 
             : base(manager)
         {
             _handler = handler;
@@ -39,7 +39,7 @@ namespace Chronos.Accounts.Queries
             {
                 var price = 1.0;
                 if (asset != query.Denominator)
-                    price = (await _handler.Handle(new GenericAssetPriceQuery(asset, query.Denominator))).Price;
+                    price = (await _handler.Handle(new AssetPriceQuery(asset, query.Denominator))).Price;
 
                 total += amount * price;
             }
