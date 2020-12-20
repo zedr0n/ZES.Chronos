@@ -45,8 +45,6 @@ namespace Chronos.Core.Queries
         if (path == null)
           throw new InvalidOperationException($"No path found from {query.ForAsset} to {query.DomAsset}");
         
-        _log.Info("Price triangulation path : " + path.Aggregate(string.Empty, (s, tuple) => s + tuple + "->"));
-        
         var timestamp = Instant.MinValue;
         foreach (var n in path)
         {
