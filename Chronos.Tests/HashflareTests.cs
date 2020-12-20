@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
@@ -10,6 +11,7 @@ using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces;
+using ZES.Interfaces.Branching;
 using ZES.Interfaces.Causality;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
@@ -114,14 +116,17 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var timeline = container.GetInstance<ITimeline>();
+            var manager = container.GetInstance<IBranchManager>();
             
             var time = timeline.Now;
             var lastTime = time + Duration.FromSeconds(30);
             var midTime = time + ((lastTime - time) / 2);
             var lastQuarterTime = midTime + ((lastTime - midTime) / 2);
+            var quarterTime = time + ((midTime - time) / 2);
             
             await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
- 
+            await manager.Ready;
+            
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(
                 new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime));
@@ -133,6 +138,13 @@ namespace Chronos.Tests
             
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("2", "SHA-256", 200, 1000), lastQuarterTime));
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.0025);
+            await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
+            await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);
+
+            await await bus.CommandAsync(
+                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), quarterTime));
+            
+            await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.0125);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);
         }

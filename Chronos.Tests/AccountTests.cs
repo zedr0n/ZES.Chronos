@@ -1,11 +1,14 @@
+using System.Reactive.Linq;
 using Chronos.Accounts;
 using Chronos.Accounts.Commands;
 using Chronos.Accounts.Queries;
 using Chronos.Core;
 using Chronos.Core.Commands;
+using Chronos.Hashflare.Commands;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Interfaces;
+using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
 using ZES.Tests;
@@ -82,6 +85,27 @@ namespace Chronos.Tests
             Assert.Equal("Bitcoin", account.Assets[0]);
 
             await bus.Equal(new AccountStatsQuery("Account", gbp), s => s.Balance, new Quantity(23000 / 1.3, gbp));
+        }
+
+        [Fact]
+        public async void CanProcessHashflare()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var timeline = container.GetInstance<ITimeline>();
+            var manager = container.GetInstance<IBranchManager>();
+
+            var asset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var usd = new Currency("USD");
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
+            await bus.Command(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now, 23000));
+            
+            await bus.Command(new RegisterHashflare("user@mail.com"));
+            await manager.Ready;
+            await bus.Command(new CreateContract("0", asset.Ticker, 100, 1000));
+            await bus.Command(new AddMinedCoinToHashflare(asset.Ticker, 0.1));
+
+            await bus.Equal(new AccountStatsQuery("Hashflare", usd), a => a.Balance, new Quantity(23000 * 0.1, usd));
         }
     }
 }

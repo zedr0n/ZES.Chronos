@@ -39,6 +39,7 @@ namespace Chronos.Core
         protected override IEnumerable<object> GetAtomicValues()
         {
             yield return Denominator;
+            yield return Amount;
         }
     }
 }
