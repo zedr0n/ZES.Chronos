@@ -30,7 +30,6 @@ namespace Chronos.Core.Queries
 
     protected override async Task<GenericAssetPrice> Handle(IProjection<AssetPairsInfo> projection, GenericAssetPriceQuery query)
     {
-      _log.Info($"Getting generic price for {query.ForAsset.AssetId} in {query.DomAsset.Ticker}");
       var price = 1.0;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
       var info = projection.State;

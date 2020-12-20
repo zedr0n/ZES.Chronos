@@ -16,9 +16,9 @@ namespace Chronos.Core
         private double _low;
         private double _high;
         private double _open;
-        
+
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="Quote"/> class.
         /// </summary>
         /// <param name="date">Quote date</param>
         /// <param name="close">Close price</param>
@@ -29,7 +29,7 @@ namespace Chronos.Core
         }
 
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="Quote"/> class.
         /// </summary>
         /// <param name="date">Quote date</param>
         /// <param name="close">Close price</param>

@@ -34,7 +34,6 @@ namespace Chronos.Core
             if (!_graph.ContainsVertex(forAsset.Ticker) || !_graph.ContainsVertex(domAsset.Ticker))
                 return null;
 
-            Log.Info($"Computing shortest path from {forAsset.AssetId} to {domAsset.AssetId}");
             return _graph.RankedShortestPathHoffmanPavley(e => 1.0, forAsset.Ticker, domAsset.Ticker, 1).FirstOrDefault()?.Select(e => (e.Source, e.Target));
         }
     }
