@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices.ComTypes;
+using Chronos.Accounts.Queries;
+using Chronos.Core;
 using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
 using NodaTime;
@@ -147,6 +149,9 @@ namespace Chronos.Tests
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.0125);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);
+
+            var btcAsset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            await bus.Equal(new AccountStatsQuery("Hashflare", btcAsset), a => a.Balance, new Quantity(0.02, btcAsset));
         }
         
         [Fact]
@@ -155,6 +160,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var timeline = container.GetInstance<ITimeline>();
+            var manager = container.GetInstance<IBranchManager>();
             
             var time = timeline.Now;
             var lastTime = time + Duration.FromSeconds(1);
@@ -162,6 +168,7 @@ namespace Chronos.Tests
             var midTime = time + ((lastTime - time) / 2);
             
             await await bus.CommandAsync(new RegisterHashflare("user@mail.com"));
+            await manager.Ready;
  
             await await bus.CommandAsync(new CreateContract("0", "SHA-256", 100, 1000));
             await await bus.CommandAsync(
@@ -173,6 +180,9 @@ namespace Chronos.Tests
             
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.055);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.055);
+            
+            var btcAsset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            await bus.Equal(new HistoricalQuery<AccountStatsQuery, AccountStats>(new AccountStatsQuery("Hashflare", btcAsset), ultimateTime), a => a.Balance, new Quantity(0.11, btcAsset));
         }
     }
 }

@@ -43,7 +43,7 @@ namespace Chronos.Core.Queries
         // try to triangulate the price
         var path = info.Tree.GetPath(query.ForAsset, query.DomAsset);
         if (path == null)
-          throw new InvalidOperationException($"No path found from {query.ForAsset} to {query.DomAsset}");
+          throw new InvalidOperationException($"No path found from {query.ForAsset?.Ticker} to {query.DomAsset?.Ticker}");
         
         var timestamp = Instant.MinValue;
         foreach (var n in path)

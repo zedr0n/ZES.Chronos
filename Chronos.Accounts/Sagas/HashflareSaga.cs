@@ -10,7 +10,6 @@ namespace Chronos.Accounts.Sagas
     public class HashflareSaga : StatelessSaga<HashflareSaga.State, HashflareSaga.Trigger>
     {
         private double _quantity;
-        private string _coinType;
         
         public HashflareSaga()
         {
@@ -18,10 +17,9 @@ namespace Chronos.Accounts.Sagas
             RegisterIf<AccountCreated>(e => "Hashflare", e => Trigger.Created, e => e.AggregateRootId() == "Hashflare");
             Register<CoinMined>(e => "Hashflare", Trigger.CoinMined, e =>
             {
-                _coinType = e.Type;
                 _quantity = e.Quantity;
             });
-            RegisterIf<AssetDeposited>(e => "Hashflare", e => Trigger.AccountUpdated, e => e.AggregateRootId() == "Hashflare" && e.Quantity.Amount == _quantity && e.Quantity.Denominator.AssetId == _coinType);
+            RegisterIf<AssetDeposited>(e => "Hashflare", e => Trigger.AccountUpdated, e => e.AggregateRootId() == "Hashflare" && e.Quantity.Amount == _quantity && e.Quantity.Denominator.Ticker == "BTC");
         }
         
         public enum Trigger
@@ -51,7 +49,7 @@ namespace Chronos.Accounts.Sagas
             StateMachine.Configure(State.Created)
                 .Permit(Trigger.CoinMined, State.Processing);
             StateMachine.Configure(State.Processing)
-                .OnEntry(() => SendCommand(new DepositAsset("Hashflare", new Quantity(_quantity, new Asset(_coinType, _coinType, Asset.Type.Coin)))))
+                .OnEntry(() => SendCommand(new DepositAsset("Hashflare", new Quantity(_quantity, new Asset("Bitcoin", "BTC", Asset.Type.Coin)))))
                 .Permit(Trigger.AccountUpdated, State.Created);
         }
     }
