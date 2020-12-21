@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
+using Chronos.Accounts.Queries;
+using Chronos.Core;
 using Chronos.Hashflare.Commands;
 using Chronos.Hashflare.Queries;
 using NodaTime;
@@ -35,6 +37,7 @@ namespace Chronos.Tests
 
             var time = timeline.Now;
             var nAdds = 25;
+            var total = (nAdds + 1) * 0.01;
             var totalBefore = 0.0;
             var lastTime = time + Duration.FromSeconds((nAdds * 2) + 1 );
             var midTime = time + ((lastTime - time) / 2);
@@ -77,6 +80,8 @@ namespace Chronos.Tests
             await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + Duration.FromSeconds(1)), c => Math.Round(c.Mined, 6), Math.Round(totalBefore + addAfter, 6), TimeSpan.FromSeconds(10));
             await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery(lastContractId), lastTime + Duration.FromSeconds(1)), c => Math.Round(c.Mined, 6), Math.Round(addAfter, 6), TimeSpan.FromSeconds(10));
 
+            var btcAsset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            await bus.Equal(new HistoricalQuery<AccountStatsQuery, AccountStats>(new AccountStatsQuery("Hashflare", btcAsset), lastTime + Duration.FromSeconds(1)), a => Math.Round(a.Balance.Amount, 6), total);
             await graph.Serialise(nameof(CanRetroactivelyAddMinedToContractPerformance));
         }
     }

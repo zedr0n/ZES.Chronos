@@ -17,8 +17,8 @@ namespace Chronos.Core.Queries
     }  
     public AssetPairsInfo Handle (Chronos.Core.Events.AssetPairRegistered e, AssetPairsInfo state)
     {
-      var pairs = new HashSet<string>(state.Pairs) { e.Fordom };
-      var newState = new AssetPairsInfo(pairs.ToArray(), state.Tree);
+      var pairs = new HashSet<string>(state.Pairs ?? new string[0]) { e.Fordom };
+      var newState = new AssetPairsInfo(pairs.ToArray(), state.Tree ?? new AssetTree());
       newState.Tree.Add(e.ForAsset, e.DomAsset);
       return newState;
     }

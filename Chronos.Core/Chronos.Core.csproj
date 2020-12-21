@@ -15,6 +15,10 @@
       <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Sagas" />
+    </ItemGroup>
+
     <Choose>
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
@@ -31,6 +35,7 @@
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+                <PackageReference Include="System.Reactive" Version="4.1.2" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -48,11 +53,12 @@
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+                <PackageReference Include="System.Reactive" Version="4.1.2" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.661" />
+                <PackageReference Include="ZES" Version="1.0.664" />
             </ItemGroup>
         </Otherwise>
     </Choose>

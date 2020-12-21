@@ -7,18 +7,24 @@
 {
   public sealed class AssetPair : ZES.Infrastructure.Domain.AggregateRoot
   {
-    public AssetPair() 
+    public AssetPair()
     {
-      Register<Chronos.Core.Events.AssetPairRegistered>(ApplyEvent); 
+      Register<Chronos.Core.Events.AssetPairRegistered>(ApplyEvent);
       Register<Chronos.Core.Events.QuoteAdded>(ApplyEvent);
+      Register<Chronos.Core.Events.QuoteUrlAdded>(ApplyEvent);
     }
+    
+    public Asset ForAsset { get; set; }
+    public Asset DomAsset { get; set; }
+    
+    public string Url { get; set; }
 
     public static string Fordom(Asset forAsset, Asset domAsset)
     {
       return forAsset.Ticker + domAsset.Ticker;
     }
     
-    public AssetPair(string fordom, Asset forAsset, Asset domAsset) : this() 
+    public AssetPair(string fordom, Asset forAsset, Asset domAsset) : this()
     {
       When(new Chronos.Core.Events.AssetPairRegistered(fordom, forAsset, domAsset));
     }  
@@ -26,12 +32,22 @@
     {
       When(new Chronos.Core.Events.QuoteAdded(date, close, open, low, high));
     }  
+    public void AddUrl (string url)
+    {
+      When(new Chronos.Core.Events.QuoteUrlAdded(url));
+    }  
     private void ApplyEvent (Chronos.Core.Events.AssetPairRegistered e)
     {
       Id = e.Fordom;
+      ForAsset = e.ForAsset;
+      DomAsset = e.DomAsset;
     }  
     private void ApplyEvent (Chronos.Core.Events.QuoteAdded e)
     {
+    }  
+    private void ApplyEvent (Chronos.Core.Events.QuoteUrlAdded e)
+    {
+      Url = e.Url;
     }
   }
 }
