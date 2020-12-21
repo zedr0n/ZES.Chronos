@@ -78,6 +78,7 @@ namespace Chronos.Tests
 
             await bus.Command(new UpdateQuote(AssetPair.Fordom(btc, usd)));
             await bus.Equal(new SingleAssetPriceQuery(AssetPair.Fordom(btc, usd)), s => s.Price, 23518.31842054723);
+            await bus.Equal(new AssetPriceQuery(btc, gbp), s => s.Price, 23518.31842054723 / 1.3287850671);
             
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), date));
             await bus.Equal(new HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>(new SingleAssetPriceQuery(AssetPair.Fordom(gbp, usd)), date), s => s.Price, 1.332769104);

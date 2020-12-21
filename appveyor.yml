@@ -20,6 +20,7 @@ test_script:
   - cmd: dotnet test --no-build --filter CoinTests Chronos.Tests\Chronos.Tests.csproj
   - cmd: dotnet test --no-build --filter SchemaTests Chronos.Tests\Chronos.Tests.csproj
   - cmd: dotnet test --no-build --filter AccountTests Chronos.Tests\Chronos.Tests.csproj
+  - cmd: dotnet test --no-build --filter AssetTests Chronos.Tests\Chronos.Tests.csproj
   - cmd: dotnet test --no-build --filter HashflareTests Chronos.Tests\Chronos.Tests.csproj
   - cmd: dotnet test --no-build --filter PerformanceTests Chronos.Tests\Chronos.Tests.csproj
 on_failure:
