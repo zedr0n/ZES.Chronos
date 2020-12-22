@@ -18,8 +18,10 @@ namespace Chronos.Accounts.Queries
         public AccountStatsState(AccountStatsState other)
         {
             _positions = new Dictionary<Asset, double>(other._positions);
+            Transactions = new HashSet<string>(other.Transactions);
         }
-        
+       
+        public HashSet<string> Transactions { get; } = new HashSet<string>();
         public IEnumerable<Asset> Assets => _positions.Keys;
         public IEnumerable<double> Quantities => _positions.Values;
 

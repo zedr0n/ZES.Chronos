@@ -19,6 +19,7 @@ namespace Chronos.Accounts
     {
       Register<Chronos.Accounts.Events.AccountCreated>(ApplyEvent);
       Register<Chronos.Accounts.Events.AssetDeposited>(ApplyEvent);
+      Register<Chronos.Accounts.Events.TransactionAdded>(ApplyEvent);
     }
 
     public Account(string name, AccountType type) : this()
@@ -44,7 +45,10 @@ namespace Chronos.Accounts
     {
       When(new Chronos.Accounts.Events.AssetDeposited(quantity));
     }  
-
+    public void AddTransaction (string txId)
+    {
+      When(new Chronos.Accounts.Events.TransactionAdded(txId));
+    }  
     private void ApplyEvent(Chronos.Accounts.Events.AccountCreated e)
     {
       Id = e.Name;
@@ -54,6 +58,9 @@ namespace Chronos.Accounts
     private void ApplyEvent(Chronos.Accounts.Events.AssetDeposited e)
     {
       _assets.AddOrUpdate(e.Quantity.Denominator, e.Quantity.Amount, (a, d) => d + e.Quantity.Amount);
+    }
+  	private void ApplyEvent (Chronos.Accounts.Events.TransactionAdded e)
+    {
     }
   }
 }

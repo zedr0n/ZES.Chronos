@@ -11,51 +11,45 @@ namespace Chronos.Core
 {
     public class AssetTree
     {
-        private readonly BidirectionalGraph<string, RateEdge> _graph = new BidirectionalGraph<string, RateEdge>();
+        private readonly BidirectionalGraph<Asset, RateEdge> _graph = new BidirectionalGraph<Asset, RateEdge>();
+
+        public AssetTree()
+        {
+            _graph.AddVertex(new Currency("GBP"));
+            _graph.AddVertex(new Currency("USD"));
+        }
         
         public ILog Log { get; set; }
+
+        public IEnumerable<Asset> Assets => _graph.Vertices;
         
         public void Add(Asset forAsset, Asset domAsset)
         {
-            if (!_graph.ContainsVertex(forAsset.Ticker))
-                _graph.AddVertex(forAsset.Ticker);
-            if (!_graph.ContainsVertex(domAsset.Ticker))
-                _graph.AddVertex(domAsset.Ticker);
+            if (!_graph.ContainsVertex(forAsset))
+                _graph.AddVertex(forAsset);
+            if (!_graph.ContainsVertex(domAsset))
+                _graph.AddVertex(domAsset);
             
-            var edge = new RateEdge(forAsset.Ticker, domAsset.Ticker);
+            var edge = new RateEdge(forAsset, domAsset);
             if (!_graph.ContainsEdge(edge))
                 _graph.AddEdge(edge);
             
-            var inverseEdge = new RateEdge(domAsset.Ticker, forAsset.Ticker);
+            var inverseEdge = new RateEdge(domAsset, forAsset);
             if (!_graph.ContainsEdge(inverseEdge))
                 _graph.AddEdge(inverseEdge);
         }
 
         public IEnumerable<(string forAsset, string domAsset)> GetPath(Asset forAsset, Asset domAsset)
         {
-            if (!_graph.ContainsVertex(forAsset.Ticker) || !_graph.ContainsVertex(domAsset.Ticker))
+            if (!_graph.ContainsVertex(forAsset) || !_graph.ContainsVertex(domAsset))
                 return null;
 
-            return _graph.RankedShortestPathHoffmanPavley(e => 1.0, forAsset.Ticker, domAsset.Ticker, 1).FirstOrDefault()?.Select(e => (e.Source, e.Target));
+            return _graph.RankedShortestPathHoffmanPavley(e => 1.0, forAsset, domAsset, 1).FirstOrDefault()?.Select(e => (e.Source.Ticker, e.Target.Ticker));
         }
 
-        public string GetUrl(string forAsset, string domAsset, Instant date)
+        private class RateEdge : Edge<Asset>
         {
-            var edge = _graph.Edges.SingleOrDefault(e => e.Source == forAsset && e.Target == domAsset);
-            return edge?.Url.Replace("$date", date.ToString("yyyy-mm-dd", new DateTimeFormatInfo()));
-        }
-        
-        public void SetUrl(Asset forAsset, Asset domAsset, string url)
-        {
-            var edge = _graph.Edges.SingleOrDefault(e => e.Source == forAsset.Ticker && e.Target == domAsset.Ticker);
-            if (edge == null)
-                return;
-            edge.Url = url;
-        }
-
-        private class RateEdge : Edge<string>
-        {
-            public RateEdge(string source, string target)
+            public RateEdge(Asset source, Asset target)
                 : base(source, target)
             {
             }

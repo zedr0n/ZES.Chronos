@@ -5,28 +5,20 @@ using System.Threading.Tasks;
 using Chronos.Core;
 using Chronos.Core.Queries;
 using ZES.Infrastructure.Domain;
-using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries
 {
-    public class AccountStatsQueryHandler : QueryHandlerBase<AccountStatsQuery, AccountStats, AccountStatsState>
+    public class AccountStatsQueryHandler : DefaultSingleQueryHandler<AccountStatsQuery, AccountStats, AccountStatsState>
     {
         private readonly IQueryHandler<AssetPriceQuery, AssetPrice> _handler;
-        private readonly ILog _log;
+        private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
         
-        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, ILog log) 
+        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler) 
             : base(manager)
         {
             _handler = handler;
-            _log = log;
-        }
-
-        protected override async Task<AccountStats> Handle(AccountStatsQuery query)
-        {
-            Projection = Manager.GetProjection<AccountStatsState>(query.Name, query.Timeline);
-            await Projection.Ready;
-            return await base.Handle(query);
+            _transactionInfoHandler = transactionInfoHandler;
         }
 
         protected override async Task<AccountStats> Handle(IProjection<AccountStatsState> projection, AccountStatsQuery query)
@@ -42,6 +34,23 @@ namespace Chronos.Accounts.Queries
                     price = (await _handler.Handle(new AssetPriceQuery(asset, query.Denominator))).Price;
 
                 total += amount * price;
+            }
+
+            foreach (var txId in state.Transactions)
+            {
+                var tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, query.Denominator));
+                var amount = tx.Quantity.Amount;
+                switch (tx.TransactionType)
+                {
+                   case Transaction.TransactionType.Sell:
+                   case Transaction.TransactionType.Spend:
+                       amount *= -1.0;
+                       break;
+                   default:
+                       break;
+                }
+                
+                total += amount;
             }
 
             return new AccountStats(new Quantity(total, query.Denominator));

@@ -10,6 +10,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Chronos.Accounts\Chronos.Accounts.csproj" />
+      <ProjectReference Include="..\Chronos.Coins\Chronos.Coins.csproj" />
       <ProjectReference Include="..\Chronos.Hashflare\Chronos.Hashflare.csproj" />
     </ItemGroup>
 
@@ -41,6 +43,7 @@
                 <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
                 <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
+                <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
@@ -76,6 +79,7 @@
                 <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
                 <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
+                <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
@@ -86,7 +90,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.664" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.665" />
             </ItemGroup>
         </Otherwise>
     </Choose>

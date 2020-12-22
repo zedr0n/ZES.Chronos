@@ -4,6 +4,7 @@ using Chronos.Accounts.Commands;
 using Chronos.Accounts.Queries;
 using Chronos.Core;
 using Chronos.Core.Commands;
+using Chronos.Core.Queries;
 using Chronos.Hashflare.Commands;
 using Xunit;
 using Xunit.Abstractions;
@@ -12,6 +13,7 @@ using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
 using ZES.Tests;
+using ZES.Utils;
 
 namespace Chronos.Tests
 {
@@ -61,6 +63,50 @@ namespace Chronos.Tests
             await bus.Equal(new AccountStatsQuery("Account", ccy), s => s.Balance, new Quantity(23000, ccy));
         }
         
+        [Fact]
+        public async void CanAddTransaction()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var timeline = container.GetInstance<ITimeline>();
+           
+            await await bus.CommandAsync(new CreateAccount("Account", AccountType.Saving));
+
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+
+            await bus.Command(new RegisterAssetPair("GBPUSD", gbp, usd));
+            await bus.Command(new AddQuote("GBPUSD", timeline.Now, 1.2));
+
+            await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
+
+            await bus.Command(new AddTransaction("Account", "Tx"));
+            await bus.Equal(new AccountStatsQuery("Account", usd), a => a.Balance, new Quantity(-100 * 1.2, usd));
+        }
+
+        [Fact]
+        public async void CanListTransactions()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+           
+            await await bus.CommandAsync(new CreateAccount("Account", AccountType.Saving));
+
+            var gbp = new Currency("GBP");
+           
+            await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Income, string.Empty));
+            await bus.Command(new RecordTransaction("Tx2", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
+
+            await bus.Command(new AddTransaction("Account", "Tx"));
+            await bus.Command(new AddTransaction("Account", "Tx2"));
+
+            var list = await bus.QueryUntil(new TransactionListQuery("Account"), r => r.TxId.Length > 0);
+            Assert.Contains("Tx", list.TxId);
+            Assert.Contains("Tx2", list.TxId);
+            
+            await bus.Equal(new AccountStatsQuery("Account", gbp), a => a.Balance, new Quantity(0, gbp));
+        }   
+
         [Fact]
         public async void CanGetAssetTriangulationPrice()
         {

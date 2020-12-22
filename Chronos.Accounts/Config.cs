@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Chronos.Accounts.Commands;
 using Chronos.Accounts.Queries;
+using Chronos.Core.Queries;
 using SimpleInjector;
 using ZES.Infrastructure;
 using ZES.Infrastructure.GraphQl;
@@ -31,6 +34,8 @@ namespace Chronos.Accounts
         /// </summary>
         public class Query : GraphQlQuery
         {
+            private readonly IBus _bus;
+            
             /// <summary>
             /// Initializes a new instance of the <see cref="Query"/> class.
             /// </summary>
@@ -38,6 +43,7 @@ namespace Chronos.Accounts
             public Query(IBus bus) 
                 : base(bus)
             {
+                _bus = bus;
             }
 
             /// <summary>
@@ -45,6 +51,14 @@ namespace Chronos.Accounts
             /// </summary>
             /// <returns>Account stats</returns>
             public Stats Stats() => Resolve(new StatsQuery());
+
+            public TransactionList TransactionList(string account) => Resolve(new TransactionListQuery(account));
+            public List<TransactionInfo> TransactionInfos(string account)
+            {
+                var txIds = _bus.QueryAsync(new TransactionListQuery(account)).Result;
+                var list = txIds.TxId.Select(tx => _bus.QueryAsync(new TransactionInfoQuery(tx)).Result).ToList();
+                return list;
+            }
         }
 
         /// <summary>
@@ -70,10 +84,13 @@ namespace Chronos.Accounts
             /// <returns>True if successful</returns>
             public bool CreateAccount(string name, string type)
             {
-                Enum.TryParse<AccountType>(type, out var accountType);
-                Resolve(new CreateAccount(name, accountType));
-                return true;
+                if (!Enum.TryParse<AccountType>(type, out var accountType))
+                    return false;
+                
+                return Resolve(new CreateAccount(name, accountType));
             }
+
+            public bool AddTransaction(string name, string txId) => Resolve(new AddTransaction(name, txId));
         }
     }
 }

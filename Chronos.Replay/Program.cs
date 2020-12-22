@@ -19,7 +19,7 @@ namespace Chronos.Replay
         public static void Main(string[] args)
         {
             var player = new Replayer();
-            player.UseGraphQl(typeof(Config));
+            player.UseGraphQl(new[] { typeof(Chronos.Coins.Config), typeof(Chronos.Accounts.Config), typeof(Chronos.Hashflare.Config), typeof(Chronos.Core.Config) });
             if (args.Length != 1)
             {
                 Console.WriteLine("Chronos.Replayer log.json");
