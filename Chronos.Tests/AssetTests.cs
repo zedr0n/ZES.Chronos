@@ -40,6 +40,25 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public async void CanUseTransactionQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var timeline = container.GetInstance<ITimeline>();
+            
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+
+            await bus.Command(new RegisterAssetPair("GBPUSD", gbp, usd));
+            await bus.Command(new AddQuote("GBPUSD", timeline.Now, 1.2));
+
+            await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
+            await bus.Command(new AddTransactionQuote("Tx", new Quantity(110, usd)));
+            await bus.Equal(new TransactionInfoQuery("Tx", usd), t => t.Quantity.Amount, 110);
+ 
+        }
+
+        [Fact]
         public async void CanUseCurrencyPair()
         {
             var container = CreateContainer();

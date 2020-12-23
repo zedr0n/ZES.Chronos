@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 
@@ -21,13 +23,26 @@ namespace Chronos.Core.Queries
             if (query.Denominator == null || query.Denominator == state.Quantity.Denominator)
                 return state;
 
-            var fx = (await _handler.Handle(new AssetPriceQuery(state.Quantity.Denominator, query.Denominator)
-            {
-                Timestamp = query.Timestamp,
-                Timeline = query.Timeline,
-            })).Price;
+            var amount = state.Quantity.Amount;
 
-            return new TransactionInfo(state.TxId, state.Date, new Quantity(state.Quantity.Amount * fx, query.Denominator), state.TransactionType, state.Comment);
+            var quote = state.Quotes.SingleOrDefault(q => q.Denominator == query.Denominator);
+
+            if (quote != null)
+            {
+                amount = quote.Amount;
+            }
+            else
+            {
+                var fx = (await _handler.Handle(new AssetPriceQuery(state.Quantity.Denominator, query.Denominator)
+                {
+                    Timestamp = query.Timestamp,
+                    Timeline = query.Timeline,
+                })).Price;
+
+                amount *= fx;
+            }
+            
+            return new TransactionInfo(state.TxId, state.Date, new Quantity(amount, query.Denominator), state.TransactionType, state.Comment) { Quotes = new HashSet<Quantity>(state.Quotes) };
         }
     }
 }

@@ -26,6 +26,11 @@
       state.Comment = e.Comment; 
       return state;
     }
+    public TransactionInfo Handle (Chronos.Core.Events.TransactionQuoteAdded e, TransactionInfo state)
+    {
+      state.Quotes.Add(e.Quantity);
+      return state;
+    }
   }
 }
 
