@@ -12,9 +12,9 @@
       Register<Chronos.Core.Events.TransactionRecorded>(ApplyEvent); 
       Register<Chronos.Core.Events.TransactionDetailsUpdated>(ApplyEvent);
     }  
-    public Transaction(string txId, Quantity amount, Transaction.TransactionType transactionType, string comment) : this() 
+    public Transaction(string txId, Quantity quantity, Transaction.TransactionType transactionType, string comment) : this() 
     {
-      When(new Chronos.Core.Events.TransactionRecorded(txId, amount, transactionType, comment));
+      When(new Chronos.Core.Events.TransactionRecorded(txId, quantity, transactionType, comment));
     }  
 
     public enum TransactionType

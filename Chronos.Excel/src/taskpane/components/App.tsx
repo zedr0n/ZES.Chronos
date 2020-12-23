@@ -87,27 +87,51 @@ export default class App extends React.Component<AppProps, AppState> {
     catch(e) { console.error(e); }
   }
   
+  registerHashflare = async() => {
+    await this.doRange(this.registerHashflareEx);
+  }
+  
+  addMined = async() => {
+    await this.doRange(this.addMinedEx)
+  }
+
+  buyHashrate = async() => {
+    await this.doRange(this.buyHashrateEx)
+  }
+  
+  createAccount = async() => {
+    await this.doRange(this.createAccountEx);
+  }
+
+  createCoin = async() => {
+    await this.doRange(this.createCoinEx);
+  }
+  
+  recordTransaction = async() => {
+    await this.doRange(this.recordTransactionEx)
+  }
+  
+  updateQuote = async() => {
+    await this.doRange(this.updateQuoteEx)
+  }
+
   registerHashflareEx = async(range : Excel.Range) => {
     var data = range.values;
     var rInput = new RangeInput(data);
 
     if (data.length < 1 || data[0].length < 2)
       return;
-    
+
     var username = data[0][0];
     var timestamp = this.ExcelDateToJSDate(data[0][1]).getTime();
-    
+
     const mutation = `mutation {
         registerHashflare( username : "${username}", timestamp : ${timestamp} )
     }`;
     console.log(mutation);
     await request(this.server, mutation);
   }
-  
-  registerHashflare = async() => {
-    await this.doRange(this.registerHashflareEx);
-  }
-  
+
   addMinedEx = async(range : Excel.Range) => {
     var data = range.values;
     var input = new RangeInput(data);
@@ -123,14 +147,10 @@ export default class App extends React.Component<AppProps, AppState> {
     }
   }
   
-  addMined = async() => {
-    await this.doRange(this.addMinedEx)
-  }
-  
   buyHashrateEx = async(range : Excel.Range) => {
     var data = range.values;
     var input = new RangeInput(data);
-    
+
     var mutations : {mutation : string, timestamp : number}[] = [];
     for(var m of input.getRows())
     {
@@ -142,7 +162,7 @@ export default class App extends React.Component<AppProps, AppState> {
       mutations.push({mutation, timestamp});
       // await request(this.server, mutation);
     }
-    
+
     mutations.sort((a, b) => a.timestamp > b.timestamp ? 1 : -1);
     for(var x of mutations) {
       console.log(x.mutation);
@@ -150,14 +170,6 @@ export default class App extends React.Component<AppProps, AppState> {
     }
   }
 
-  buyHashrate = async() => {
-    await this.doRange(this.buyHashrateEx)
-  }
-  
-  createAccount = async() => {
-    await this.doRange(this.createAccountEx);
-  }
-  
   createAccountEx = async(range : Excel.Range) => {
     var data = range.values;
     var rInput = new RangeInput(data);
@@ -213,10 +225,66 @@ export default class App extends React.Component<AppProps, AppState> {
       console.error("Name header not found!")
     }
   }
-
-  createCoin = async() => {
-    await this.doRange(this.createCoinEx);
+  
+  recordTransactionEx = async(range : Excel.Range) => {
+    var data = range.values;
+    var rInput = new RangeInput(data);
+    
+    var txId : any[]
+    var amounts : any[]
+    var assets : any[]
+    var comments : any[]
+    var dates : any[]
+    var res : any[][]
+    
+    if (data.length == 1 && data[0].length == 5) {
+      txId = data[0][0];
+      amounts = data[0][1];
+      assets = data[0][2];
+      comments = data[0][3];
+      dates = data[0][4];
+      res = [ data[0][0], data[0][1], data[0][2], data[0][3], data[0][4], this.ExcelDateToJSDate(data[0][4]).toISOString() ]
+    }
+    else {
+      const rows = rInput.getRows();
+      res = rows.map(v => [ v.get("TxId"), v.get("Amount"), v.get("Asset"), v.get("Type"), v.get("Comment"), this.ExcelDateToJSDate(v.get("Date")).toISOString() ])
+    }
+    
+    console.log(res)
+    
+    if (res != undefined) {
+      for (const r of res) {
+        const mutation = `mutation {
+              recordTransaction( txId : "${r[0]}", amount : ${r[1]}, assetId : "${r[2]}", type : "${r[3]}", comment : "${r[4]}", date : "${r[5]}" )
+            }`
+        console.log(mutation)
+        await request(this.server, mutation) 
+      }
+    }
+    else {
+      console.error("Headers not found")
+    }
   }
+
+  updateQuoteEx = async(range : Excel.Range) => {
+    var data = range.values;
+    var nRows = data.length;
+    if (data[0].length == 3)
+    {
+      for (var i = 0; i < nRows; i++)
+      {
+        const mutation = `mutation {
+            updateQuote( forAsset : "${data[i][1]}", domAsset : "${data[i][2]}, timestamp : ${this.ExcelDateToJSDate(data[i][0]).toISOString()}" )
+          }`
+        console.log(mutation)
+        await request(this.server, mutation)
+      }
+    }
+    else {
+      console.error("Domestic or foreign asset not found")
+    }
+  }
+    
   
   render() {
     const {
@@ -244,6 +312,10 @@ export default class App extends React.Component<AppProps, AppState> {
 
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createAccount}>Create account</Button>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createCoin}>Create coin</Button>
+          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.recordTransaction}>Record transaction</Button>
+
+          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.updateQuote}>Update quote</Button>
+
         </HeroList>
       </div>
     );

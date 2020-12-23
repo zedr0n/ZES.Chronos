@@ -30,7 +30,7 @@ namespace Chronos.Accounts
         }
         
         /// <summary>
-        /// Root graphql query for Accounts damain
+        /// Root graphql query for Accounts domain
         /// </summary>
         public class Query : GraphQlQuery
         {

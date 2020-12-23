@@ -44,9 +44,18 @@ namespace Chronos.Core.Queries
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
       var info = projection.State;
       info.Tree.Log = _log;
+      var timestamp = query.Timestamp;
+      if (query.Timeline != "")
+        timestamp = _branchManager.GetTime(query.Timeline);
+      else if (timestamp == default)
+        timestamp = _branchManager.GetTime(_branchManager.ActiveBranch);
+      
       if (info.Pairs.ToList().Contains(fordom))
       {
-        price = (await _handler.Handle(new SingleAssetPriceQuery(fordom))).Price;
+        var result = await _handler.Handle(new SingleAssetPriceQuery(fordom));
+        if (result.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(result.Timestamp).Days > 0)
+          throw new InvalidOperationException($"Stale pricing date for {fordom}");
+        price = result.Price;
       }
       else 
       {
@@ -55,7 +64,6 @@ namespace Chronos.Core.Queries
         if (path == null)
           throw new InvalidOperationException($"No path found from {query.ForAsset?.Ticker} to {query.DomAsset?.Ticker}");
 
-        var timestamp = _branchManager.GetTime(query.Timeline != "" ? query.Timeline : _branchManager.ActiveBranch);
         foreach (var n in path)
         {
           var pathForDom = n.forAsset + n.domAsset;
@@ -65,7 +73,7 @@ namespace Chronos.Core.Queries
 
           var pathResult = await _handler.Handle(new SingleAssetPriceQuery(pathForDom));
 
-          if (pathResult.Timestamp.Minus(timestamp).Days > 0)
+          if (pathResult.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(pathResult.Timestamp).Days > 0)
             throw new InvalidOperationException($"Stale pricing date for {pathForDom}");
 
           if (isInverse)

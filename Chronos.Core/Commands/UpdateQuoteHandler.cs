@@ -85,10 +85,17 @@ namespace Chronos.Core.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
       var dateFormat = Api.Fx.DateFormat;
+      var url = Api.Fx.Url(root.ForAsset, root.DomAsset);
       if (typeof(T) == typeof(Api.Coin.JsonResult))
+      {
         dateFormat = Api.Coin.DateFormat;
+        url = Api.Coin.Url(root.ForAsset, root.DomAsset);
+      }
+
+      if (root.Url != null)
+        url = root.Url;
       
-      var url = root.Url.Replace("$date", command.Timestamp.ToString(dateFormat, new DateTimeFormatInfo())); 
+      url = url.Replace("$date", command.Timestamp.ToString(dateFormat, new DateTimeFormatInfo())); 
       await _jsonRequestHandler.Handle(new RequestJson<T>(command.Target, url)).Timeout();
       
       var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);

@@ -15,6 +15,11 @@
        get; 
        set;
     }  
+    public NodaTime.Instant Date
+    {
+       get; 
+       set;
+    }  
     public Quantity Quantity
     {
        get; 
@@ -30,9 +35,10 @@
        get; 
        set;
     }  
-    public TransactionInfo(string txId, Quantity quantity, Transaction.TransactionType transactionType, string comment) 
+    public TransactionInfo(string txId, NodaTime.Instant date, Quantity quantity, Transaction.TransactionType transactionType, string comment) 
     {
       TxId = txId; 
+      Date = date; 
       Quantity = quantity; 
       TransactionType = transactionType; 
       Comment = comment;

@@ -9,7 +9,7 @@ namespace Chronos.Core
         {
             public static string DateFormat => "yyyy-MM-dd";
 
-            public static string Url(Currency forCurrency, Currency domCurrency)
+            public static string Url(Asset forCurrency, Asset domCurrency)
             {
                 if (domCurrency.Ticker != "USD")
                     throw new InvalidOperationException("Only USD is supported as domestic currency");
@@ -32,7 +32,7 @@ namespace Chronos.Core
         {
             public static string DateFormat => "dd-MM-yyyy";
             
-            public static string Url(Asset coin, Currency domCurrency)
+            public static string Url(Asset coin, Asset domCurrency)
             {
                 if (domCurrency.Ticker != "USD")
                     throw new InvalidOperationException("Only USD is supported as domestic currency");

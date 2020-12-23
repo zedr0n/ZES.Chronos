@@ -14,7 +14,8 @@
     public TransactionInfo Handle (Chronos.Core.Events.TransactionRecorded e, TransactionInfo state)
     {
       state.TxId = e.TxId; 
-      state.Quantity = e.Quantity; 
+      state.Quantity = e.Quantity;
+      state.Date = e.Timestamp;
       state.TransactionType = e.TransactionType; 
       state.Comment = e.Comment; 
       return state;

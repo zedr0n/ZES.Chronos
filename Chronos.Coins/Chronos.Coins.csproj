@@ -9,6 +9,10 @@
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Chronos.Core\Chronos.Core.csproj" />
+    </ItemGroup>
+
     <Choose>
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
@@ -44,7 +48,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.665" />
+                <PackageReference Include="ZES" Version="1.0.666" />
             </ItemGroup>
         </Otherwise>
     </Choose>
