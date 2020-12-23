@@ -55,7 +55,6 @@ namespace Chronos.Tests
             await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
             await bus.Command(new AddTransactionQuote("Tx", new Quantity(110, usd)));
             await bus.Equal(new TransactionInfoQuery("Tx", usd), t => t.Quantity.Amount, 110);
- 
         }
 
         [Fact]
@@ -86,12 +85,29 @@ namespace Chronos.Tests
 
             var forAsset = new Currency("GBP");
             var domAsset = new Currency("USD");
-
+            
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair("GBPUSD", forAsset, domAsset), date));
             await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl("GBPUSD", Api.Fx.Url(forAsset, domAsset)), date));
             
             await bus.Command(new RetroactiveCommand<UpdateQuote<Api.Fx.JsonResult>>(new UpdateQuote<Api.Fx.JsonResult>("GBPUSD"), date));
             await bus.Equal(new HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>(new SingleAssetPriceQuery("GBPUSD"), date), s => s.Price, 1.332769104);
+        }
+
+        [Fact]
+        public async void CanGetLatestPairQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var log = container.GetInstance<ILog>();
+            
+            var forAsset = new Currency("GBP");
+            var domAsset = new Currency("USD");
+            
+            await bus.Command(new RegisterAssetPair("GBPUSD", forAsset, domAsset));
+            await bus.Command(new UpdateQuote(AssetPair.Fordom(forAsset, domAsset)));
+            await bus.IsTrue(new AssetPriceQuery(forAsset, domAsset), q => q.Price > 1);
+            var res = await bus.QueryAsync(new AssetPriceQuery(forAsset, domAsset));
+            log.Info($"{AssetPair.Fordom(forAsset, domAsset)} is {res.Price} for {res.Timestamp}");
         }
         
         [Fact]

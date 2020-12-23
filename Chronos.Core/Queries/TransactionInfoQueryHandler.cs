@@ -33,7 +33,9 @@ namespace Chronos.Core.Queries
             }
             else
             {
-                var fx = (await _handler.Handle(new AssetPriceQuery(state.Quantity.Denominator, query.Denominator)
+                var denominator = state.Quotes.FirstOrDefault()?.Denominator ?? state.Quantity.Denominator;
+                amount = state.Quotes.FirstOrDefault()?.Amount ?? amount;
+                var fx = (await _handler.Handle(new AssetPriceQuery(denominator, query.Denominator)
                 {
                     Timestamp = query.Timestamp,
                     Timeline = query.Timeline,

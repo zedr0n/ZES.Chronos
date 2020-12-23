@@ -25,22 +25,25 @@ namespace Chronos.Core.Queries
   public class AssetPriceHandler : QueryHandlerBase<AssetPriceQuery, AssetPrice, AssetPairsInfo>
   {
     private readonly IQueryHandler<SingleAssetPriceQuery, SingleAssetPrice> _handler;
+    private readonly IQueryHandler<HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>, SingleAssetPrice> _historicalHandler;
     private readonly ILog _log;
     private readonly IMessageQueue _messageQueue;
     private readonly IBranchManager _branchManager;
 
-    public AssetPriceHandler(IProjectionManager manager, IQueryHandler<SingleAssetPriceQuery, SingleAssetPrice> handler, ILog log, IMessageQueue messageQueue, IBranchManager branchManager) 
+    public AssetPriceHandler(IProjectionManager manager, IQueryHandler<HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>, SingleAssetPrice> historicalHandler, ILog log, IMessageQueue messageQueue, IBranchManager branchManager, IQueryHandler<SingleAssetPriceQuery, SingleAssetPrice> handler) 
       : base(manager)
     {
-      _handler = handler;
+      _historicalHandler = historicalHandler;
       _log = log;
       _messageQueue = messageQueue;
       _branchManager = branchManager;
+      _handler = handler;
     }
 
     protected override async Task<AssetPrice> Handle(IProjection<AssetPairsInfo> projection, AssetPriceQuery query)
     {
       var price = 1.0;
+      var historical = false;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
       var info = projection.State;
       info.Tree.Log = _log;
@@ -49,10 +52,17 @@ namespace Chronos.Core.Queries
         timestamp = _branchManager.GetTime(query.Timeline);
       else if (timestamp == default)
         timestamp = _branchManager.GetTime(_branchManager.ActiveBranch);
+      else
+        historical = true;
       
       if (info.Pairs.ToList().Contains(fordom))
       {
-        var result = await _handler.Handle(new SingleAssetPriceQuery(fordom));
+        SingleAssetPrice result = null;
+        if (historical)
+          result = await _historicalHandler.Handle(new HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>(new SingleAssetPriceQuery(fordom), timestamp));
+        else
+          result = await _handler.Handle(new SingleAssetPriceQuery(fordom) { Timeline = query.Timeline });
+        
         if (result.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(result.Timestamp).Days > 0)
           throw new InvalidOperationException($"Stale pricing date for {fordom}");
         price = result.Price;
@@ -71,7 +81,11 @@ namespace Chronos.Core.Queries
           if (isInverse)
             pathForDom = n.domAsset + n.forAsset;
 
-          var pathResult = await _handler.Handle(new SingleAssetPriceQuery(pathForDom));
+          SingleAssetPrice pathResult = null;
+          if (historical)
+            pathResult = await _historicalHandler.Handle(new HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>(new SingleAssetPriceQuery(pathForDom), timestamp));
+          else
+            pathResult = await _handler.Handle(new SingleAssetPriceQuery(pathForDom) { Timeline = query.Timeline });
 
           if (pathResult.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(pathResult.Timestamp).Days > 0)
             throw new InvalidOperationException($"Stale pricing date for {pathForDom}");
@@ -83,7 +97,7 @@ namespace Chronos.Core.Queries
         }
       }
       
-      return new AssetPrice(price); 
+      return new AssetPrice(price, timestamp); 
     }
   }
 }

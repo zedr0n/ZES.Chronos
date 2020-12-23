@@ -4,7 +4,7 @@ using ZES.Infrastructure;
 namespace Chronos.Core
 {
     /// <summary>
-    /// Book value object
+    /// Asset quantity ( e.g. (100, "GBP"), (0.1, "Bitcoin")) 
     /// </summary>
     public class Quantity : ValueObject
     {

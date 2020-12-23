@@ -236,8 +236,12 @@ export default class App extends React.Component<AppProps, AppState> {
     var comments : any[]
     var dates : any[]
     var res : any[][]
+    var quotes : any[]
     
-    if (data.length == 1 && data[0].length == 5) {
+    if (data.length < 1 || data[0].length < 5)
+      return null
+    
+    if (data.length == 1 && data[0].length >= 5) {
       txId = data[0][0];
       amounts = data[0][1];
       assets = data[0][2];
@@ -247,7 +251,9 @@ export default class App extends React.Component<AppProps, AppState> {
     }
     else {
       const rows = rInput.getRows();
-      res = rows.map(v => [ v.get("TxId"), v.get("Amount"), v.get("Asset"), v.get("Type"), v.get("Comment"), this.ExcelDateToJSDate(v.get("Date")).toISOString() ])
+      const hasTotal =  rInput.headers.indexOf("Total") > 0
+      res = rows.map(v => [ v.get("TxId"), v.get("Amount"), v.get("Asset"), v.get("Type"), v.get("Comment"), this.ExcelDateToJSDate(v.get("Date")).toISOString(), hasTotal ? v.get("Total") : 0 ])
+        
     }
     
     console.log(res)
@@ -259,6 +265,15 @@ export default class App extends React.Component<AppProps, AppState> {
             }`
         console.log(mutation)
         await request(this.server, mutation) 
+        
+        if (r[6] > 0)
+        {
+          const quoteMutation = `mutation {
+            addTransactionQuote( assetId : "USD", txId : "${r[0]}", amount : ${r[6]})
+          }`
+          console.log(quoteMutation)
+          await request(this.server, quoteMutation)
+        }
       }
     }
     else {
@@ -274,7 +289,7 @@ export default class App extends React.Component<AppProps, AppState> {
       for (var i = 0; i < nRows; i++)
       {
         const mutation = `mutation {
-            updateQuote( forAsset : "${data[i][1]}", domAsset : "${data[i][2]}, timestamp : ${this.ExcelDateToJSDate(data[i][0]).toISOString()}" )
+            updateQuote( forAsset : "${data[i][1]}", domAsset : "${data[i][2]}", date : "${this.ExcelDateToJSDate(data[i][0]).toISOString()}" )
           }`
         console.log(mutation)
         await request(this.server, mutation)

@@ -35,6 +35,13 @@ namespace Chronos.Core
                 _timeline = timeline;
             }
 
+            /// <summary>
+            /// Gets the transaction info
+            /// </summary>
+            /// <param name="txId">Transaction id</param>
+            /// <param name="assetId">Denominator asset</param>
+            /// <returns>Transaction info</returns>
+            /// <exception cref="InvalidOperationException">Denominator asset not registered</exception>
             public TransactionInfo TransactionInfo(string txId, string assetId = null)
             {
                 Asset asset = null;
@@ -47,8 +54,11 @@ namespace Chronos.Core
                 }
 
                 var latest = Resolve(new TransactionInfoQuery(txId));
-                if (latest == null || assetId == null) 
+                if (latest == null)
                     return null;
+                var quote = latest.Quotes.SingleOrDefault(q => q.Denominator == asset);
+                if (quote != null || assetId == null)
+                    return new TransactionInfo(latest.TxId, latest.Date, quote ?? latest.Quantity, latest.TransactionType, latest.Comment);
                 
                 var date = latest.Date;
                 var diff = _timeline.Now.Minus(date);
@@ -88,7 +98,7 @@ namespace Chronos.Core
                 return Resolve(new RetroactiveCommand<RecordTransaction>(new RecordTransaction(txId, new Quantity(amount, asset), eType, comment), nDate.Value));
            }
             
-            public bool UpdateQuote(string forAsset, string domAsset)
+            public bool UpdateQuote(string forAsset, string domAsset, string date)
             {
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var forAssetObj = assetsList.Assets.SingleOrDefault(a => a.AssetId == forAsset || a.Ticker == forAsset);
@@ -96,7 +106,26 @@ namespace Chronos.Core
                 if (forAssetObj == null || domAssetObj == null)
                     return false;
                 
-                return Resolve(new UpdateQuote(AssetPair.Fordom(forAssetObj, domAssetObj)));
+                var nDate = InstantPattern.ExtendedIso.Parse(date);
+                if (!nDate.Success)
+                    return false;
+
+                if (!assetsList.Pairs.Contains(AssetPair.Fordom(forAssetObj, domAssetObj)))
+                    Resolve(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(forAssetObj, domAssetObj), forAssetObj, domAssetObj), nDate.Value));
+                
+                return Resolve(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(forAssetObj, domAssetObj)), nDate.Value));
+            }
+
+            public bool AddTransactionQuote(string txId, string assetId, double amount)
+            {
+                var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
+                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
+
+                if (asset == null)
+                    return false;
+
+                var date = _bus.QueryAsync(new TransactionInfoQuery(txId)).Result.Date;
+                return Resolve(new RetroactiveCommand<AddTransactionQuote>(new AddTransactionQuote(txId, new Quantity(amount, asset)), date));
             }
         }
     }
