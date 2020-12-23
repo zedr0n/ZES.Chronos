@@ -109,6 +109,35 @@ namespace Chronos.Tests
             var res = await bus.QueryAsync(new AssetPriceQuery(forAsset, domAsset));
             log.Info($"{AssetPair.Fordom(forAsset, domAsset)} is {res.Price} for {res.Timestamp}");
         }
+
+        [Fact]
+        public async void CanGetHistoricalPairQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            
+            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant();
+
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+            var btc = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
+
+            var midDate = new LocalDateTime(2020, 12, 10, 12, 30).InUtc().ToInstant();
+            var lastdate = new LocalDateTime(2020, 12, 15, 12, 30).InUtc().ToInstant(); 
+            await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), midDate));
+            await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), lastdate));
+            
+            await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(btc, usd)), midDate));
+
+            await bus.Equal(new AssetPriceQuery(btc, gbp) { Timestamp = midDate }, a => a.Timestamp, midDate);
+            var quote = await bus.QueryAsync(new AssetPriceQuery(btc, gbp) { Timestamp = midDate });
+            var historicalQuote = await bus.QueryAsync(new HistoricalQuery<AssetPriceQuery, AssetPrice>(new AssetPriceQuery(btc, gbp), midDate));
+            Assert.Equal(quote.Price, historicalQuote.Price);
+            Assert.Equal(quote.Timestamp, historicalQuote.Timestamp);
+        }   
         
         [Fact]
         public async void CanGetAssetPairRateFromUrlGeneric()
