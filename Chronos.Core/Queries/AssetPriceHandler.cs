@@ -63,7 +63,7 @@ namespace Chronos.Core.Queries
         else
           result = await _handler.Handle(new SingleAssetPriceQuery(fordom) { Timeline = query.Timeline });
         
-        if (result.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(result.Timestamp).Days > 0)
+        if (result == null || result.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(result.Timestamp).Days > 0)
           throw new InvalidOperationException($"Stale pricing date for {fordom}");
         price = result.Price;
       }
@@ -87,7 +87,7 @@ namespace Chronos.Core.Queries
           else
             pathResult = await _handler.Handle(new SingleAssetPriceQuery(pathForDom) { Timeline = query.Timeline });
 
-          if (pathResult.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(pathResult.Timestamp).Days > 0)
+          if (pathResult == null || pathResult.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(pathResult.Timestamp).Days > 0)
             throw new InvalidOperationException($"Stale pricing date for {pathForDom}");
 
           if (isInverse)
