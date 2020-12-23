@@ -33,7 +33,6 @@ namespace Chronos.Core.Queries
     protected override async Task<AssetPrice> Handle(IProjection<AssetPairsInfo> projection, AssetPriceQuery query)
     {
       var price = 1.0;
-      var historical = false;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
       var info = projection.State;
       info.Tree.Log = _log;
@@ -62,12 +61,12 @@ namespace Chronos.Core.Queries
         if (path == null)
           throw new InvalidOperationException($"No path found from {query.ForAsset?.Ticker} to {query.DomAsset?.Ticker}");
 
-        foreach (var n in path)
+        foreach (var (forAsset, domAsset) in path)
         {
-          var pathForDom = n.forAsset + n.domAsset;
-          var isInverse = info.Pairs.Contains(n.domAsset + n.forAsset);
+          var pathForDom = forAsset + domAsset;
+          var isInverse = info.Pairs.Contains(domAsset + forAsset);
           if (isInverse)
-            pathForDom = n.domAsset + n.forAsset;
+            pathForDom = domAsset + forAsset;
 
           var pathResult = await _handler.Handle(new SingleAssetPriceQuery(pathForDom)
           {

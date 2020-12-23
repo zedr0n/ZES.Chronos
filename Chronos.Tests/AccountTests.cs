@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Reactive.Linq;
 using Chronos.Accounts;
 using Chronos.Accounts.Commands;
@@ -38,6 +39,25 @@ namespace Chronos.Tests
             Assert.Equal("Account", account.Id);
 
             await bus.Equal(new StatsQuery(), s => s.NumberOfAccounts, 1);
+        }
+
+        [Fact]
+        public async void CanCreateTransfer()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+
+            var usd = new Currency("USD");
+            await bus.Command(new CreateAccount("Account", AccountType.Saving));
+            await bus.Command(new CreateAccount("OtherAccount", AccountType.Saving));
+
+            await bus.Command(new StartTransfer("Transfer", "Account", "OtherAccount", new Quantity(100, usd)));
+
+            await bus.Equal(new AccountStatsQuery("Account", usd), a => a.Balance, new Quantity(-100, usd));
+            await bus.Equal(new AccountStatsQuery("OtherAccount", usd), a => a.Balance, new Quantity(100, usd));
+
+            await bus.IsTrue(new TransactionListQuery("Account"), l => l.TxId.Contains("Transfer[From]"));
+            await bus.IsTrue(new TransactionListQuery("OtherAccount"), l => l.TxId.Contains("Transfer[To]"));
         }
 
         [Fact]
