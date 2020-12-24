@@ -42,8 +42,10 @@ namespace Chronos.Coins.Sagas
                     var forAsset = new Asset(_coinName, _coinTicker, Asset.Type.Coin);
                     var domAsset = new Currency("USD");
                     var command = new RegisterAssetPair(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset)
-                        { Timestamp = new LocalDate(2000, 1, 1).AtMidnight().InUtc().ToInstant() };
-                    command.ForceTimestamp();
+                    {
+                        Timestamp = new LocalDate(2000, 1, 1).AtMidnight().InUtc().ToInstant(), 
+                        UseTimestamp = true,
+                    };
                     SendCommand(command);
                 });
         }

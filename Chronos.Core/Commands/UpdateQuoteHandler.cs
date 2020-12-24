@@ -48,12 +48,12 @@ namespace Chronos.Core.Commands
       ICommand commandT = null;
       if (root.ForAsset.AssetType == Asset.Type.Currency && root.DomAsset.AssetType == Asset.Type.Currency)
       {
-        commandT = new UpdateQuote<Api.Fx.JsonResult>(command.Target);
+        commandT = new UpdateQuote<Api.Fx.JsonResult>(command.Target) { MessageId = command.MessageId };
         handler = _handlers.SingleOrDefault(h => h.CanHandle(commandT));
       }
       else if (root.ForAsset.AssetType == Asset.Type.Coin && root.DomAsset.AssetType == Asset.Type.Currency)
       {
-        commandT = new UpdateQuote<Api.Coin.JsonResult>(command.Target);
+        commandT = new UpdateQuote<Api.Coin.JsonResult>(command.Target) { MessageId = command.MessageId };
         handler = _handlers.SingleOrDefault(h => h.CanHandle(commandT));
       }
       
@@ -92,6 +92,7 @@ namespace Chronos.Core.Commands
       var root = await _repository.Find<AssetPair>(command.Target);
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
+      
       var dateFormat = Api.Fx.DateFormat;
       var url = Api.Fx.Url(root.ForAsset, root.DomAsset);
       if (typeof(T) == typeof(Api.Coin.JsonResult))
@@ -109,12 +110,13 @@ namespace Chronos.Core.Commands
       var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
       ICommand addQuoteCommand;
       if (res.Data is Api.Fx.JsonResult fxResult)
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp, fxResult.Rates.USD);
+        addQuoteCommand = new AddQuote(command.Target, command.Timestamp, fxResult.Rates.USD) { MessageId = command.MessageId };
       else if (res.Data is Api.Coin.JsonResult coinResult)
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp, coinResult.Market_Data.Current_price.Usd);
+        addQuoteCommand = new AddQuote(command.Target, command.Timestamp, coinResult.Market_Data.Current_price.Usd) { MessageId = command.MessageId };
       else
         throw new InvalidCastException();
 
+      addQuoteCommand.StoreInLog = false;
       await _handler.Handle(addQuoteCommand);
       command.EventType = addQuoteCommand.EventType;
     }

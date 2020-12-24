@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reactive.Linq;
 using Chronos.Accounts.Queries;
+using Chronos.Coins.Events;
 using Chronos.Core;
 using Chronos.Core.Commands;
 using Chronos.Core.Queries;
@@ -113,6 +114,24 @@ namespace Chronos.Tests
             await bus.IsTrue(new AssetPriceQuery(forAsset, domAsset), q => q.Price > 1);
             var res = await bus.QueryAsync(new AssetPriceQuery(forAsset, domAsset));
             log.Info($"{AssetPair.Fordom(forAsset, domAsset)} is {res.Price} for {res.Timestamp}");
+        }
+
+        [Fact]
+        public async void CanRollbackQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var retroactive = container.GetInstance<IRetroactive>();
+            
+            var forAsset = new Currency("GBP");
+            var domAsset = new Currency("USD");
+
+            var command = new UpdateQuote(AssetPair.Fordom(forAsset, domAsset));
+            
+            await bus.Command(new RegisterAssetPair("GBPUSD", forAsset, domAsset));
+            await bus.Command(command);
+
+            await retroactive.RollbackCommands(new[] { command });
         }
 
         [Fact]
