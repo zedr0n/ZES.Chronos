@@ -13,18 +13,17 @@
       Register<Chronos.Coins.Events.WalletBalanceChanged>(ApplyEvent); 
       Register<Chronos.Coins.Events.CoinMined>(ApplyEvent);
     }  
-    public Wallet(string address) : this() 
+    public Wallet(string address, string coin) : this() 
     {
-      When(new Chronos.Coins.Events.WalletCreated(address));
+      When(new Chronos.Coins.Events.WalletCreated(address, coin));
     }  
-    public void ApplyDelta (double delta, string txId)
+    public void ApplyDelta (Core.Quantity delta, string txId)
     {
       When(new Chronos.Coins.Events.WalletBalanceChanged(delta, txId));
     }  
-    public void MineCoin (double mineQuantity)
+    public void MineCoin (Core.Quantity mineQuantity)
     {
       When(new Chronos.Coins.Events.CoinMined(mineQuantity));
-      When(new Chronos.Coins.Events.WalletBalanceChanged(mineQuantity, string.Empty));
     }  
     private void ApplyEvent (Chronos.Coins.Events.WalletCreated e)
     {

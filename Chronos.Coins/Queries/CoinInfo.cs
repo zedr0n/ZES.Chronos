@@ -20,10 +20,16 @@
        get; 
        set;
     }  
-    public CoinInfo(string name, string ticker) 
+    public Core.Asset Asset
+    {
+       get; 
+       set;
+    }  
+    public CoinInfo(string name, string ticker, Core.Asset asset) 
     {
       Name = name; 
-      Ticker = ticker;
+      Ticker = ticker; 
+      Asset = asset;
     }
   }
 }

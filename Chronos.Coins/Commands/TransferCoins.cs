@@ -25,12 +25,12 @@
        get; 
        set;
     }  
-    public double Quantity
+    public Core.Quantity Quantity
     {
        get; 
        set;
     }  
-    public double Fee
+    public Core.Quantity Fee
     {
        get; 
        set;
@@ -42,7 +42,7 @@
         return TxId;
       }
     }  
-    public TransferCoins(string txId, string fromAddress, string toAddress, double quantity, double fee) 
+    public TransferCoins(string txId, string fromAddress, string toAddress, Core.Quantity quantity, Core.Quantity fee) 
     {
       TxId = txId; 
       FromAddress = fromAddress; 

@@ -4,6 +4,7 @@ using Chronos.Coins;
 using Chronos.Coins.Commands;
 using Chronos.Coins.Events;
 using Chronos.Coins.Queries;
+using Chronos.Core;
 using NodaTime.Extensions;
 using Xunit;
 using Xunit.Abstractions;
@@ -79,13 +80,15 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            
-            await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
-            await await bus.CommandAsync(new CreateWallet("0x1"));
 
-            await await bus.CommandAsync(new ChangeWalletBalance("0x1", 0.1, null));
+            var btc = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
+            await await bus.CommandAsync(new CreateWallet("0x1", "Bitcoin"));
+
+            await await bus.CommandAsync(new ChangeWalletBalance("0x1", new Quantity(0.1, btc), null));
 
             await bus.Equal(new WalletInfoQuery("0x1"), s => s.Balance, 0.1);
+            await bus.Equal(new WalletInfoQuery("0x1"), s => s.Asset, new Asset("Bitcoin", "BTC", Asset.Type.Coin));
         }
 
         [Fact]
@@ -94,13 +97,14 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
+            var btc = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
             await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
-            await await bus.CommandAsync(new CreateWallet("0x1"));
-            await await bus.CommandAsync(new CreateWallet("0x2"));
+            await await bus.CommandAsync(new CreateWallet("0x1", "Bitcoin"));
+            await await bus.CommandAsync(new CreateWallet("0x2", "Bitcoin"));
             
-            await await bus.CommandAsync(new ChangeWalletBalance("0x1", 0.1, null));
+            await await bus.CommandAsync(new ChangeWalletBalance("0x1", new Quantity(0.1, btc), null));
 
-            await await bus.CommandAsync(new TransferCoins("0x0", "0x1", "0x2", 0.05, 0.001));
+            await await bus.CommandAsync(new TransferCoins("0x0", "0x1", "0x2", new Quantity(0.05, btc), new Quantity(0.001, btc)));
             await bus.Equal(new WalletInfoQuery("0x1"), s => s.Balance, 0.049);
             await bus.Equal(new WalletInfoQuery("0x2"), s => s.Balance, 0.05);
         }

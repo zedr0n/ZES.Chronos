@@ -15,7 +15,7 @@
        get; 
        set;
     }  
-    public double MineQuantity
+    public Core.Quantity MineQuantity
     {
        get; 
        set;
@@ -27,7 +27,7 @@
         return Address;
       }
     }  
-    public MineCoin(string address, double mineQuantity) 
+    public MineCoin(string address, Core.Quantity mineQuantity) 
     {
       Address = address; 
       MineQuantity = mineQuantity;

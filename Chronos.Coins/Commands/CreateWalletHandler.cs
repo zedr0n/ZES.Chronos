@@ -12,7 +12,7 @@
     }  
     protected override Wallet Create (CreateWallet command)
     {
-      return new Wallet(command.Address);
+      return new Wallet(command.Address, command.Coin);
     }
   }
 }

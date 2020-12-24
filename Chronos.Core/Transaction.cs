@@ -25,6 +25,7 @@
       Income,
       Spend,
       Transfer,
+      Unknown,
     }
     
 	public void UpdateDetails (Transaction.TransactionType transactionType, string comment)

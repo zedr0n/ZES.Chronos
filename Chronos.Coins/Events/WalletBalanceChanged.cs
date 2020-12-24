@@ -10,7 +10,7 @@
     public WalletBalanceChanged() 
     {
     }  
-    public double Delta
+    public Core.Quantity Delta
     {
        get; 
        set;
@@ -20,7 +20,7 @@
        get; 
        set;
     }  
-    public WalletBalanceChanged(double delta, string txId) 
+    public WalletBalanceChanged(Core.Quantity delta, string txId) 
     {
       Delta = delta; 
       TxId = txId;

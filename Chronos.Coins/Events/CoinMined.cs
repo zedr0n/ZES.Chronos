@@ -10,12 +10,12 @@
     public CoinMined() 
     {
     }  
-    public double MineQuantity
+    public Core.Quantity MineQuantity
     {
        get; 
        set;
     }  
-    public CoinMined(double mineQuantity) 
+    public CoinMined(Core.Quantity mineQuantity) 
     {
       MineQuantity = mineQuantity;
     }

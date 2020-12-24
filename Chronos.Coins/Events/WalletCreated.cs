@@ -15,9 +15,15 @@
        get; 
        set;
     }  
-    public WalletCreated(string address) 
+    public string Coin
     {
-      Address = address;
+       get; 
+       set;
+    }  
+    public WalletCreated(string address, string coin) 
+    {
+      Address = address; 
+      Coin = coin;
     }
   }
 }

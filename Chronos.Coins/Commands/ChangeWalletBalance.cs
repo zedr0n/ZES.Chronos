@@ -15,7 +15,7 @@
        get; 
        set;
     }  
-    public double Delta
+    public Core.Quantity Delta
     {
        get; 
        set;
@@ -32,7 +32,7 @@
         return Address;
       }
     }  
-    public ChangeWalletBalance(string address, double delta, string txId) 
+    public ChangeWalletBalance(string address, Core.Quantity delta, string txId) 
     {
       Address = address; 
       Delta = delta; 

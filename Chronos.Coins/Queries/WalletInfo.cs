@@ -15,6 +15,11 @@
        get; 
        set;
     }  
+    public Core.Asset Asset
+    {
+       get; 
+       set;
+    }  
     public double Balance
     {
        get; 
@@ -25,9 +30,10 @@
        get; 
        set;
     }  
-    public WalletInfo(string address, double balance, double mineQuantity) 
+    public WalletInfo(string address, Core.Asset asset, double balance, double mineQuantity) 
     {
       Address = address; 
+      Asset = asset; 
       Balance = balance; 
       MineQuantity = mineQuantity;
     }

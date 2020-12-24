@@ -11,7 +11,7 @@
     {
       Register<Chronos.Coins.Events.CoinsTransferred>(ApplyEvent);
     }  
-    public Transfer(string txId, string fromAddress, string toAddress, double quantity, double fee) : this() 
+    public Transfer(string txId, string fromAddress, string toAddress, Core.Quantity quantity, Core.Quantity fee) : this() 
     {
       When(new Chronos.Coins.Events.CoinsTransferred(txId, fromAddress, toAddress, quantity, fee));
     }  

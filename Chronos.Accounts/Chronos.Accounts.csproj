@@ -57,6 +57,7 @@
     </Choose>
 
     <ItemGroup>
+      <ProjectReference Include="..\Chronos.Coins\Chronos.Coins.csproj" />
       <ProjectReference Include="..\Chronos.Core\Chronos.Core.csproj" />
       <ProjectReference Include="..\Chronos.Hashflare\Chronos.Hashflare.csproj" />
     </ItemGroup>

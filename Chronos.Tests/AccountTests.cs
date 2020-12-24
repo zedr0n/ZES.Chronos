@@ -3,6 +3,8 @@ using System.Reactive.Linq;
 using Chronos.Accounts;
 using Chronos.Accounts.Commands;
 using Chronos.Accounts.Queries;
+using Chronos.Coins.Commands;
+using Chronos.Coins.Queries;
 using Chronos.Core;
 using Chronos.Core.Commands;
 using Chronos.Core.Queries;
@@ -15,6 +17,7 @@ using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
 using ZES.Tests;
 using ZES.Utils;
+using StatsQuery = Chronos.Accounts.Queries.StatsQuery;
 
 namespace Chronos.Tests
 {
@@ -58,6 +61,21 @@ namespace Chronos.Tests
 
             await bus.IsTrue(new TransactionListQuery("Account"), l => l.TxId.Contains("Transfer[From]"));
             await bus.IsTrue(new TransactionListQuery("OtherAccount"), l => l.TxId.Contains("Transfer[To]"));
+        }
+
+        [Fact]
+        public async void CanTrackWallet()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+
+            await bus.Command(new CreateCoin("Bitcoin", "BTC"));
+            var btc = (await bus.QueryAsync(new CoinInfoQuery("Bitcoin"))).Asset;
+            
+            await bus.Command(new CreateWallet("0x0", "Bitcoin"));
+            await bus.Command(new MineCoin("0x0", new Quantity(0.1, btc)));
+
+            await bus.Equal(new AccountStatsQuery("0x0", btc), a => a.Balance, new Quantity(0.1, btc));
         }
 
         [Fact]

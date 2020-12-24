@@ -15,6 +15,11 @@
        get; 
        set;
     }  
+    public string Coin
+    {
+       get; 
+       set;
+    }  
     public override string Target
     {
        get
@@ -22,9 +27,10 @@
         return Address;
       }
     }  
-    public CreateWallet(string address) 
+    public CreateWallet(string address, string coin) 
     {
-      Address = address;
+      Address = address; 
+      Coin = coin;
     }
   }
 }
