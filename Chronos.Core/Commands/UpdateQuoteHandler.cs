@@ -36,6 +36,14 @@ namespace Chronos.Core.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
 
+      if (root.QuoteDates.Any(d =>
+        d.InUtc().Year == command.Timestamp.InUtc().Year && d.InUtc().Month == command.Timestamp.InUtc().Month &&
+        d.InUtc().Day == command.Timestamp.InUtc().Day))
+      {
+        throw new InvalidOperationException(
+          $"Quote already added for {command.Timestamp.InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
+      }
+
       ICommandHandler handler = null;
       ICommand commandT = null;
       if (root.ForAsset.AssetType == Asset.Type.Currency && root.DomAsset.AssetType == Asset.Type.Currency)

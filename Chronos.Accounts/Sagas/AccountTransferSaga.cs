@@ -3,7 +3,6 @@ using Chronos.Accounts.Events;
 using Chronos.Core;
 using Chronos.Core.Commands;
 using ZES.Infrastructure.Domain;
-using ZES.Infrastructure.Utils;
 
 namespace Chronos.Accounts.Sagas
 {
@@ -11,13 +10,12 @@ namespace Chronos.Accounts.Sagas
     {
         private string _fromAccount;
         private string _toAccount;
-        private string _txId;
         private Quantity _quantity;
 
         private string _fromTxId;
         private string _toTxId;
         
-        private int _accountsCompleted = 0;
+        private int _accountsCompleted;
         
         public AccountTransferSaga()
         {
@@ -25,10 +23,9 @@ namespace Chronos.Accounts.Sagas
             {
                 _fromAccount = e.FromAccount;
                 _toAccount = e.ToAccount;
-                _txId = e.TxId;
                 _quantity = e.Amount;
-                _fromTxId = $"{_txId}[From]";
-                _toTxId = $"{_txId}[To]";
+                _fromTxId = $"{e.TxId}[From]";
+                _toTxId = $"{e.TxId}[To]";
             });
             RegisterIf<TransactionAdded>(e => GetTransferTxId(e.TxId), e => Trigger.AccountUpdated, e => e.TxId == _fromTxId || e.TxId == _toTxId, e => _accountsCompleted++);
         }
@@ -74,9 +71,6 @@ namespace Chronos.Accounts.Sagas
                 });
         }
 
-        private string GetTransferTxId(string txId)
-        {
-            return txId.Replace("[To]", string.Empty).Replace($"[From]", string.Empty);
-        }
+        private string GetTransferTxId(string txId) => txId.Replace("[To]", string.Empty).Replace($"[From]", string.Empty);
     }
 }

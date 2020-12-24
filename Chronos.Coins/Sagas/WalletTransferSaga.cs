@@ -5,14 +5,14 @@ using ZES.Infrastructure.Utils;
 
 namespace Chronos.Coins.Sagas
 {
-    public class TransferSaga : StatelessSaga<TransferSaga.State, TransferSaga.Trigger>
+    public class WalletTransferSaga : StatelessSaga<WalletTransferSaga.State, WalletTransferSaga.Trigger>
     {
         private double _fee;
         private double _quantity;
         private string _fromAddress;
         private string _toAddress;
         
-        public TransferSaga()
+        public WalletTransferSaga()
         {
             InitialState = State.Open;
             Register<CoinsTransferred>(e => e.TxId, Trigger.StartTransfer, e =>
