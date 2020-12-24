@@ -62,6 +62,6 @@ namespace Chronos.Accounts.Sagas
                 });
         }
 
-        private string GetAccountNameFromTxId(string txId) => txId.Substring(0, txId.Length - txId.IndexOf("Mine", StringComparison.InvariantCultureIgnoreCase));
+        private string GetAccountNameFromTxId(string txId) => txId.Contains("Mine") ? txId.Substring(0, txId.Length - txId.IndexOf("Mine", StringComparison.InvariantCultureIgnoreCase)) : null;
     }
 }
