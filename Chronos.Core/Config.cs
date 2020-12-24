@@ -9,6 +9,7 @@ using SimpleInjector;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
@@ -87,32 +88,30 @@ namespace Chronos.Core
                 _bus = bus;
             }
 
-            public bool RecordTransaction(string txId, double amount, string assetId, string type, string comment, string date)
+            public bool RecordTransaction(string txId, double amount, string assetId, string type, string comment, string date = null)
             {
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                var nDate = InstantPattern.ExtendedIso.Parse(date);
+                var nDate = date.ToInstant(); 
                 if (asset == null || !Enum.TryParse<Transaction.TransactionType>(type, out var eType) || !nDate.Success)
                     return false;
                 
                 return Resolve(new RetroactiveCommand<RecordTransaction>(new RecordTransaction(txId, new Quantity(amount, asset), eType, comment), nDate.Value));
-           }
+            }
             
-            public bool UpdateQuote(string forAsset, string domAsset, string date)
+            public bool UpdateQuote(string forAsset, string domAsset, string date = null)
             {
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var forAssetObj = assetsList.Assets.SingleOrDefault(a => a.AssetId == forAsset || a.Ticker == forAsset);
                 var domAssetObj = assetsList.Assets.SingleOrDefault(a => a.AssetId == domAsset || a.Ticker == domAsset);
-                if (forAssetObj == null || domAssetObj == null)
-                    return false;
-                
-                var nDate = InstantPattern.ExtendedIso.Parse(date);
-                if (!nDate.Success)
+                var nDate = date.ToInstant();
+
+                if (forAssetObj == null || domAssetObj == null || !nDate.Success)
                     return false;
 
                 if (!assetsList.Pairs.Contains(AssetPair.Fordom(forAssetObj, domAssetObj)))
                     Resolve(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(forAssetObj, domAssetObj), forAssetObj, domAssetObj), nDate.Value));
-                
+
                 return Resolve(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(forAssetObj, domAssetObj)), nDate.Value));
             }
 
