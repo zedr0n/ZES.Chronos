@@ -73,9 +73,12 @@ namespace Chronos.Tests
             var btc = (await bus.QueryAsync(new CoinInfoQuery("Bitcoin"))).Asset;
             
             await bus.Command(new CreateWallet("0x0", "Bitcoin"));
-            await bus.Command(new MineCoin("0x0", new Quantity(0.1, btc)));
+            await bus.Command(new MineCoin("0x0", new Quantity(0.1, btc), 1));
 
             await bus.Equal(new AccountStatsQuery("0x0", btc), a => a.Balance, new Quantity(0.1, btc));
+            var txList = await bus.QueryAsync(new TransactionListQuery("0x0"));
+            var mineTx = txList.TxId.SingleOrDefault();
+            Assert.Equal("0x0[Block 1]", mineTx);
         }
 
         [Fact]

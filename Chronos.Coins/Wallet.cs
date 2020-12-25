@@ -21,9 +21,9 @@
     {
       When(new Chronos.Coins.Events.WalletBalanceChanged(delta, txId));
     }  
-    public void MineCoin (Core.Quantity mineQuantity)
+    public void MineCoin (Core.Quantity mineQuantity, int blockHeight)
     {
-      When(new Chronos.Coins.Events.CoinMined(mineQuantity));
+      When(new Chronos.Coins.Events.CoinMined(mineQuantity, blockHeight));
     }  
     private void ApplyEvent (Chronos.Coins.Events.WalletCreated e)
     {

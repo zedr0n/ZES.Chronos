@@ -15,9 +15,15 @@
        get; 
        set;
     }  
-    public CoinMined(Core.Quantity mineQuantity) 
+    public int BlockHeight
     {
-      MineQuantity = mineQuantity;
+       get; 
+       set;
+    }  
+    public CoinMined(Core.Quantity mineQuantity, int blockHeight) 
+    {
+      MineQuantity = mineQuantity; 
+      BlockHeight = blockHeight;
     }
   }
 }

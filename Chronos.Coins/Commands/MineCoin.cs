@@ -20,6 +20,11 @@
        get; 
        set;
     }  
+    public int BlockHeight
+    {
+       get; 
+       set;
+    }  
     public override string Target
     {
        get
@@ -27,10 +32,11 @@
         return Address;
       }
     }  
-    public MineCoin(string address, Core.Quantity mineQuantity) 
+    public MineCoin(string address, Core.Quantity mineQuantity, int blockHeight) 
     {
       Address = address; 
-      MineQuantity = mineQuantity;
+      MineQuantity = mineQuantity; 
+      BlockHeight = blockHeight;
     }
   }
 }
