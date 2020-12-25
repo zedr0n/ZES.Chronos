@@ -51,17 +51,17 @@ namespace Chronos.Core
                     var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                     asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
                     if (asset == null)
-                        throw new InvalidOperationException();
+                        return null;
                 }
 
                 var latest = Resolve(new TransactionInfoQuery(txId));
-                if (latest == null)
+                var date = latest.Date;
+                if (date == default)
                     return null;
                 var quote = latest.Quotes.SingleOrDefault(q => q.Denominator == asset);
                 if (quote != null || assetId == null)
-                    return new TransactionInfo(latest.TxId, latest.Date, quote ?? latest.Quantity, latest.TransactionType, latest.Comment);
+                    return new TransactionInfo(latest.TxId, date, quote ?? latest.Quantity, latest.TransactionType, latest.Comment);
                 
-                var date = latest.Date;
                 var diff = _timeline.Now.Minus(date);
                 if (diff.Days > 0 || diff.Hours > 0)
                 {
@@ -124,6 +124,9 @@ namespace Chronos.Core
                     return false;
 
                 var date = _bus.QueryAsync(new TransactionInfoQuery(txId)).Result.Date;
+                if (date == default)
+                    return false;
+                
                 return Resolve(new RetroactiveCommand<AddTransactionQuote>(new AddTransactionQuote(txId, new Quantity(amount, asset)), date));
             }
         }
