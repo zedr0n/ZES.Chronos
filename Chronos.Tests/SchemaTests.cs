@@ -22,7 +22,7 @@ namespace Chronos.Tests
 
             var executor = schemaProvider.Build();
             
-            var commandResult = await executor.ExecuteAsync(@"mutation { createCoin( command : { name : ""Bitcoin"", ticker : ""BTC"" } ) }");
+            var commandResult = await executor.ExecuteAsync(@"mutation { createCoin( coin : ""Bitcoin"", ticker : ""BTC"" ) }");
             foreach (var e in commandResult.Errors)
                 log.Error(e.Message, this);
 
