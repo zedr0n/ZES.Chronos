@@ -13,23 +13,17 @@
     }  
     public TransactionInfo Handle (Chronos.Core.Events.TransactionRecorded e, TransactionInfo state)
     {
-      state.TxId = e.TxId; 
-      state.Quantity = e.Quantity;
-      state.Date = e.Timestamp;
-      state.TransactionType = e.TransactionType; 
-      state.Comment = e.Comment; 
-      return state;
+      return new TransactionInfo(e.TxId, e.Timestamp, e.Quantity, e.TransactionType, e.Comment);
     }  
     public TransactionInfo Handle (Chronos.Core.Events.TransactionDetailsUpdated e, TransactionInfo state)
     {
-      state.TransactionType = e.TransactionType; 
-      state.Comment = e.Comment; 
-      return state;
+      return new TransactionInfo(state.TxId, state.Date, state.Quantity, e.TransactionType, e.Comment);
     }
     public TransactionInfo Handle (Chronos.Core.Events.TransactionQuoteAdded e, TransactionInfo state)
     {
-      state.Quotes.Add(e.Quantity);
-      return state;
+      var newState = new TransactionInfo(state.TxId, state.Date, state.Quantity, state.TransactionType, state.Comment);
+      newState.Quotes.Add(e.Quantity);
+      return newState;
     }
   }
 }

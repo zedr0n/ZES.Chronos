@@ -4,11 +4,13 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Core;
 using Chronos.Core.Queries;
+using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries
 {
+    [Transient]
     public class AccountStatsQueryHandler : DefaultSingleQueryHandler<AccountStatsQuery, AccountStats, AccountStatsState>
     {
         private readonly IQueryHandler<AssetPriceQuery, AssetPrice> _handler;
@@ -31,14 +33,21 @@ namespace Chronos.Accounts.Queries
             {
                 var price = 1.0;
                 if (asset != query.Denominator)
-                    price = (await _handler.Handle(new AssetPriceQuery(asset, query.Denominator))).Price;
+                    price = (await _handler.Handle(new AssetPriceQuery(asset, query.Denominator) { Timestamp = query.Timestamp })).Price;
 
                 total += amount * price;
             }
 
             foreach (var txId in state.Transactions)
             {
-                var tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, query.Denominator));
+                var tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, query.Denominator)
+                {
+                    ConvertToDenominatorAtTxDate = query.ConvertToDenominatorAtTxDate,
+                    Timestamp = query.Timestamp,
+                });
+                if (tx == default)
+                    return default;
+                
                 var amount = tx.Quantity.Amount;
                 switch (tx.TransactionType)
                 {

@@ -6,6 +6,7 @@ using System.Reflection;
 using Chronos.Accounts.Commands;
 using Chronos.Accounts.Queries;
 using Chronos.Core;
+using Chronos.Core.Commands;
 using Chronos.Core.Queries;
 using NodaTime;
 using NodaTime.Text;
@@ -13,6 +14,7 @@ using SimpleInjector;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Pipes;
@@ -58,13 +60,19 @@ namespace Chronos.Accounts
             /// <returns>Account stats</returns>
             public Stats Stats() => Resolve(new StatsQuery());
 
-            public AccountStats AccountStats(string accountName, string assetId)
+            public AccountStats AccountStats(string accountName, string assetId, string date = null, bool? immediate = null)
             {
+                var nDate = date?.ToInstant();
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                if (assetId == null)
+                if (!nDate?.Success ?? false)
                     return null;
-                return Resolve(new AccountStatsQuery(accountName, asset)); 
+                
+                return Resolve(new AccountStatsQuery(accountName, asset)
+                {
+                    ConvertToDenominatorAtTxDate = immediate ?? false,
+                    Timestamp = nDate.Value,
+                }); 
             } 
             
             public TransactionList TransactionList(string account) => Resolve(new TransactionListQuery(account));
@@ -83,6 +91,8 @@ namespace Chronos.Accounts
         {
             private readonly IBranchManager _manager;
             private readonly IBus _bus;
+            private readonly Query _queries;
+            private readonly Core.Config.Query _coreQueries;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Mutation"/> class.
@@ -90,11 +100,14 @@ namespace Chronos.Accounts
             /// <param name="bus">Bus service</param>
             /// <param name="log">Log service</param>
             /// <param name="manager">Branch manager</param>
-            public Mutation(IBus bus, ILog log, IBranchManager manager) 
+            /// <param name="timeline">Timeline</param>
+            public Mutation(IBus bus, ILog log, IBranchManager manager, ITimeline timeline) 
                 : base(bus, log)
             {
                 _bus = bus;
                 _manager = manager;
+                _queries = new Query(bus);
+                _coreQueries = new Core.Config.Query(bus, timeline);
             }
 
             /// <summary>
@@ -113,6 +126,26 @@ namespace Chronos.Accounts
 
             public bool AddTransaction(string name, string txId) => Resolve(new AddTransaction(name, txId));
 
+            public bool UpdateQuotes(string account, string denominator)
+            {
+                var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
+                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == denominator);
+
+                if (asset != null)
+                {
+                    var txList = _queries.TransactionInfos(account); 
+                    foreach (var t in txList)
+                    {
+                        var fordom = AssetPair.Fordom(t.Quantity.Denominator, asset);
+                        var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
+                        if (!assetPairInfo.QuoteDates.Any(d => d.InUtc().Year == t.Date.InUtc().Year && d.InUtc().Month == t.Date.InUtc().Month && d.InUtc().Day == t.Date.InUtc().Day))
+                            _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant())).Wait();
+                    }
+                }
+
+                return true;
+            }
+            
             public bool AddTransfer(string txId, string fromAccount, string toAccount, string assetId, double amount, string date = null)
             {
                 if (date == null)

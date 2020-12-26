@@ -1,45 +1,81 @@
-﻿import { request } from 'graphql-request';
-import { graphQlQuery } from './queries';
+﻿import {Mutation, Query, SingleQuery} from './queries';
 
-/**
- * @customfunction
- * @param url Server url
- * @param period Update period
- * @param invocation Stats query custom function handler
- */
-function statsQuery(url : string, period: number,invocation: CustomFunctions.StreamingInvocation<string>): void {
-  const query = `{
-      stats(query : {}) { numberOfCoins }
-  }`;
+function ExcelDateToJSDate (serial : number) : Date {
+  var utc_days  = Math.floor(serial - 25569);
+  var utc_value = utc_days * 86400;
+  var date_info = new Date(utc_value * 1000);
 
-  graphQlQuery(url, query, data => data.stats.numberOfCoins.toString(), period, invocation);
+  var fractional_day = serial - Math.floor(serial) + 0.0000001;
+
+  var total_seconds = Math.floor(86400 * fractional_day);
+
+  var seconds = total_seconds % 60;
+
+  total_seconds -= seconds;
+
+  var hours = Math.floor(total_seconds / (60 * 60));
+  var minutes = Math.floor(total_seconds / 60) % 60;
+
+  return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
 }
 
 /**
  * @customfunction
- * @param url Server url
- * @param period Update period
- * @param invocation Stats query custom function handler
+ * @param {string} account account name
+ * @param {number} asOfDate as of date
+ * @param {string} assetId denominator asset
+ * @param {boolean} immediate convert to asset at tx date
  */
-function accountStatsQuery(url : string, period: number,invocation: CustomFunctions.StreamingInvocation<string>): void {
-  const query = `{
-      accountStats() { numberOfAccounts }
+export async function accountStats(account : string, asOfDate : number, assetId? : string, immediate? : boolean) : Promise<any> {
+  let query = `{
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}" ) { balance { amount } } 
   }`;
+  if (assetId != undefined && assetId != "")
+  {
+    if (immediate != undefined && immediate) {
+      query = `{
+        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount } } 
+      }`;
+    }
+    else {
+        query = `{
+        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}" ) { balance { amount } } 
+      }`;
+    }
+  }
+  
+  window.console.log(query)
 
-  graphQlQuery(url, query, data => data.accountStats.numberOfAccounts.toString(), period, invocation);
+  let amount = 0
+  // amount = Number(await SingleQuery(query, data => data.accountStats.balance.amount.toString()))
+  let result = await SingleQuery(query, data => data.accountStats.balance.amount.toString())
+  amount = Number(result)
+  if (isNaN(amount))
+    return result
+  return amount
 }
 
 /**
  * @customfunction
- * @param url Server url
- * @param period Update period
+ * @param {string} account account name
+ * @param {number} asOfDate as of date
  * @param invocation Custom function handler
  */
-function activeBranch(url : string, period : number, invocation : CustomFunctions.StreamingInvocation<string>) : void {
+export function accountStatsDynamic(account : string, asOfDate : number, invocation : CustomFunctions.StreamingInvocation<string>) : void {
   const query = `{
-    activeBranch
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}" ) { balance { amount } } 
   }`;
 
-  graphQlQuery(url, query, data => data.activeBranch.toString(), period, invocation);
+  Query(query, data => data.accountStats.balance.amount.toString(), invocation);
+}
+
+/**
+ * @customfunction
+ * @param invocation Custom function handler
+ */
+export function activeBranch(invocation : CustomFunctions.StreamingInvocation<string>) : void {
+  const query = `query { activeBranch }`;
+
+  Query(query, data => data.activeBranch.toString(), invocation);
 }
 

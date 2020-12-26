@@ -6,6 +6,18 @@ import Progress from './Progress';
 import { request } from 'graphql-request';
 import RangeInput from "./RangeInput";
 
+declare global {
+  interface Window {
+    server: string;
+    period: number;
+    console : any;
+  }
+}
+
+window.server = "https://localhost:5001";
+window.period = 5000;
+window.console = console;
+
 export interface AppProps {
   title: string;
   isOfficeInitialized: boolean;

@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Reactive.Linq;
 using System.Reflection;
 using Chronos.Coins.Commands;
 using Chronos.Coins.Queries;
@@ -10,6 +11,7 @@ using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
+using ZES.Interfaces.Branching;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
@@ -38,21 +40,32 @@ namespace Chronos.Coins
         public class Mutation : GraphQlMutation
         {
             private readonly IBus _bus;
+            private readonly IBranchManager _manager;
             
-            public Mutation(IBus bus, ILog log)
+            public Mutation(IBus bus, ILog log, IBranchManager manager)
                 : base(bus, log)
             {
                 _bus = bus;
+                _manager = manager;
             }
 
-            public bool CreateCoin(string coin, string ticker) => Resolve(new CreateCoin(coin, ticker));
+            public bool UpdateDailyOutflow(string address, int index) => Resolve(new UpdateDailyOutflow(address, index));
+            
+            public bool CreateCoin(string coin, string ticker)
+            {
+                var result = Resolve(new CreateCoin(coin, ticker));
+                _manager.Ready.Wait();
+                return result;
+            }
 
             public bool CreateWallet(string address, string coinId, string date = null)
             {
                 var nDate = date.ToInstant();
                 if (!nDate.Success)
                     return false;
-                return Resolve(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, coinId), nDate.Value)); 
+                var result = Resolve(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, coinId), nDate.Value));
+                _manager.Ready.Wait();
+                return result;
             }
 
             public bool TransferCoins(string txId, string fromAddress, string toAddress, double amount, double fee, string assetId, string date = null)

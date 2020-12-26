@@ -57,11 +57,11 @@ namespace Chronos.Accounts.Sagas
                 .Permit(Trigger.AccountUpdated, State.Listening)
                 .OnEntry(() =>
                 {
-                    SendCommand(new RecordTransaction($"{_accountName}[{_txId}]", _delta, Transaction.TransactionType.Unknown, "Mining"));
+                    SendCommand(new RecordTransaction($"{_accountName}[{_txId}]", _delta, Transaction.TransactionType.Unknown, string.Empty));
                     SendCommand(new AddTransaction(_accountName, $"{_accountName}[{_txId}]"));
                 });
         }
 
-        private string GetAccountNameFromTxId(string txId) => txId.Contains("Block") ? txId.Substring(0, txId.Length - txId.IndexOf("Block ", StringComparison.InvariantCultureIgnoreCase)) : null;
+        private string GetAccountNameFromTxId(string txId) => txId.Contains("[") ? txId.Substring(0, txId.Length - txId.IndexOf("[", StringComparison.Ordinal) + 1) : null;
     }
 }

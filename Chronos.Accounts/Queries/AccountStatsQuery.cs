@@ -16,7 +16,10 @@
     {
        get; 
        set;
-    }  
+    }
+
+    public bool ConvertToDenominatorAtTxDate { get; set; } = false;
+    
     public AccountStatsQuery() 
     {
     }  

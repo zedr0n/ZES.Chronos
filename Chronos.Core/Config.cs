@@ -36,6 +36,8 @@ namespace Chronos.Core
                 _timeline = timeline;
             }
 
+            public AssetPairInfo AssetPairInfo(string fordom) => Resolve(new AssetPairInfoQuery(fordom));
+
             /// <summary>
             /// Gets the transaction info
             /// </summary>

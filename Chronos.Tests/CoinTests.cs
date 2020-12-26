@@ -1,4 +1,5 @@
 using System;
+using System.Reactive.Linq;
 using System.Threading;
 using Chronos.Coins;
 using Chronos.Coins.Commands;
@@ -6,10 +7,13 @@ using Chronos.Coins.Events;
 using Chronos.Coins.Queries;
 using Chronos.Core;
 using NodaTime.Extensions;
+using NodaTime.Text;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
+using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
 using ZES.Tests;
@@ -107,6 +111,26 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new TransferCoins("0x0", "0x1", "0x2", new Quantity(0.05, btc), new Quantity(0.001, btc)));
             await bus.Equal(new WalletInfoQuery("0x1"), s => s.Balance, 0.049);
             await bus.Equal(new WalletInfoQuery("0x2"), s => s.Balance, 0.05);
+        }
+
+        [Fact]
+        public async void CanGetDailyOutflow()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var manager = container.GetInstance<IBranchManager>();
+
+            if (Environment.GetEnvironmentVariable("ADDRESS") == string.Empty)
+                return;
+
+            var address = Environment.GetEnvironmentVariable("ADDRESS");
+            
+            var hyc = new Asset("Hycon", "HYC", Asset.Type.Coin);
+            await bus.Command(new CreateCoin("Hycon", "HYC"));
+            await bus.Command(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, "Hycon"), "2018-06-01T00:00:00Z".ToInstant().Value));
+            await manager.Ready;
+
+            await bus.Command(new UpdateDailyOutflow(address, 0));
         }
     }
 }

@@ -11,7 +11,7 @@
     {
       Register<Chronos.Coins.Events.WalletCreated>(ApplyEvent); 
       Register<Chronos.Coins.Events.WalletBalanceChanged>(ApplyEvent); 
-      Register<Chronos.Coins.Events.CoinMined>(ApplyEvent);
+      Register<Chronos.Coins.Events.CoinMined>(ApplyEvent); 
     }  
     public Wallet(string address, string coin) : this() 
     {
@@ -34,7 +34,7 @@
     }  
     private void ApplyEvent (Chronos.Coins.Events.CoinMined e)
     {
-    }
+    }  
   }
 }
 
