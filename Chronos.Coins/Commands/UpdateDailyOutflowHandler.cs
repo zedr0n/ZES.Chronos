@@ -28,6 +28,8 @@ namespace Chronos.Coins.Commands
   {
     private readonly ICommandHandler<RequestJson<TxResults>> _handler;
     private readonly ICommandHandler<RequestJson<AddressInfo>> _addressHandler;
+    private readonly ICommandHandler<RequestJson<BlockListV2>> _blockListV2Handler;
+    private readonly ICommandHandler<RequestJson<BlockInfoV2>> _blockInfoV2Handler;
     private readonly ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> _balanceHandler;
     private readonly IMessageQueue _messageQueue;
     private readonly IEsRepository<IAggregate> _repository;
@@ -35,7 +37,7 @@ namespace Chronos.Coins.Commands
     private readonly string _server = null;
     private string _firstTx = null;
     
-    public UpdateDailyOutflowHandler(ZES.Interfaces.Domain.IEsRepository<ZES.Interfaces.Domain.IAggregate> repository, ICommandHandler<RequestJson<TxResults>> handler, IMessageQueue messageQueue, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler, ICommandHandler<RequestJson<AddressInfo>> addressHandler)
+    public UpdateDailyOutflowHandler(ZES.Interfaces.Domain.IEsRepository<ZES.Interfaces.Domain.IAggregate> repository, ICommandHandler<RequestJson<TxResults>> handler, IMessageQueue messageQueue, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler, ICommandHandler<RequestJson<AddressInfo>> addressHandler, ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler, ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler)
       : base(repository)
     {
       _repository = repository;
@@ -43,6 +45,8 @@ namespace Chronos.Coins.Commands
       _messageQueue = messageQueue;
       _balanceHandler = balanceHandler;
       _addressHandler = addressHandler;
+      _blockListV2Handler = blockListV2Handler;
+      _blockInfoV2Handler = blockInfoV2Handler;
       if (Environment.GetEnvironmentVariable("SERVER") != "")
         _server = Environment.GetEnvironmentVariable("SERVER");
     }
@@ -59,19 +63,65 @@ namespace Chronos.Coins.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(command.Address));
 
-      var url = await GetTxUrl(command.Address, command.Index);
-      await _handler.Handle(new RequestJson<TxResults>(command.Target, url));
-      var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<TxResults>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
-      if (res.Data == null)
-        throw new InvalidOperationException();
+      // TxResults txResults = null;
+      List<Tx> txResults = null;
+      if (command.UseV2)
+      {
+        txResults = new List<Tx>();
+        var count = command.Count / 20;
+        for (var i = 0; i < count; ++i)
+        {
+          var url = GetBlockListV2Url(command.Index - 20*i);
+          await _blockListV2Handler.Handle(new RequestJson<BlockListV2>(command.Target, url));
+        
+          var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<BlockListV2>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
+          if (res.Data == null)
+            throw new InvalidOperationException();
+
+          foreach (var blockv2 in res.Data.Where(b => b.TxCount > 0))
+          {
+            var blockInfoUrl = GetBlockInfoV2Url(blockv2.Height); 
+            await _blockInfoV2Handler.Handle(new RequestJson<BlockInfoV2>(command.Target, blockInfoUrl));
+
+            var blockInfo = await _messageQueue.Alerts.OfType<JsonRequestCompleted<BlockInfoV2>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
+            if (blockInfo.Data == null)
+              throw new InvalidOperationException();
+
+            if (blockInfo.Data.Txs.All(t => t.From != command.Target && t.To != command.Target))
+              continue;
+          
+            txResults.AddRange(blockInfo.Data.Txs.Where(t => t.From == command.Target || t.To == command.Target).Select(t => new Tx
+            {
+              Amount = t.Amount / 1000000000,
+              From = t.From,
+              To = t.To,
+              Hash = t.TxHash,
+              ReceiveTime = t.BlockTimeStamp,
+            }));
+          }
+        }
+      }
+      else
+      {
+        var url = await GetTxUrl(command.Address, command.Index);
+        await _handler.Handle(new RequestJson<TxResults>(command.Target, url));
+        var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<TxResults>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
+        if (res.Data == null)
+          throw new InvalidOperationException();
+
+        txResults = res.Data.AsList();
+      }
 
       var outflows = new Dictionary<Instant, (Instant time, double amount)>();
-      foreach (var tx in res.Data)
+      foreach (var tx in txResults)
       {
         var dateTime = Instant.FromUnixTimeMilliseconds(tx.ReceiveTime).InUtc().LocalDateTime;
         var date = new LocalDate(dateTime.Year, dateTime.Month, dateTime.Day);
         var instant = date.AtMidnight().InUtc().ToInstant();
         var amount = tx.Amount;
+        if (tx.To == command.Target)
+          amount *= -1;
+        
         if (outflows.ContainsKey(instant))
           amount += outflows[instant].amount;
         outflows[instant] = (Instant.FromUnixTimeMilliseconds(tx.ReceiveTime), amount);
@@ -99,6 +149,19 @@ namespace Chronos.Coins.Commands
       return url;
     }
 
+    protected virtual string GetBlockInfoV2Url(int blockHeight)
+    {
+      var url = $"http://{_server}/api/v2/block/height/{blockHeight}";
+      return url;
+ 
+    }
+    
+    protected virtual string GetBlockListV2Url(int blockHeight)
+    {
+      var url = $"http://{_server}/api/v2/blockList/{blockHeight}";
+      return url;
+    }
+    
     protected virtual string GetAddressInfoUrl(string address)
     {
       var url = $"http://{_server}/api/v1/address/{address}";

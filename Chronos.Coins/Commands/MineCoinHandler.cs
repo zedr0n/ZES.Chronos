@@ -12,7 +12,7 @@
     }  
     protected override void Act (Wallet wallet, MineCoin command)
     {
-      wallet.MineCoin(command.MineQuantity, command.BlockHeight);
+      wallet.MineCoin(command.MineQuantity, command.BlockHash);
     }
   }
 }

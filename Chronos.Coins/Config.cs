@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reflection;
@@ -5,6 +6,8 @@ using Chronos.Coins.Commands;
 using Chronos.Coins.Queries;
 using Chronos.Core;
 using Chronos.Core.Queries;
+using NodaTime;
+using NodaTime.Text;
 using SimpleInjector;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
@@ -33,38 +36,57 @@ namespace Chronos.Coins
             }
 
             public CoinInfo CoinInfo(string name) => Resolve(new CoinInfoQuery(name));
-            public Stats Stats(string date = null) => Resolve(new StatsQuery { Timestamp = date?.ToInstant()?.Success ?? false ? date.ToInstant().Value : default });
-            public WalletInfo WalletInfo(string address, string date = null) => Resolve(new WalletInfoQuery(address) { Timestamp = date?.ToInstant()?.Success ?? false ? date.ToInstant().Value : default });
+            public Stats Stats(string date = null) => Resolve(new StatsQuery { Timestamp = date.ToInstant().Value });
+            public WalletInfo WalletInfo(string address, string date = null) => Resolve(new WalletInfoQuery(address) { Timestamp = date.ToInstant().Value });
         }
 
         public class Mutation : GraphQlMutation
         {
             private readonly IBus _bus;
-            private readonly IBranchManager _manager;
-            
+
             public Mutation(IBus bus, ILog log, IBranchManager manager)
-                : base(bus, log)
+                : base(bus, log, manager)
             {
                 _bus = bus;
-                _manager = manager;
             }
 
-            public bool UpdateDailyOutflow(string address, int index) => Resolve(new UpdateDailyOutflow(address, index));
-            
-            public bool CreateCoin(string coin, string ticker)
+            public bool UpdateDailyOutflow(string address, int index, bool? useV2 = null, int? count = null) => Resolve(new UpdateDailyOutflow(address, index)
             {
-                var result = Resolve(new CreateCoin(coin, ticker));
-                _manager.Ready.Wait();
-                return result;
+                UseV2 = useV2 ?? false,
+                Count = count ?? 1000,
+            });
+
+            public bool UpdateDailyMining(string address, int index, bool? useV2 = null, int? count = null)
+            {
+                var command = new UpdateDailyMining(address, index)
+                {
+                    UseV2 = useV2 ?? false, 
+                    Count = count ?? 1000,
+                };
+                return Resolve(command);
             }
+
+            public bool CreateCoin(string coin, string ticker) => Resolve(new CreateCoin(coin, ticker));
 
             public bool CreateWallet(string address, string coinId, string date = null)
             {
+                var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
+                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == coinId);
+                if (asset == null)
+                    throw new InvalidOperationException($"Asset {coinId} not registered");
+                
+                return Resolve(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, coinId), date.ToInstant().Value));
+            }
+
+            public bool MineCoin(string address, double amount, string coinId, string blockHash, string date = null)
+            {
                 var nDate = date.ToInstant();
-                if (!nDate.Success)
-                    return false;
-                var result = Resolve(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, coinId), nDate.Value));
-                _manager.Ready.Wait();
+                var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
+                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == coinId);
+                if (asset == null)
+                    throw new InvalidOperationException($"Asset {coinId} not registered");
+
+                var result = Resolve(new RetroactiveCommand<MineCoin>(new MineCoin(address, new Quantity(amount, asset), blockHash), nDate.Value));
                 return result;
             }
 
@@ -76,14 +98,10 @@ namespace Chronos.Coins
                     var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                     asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
                     if (asset == null)
-                        return false;
+                        throw new InvalidOperationException($"Asset {assetId} not registered");
                 }
 
-                var nDate = date.ToInstant();
-                if (!nDate.Success)
-                    return false;
-                
-                return Resolve(new RetroactiveCommand<TransferCoins>(new TransferCoins(txId, fromAddress, toAddress, new Quantity(amount, asset), new Quantity(fee, asset)), nDate.Value));
+                return Resolve(new RetroactiveCommand<TransferCoins>(new TransferCoins(txId, fromAddress, toAddress, new Quantity(amount, asset), new Quantity(fee, asset)), date.ToInstant().Value));
             }
         }
     }

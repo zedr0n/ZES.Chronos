@@ -9,14 +9,14 @@ namespace Chronos.Coins.Sagas
     public class MiningSaga : StatelessSaga<MiningSaga.State, MiningSaga.Trigger>
     {
         private Quantity _quantity;
-        private int _blockHeight;
+        private string _blockHash;
         
         public MiningSaga()
         {
             Register<CoinMined>(e => e.AggregateRootId(), Trigger.CoinMined, e =>
             {
                 _quantity = e.MineQuantity;
-                _blockHeight = e.BlockHeight;
+                _blockHash = e.BlockHash;
             });
             Register<WalletBalanceChanged>(e => e.AggregateRootId(), Trigger.BalanceChanged);
         }
@@ -41,7 +41,7 @@ namespace Chronos.Coins.Sagas
                 .Permit(Trigger.CoinMined, State.Processing);
             StateMachine.Configure(State.Processing)
                 .Permit(Trigger.BalanceChanged, State.Complete)
-                .OnEntry(() => SendCommand(new ChangeWalletBalance(Id, _quantity, $"Block {_blockHeight}")));
+                .OnEntry(() => SendCommand(new ChangeWalletBalance(Id, _quantity, _blockHash)));
         }
     }
 }

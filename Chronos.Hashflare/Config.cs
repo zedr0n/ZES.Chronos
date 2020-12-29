@@ -7,6 +7,7 @@ using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
 using ZES.Interfaces;
+using ZES.Interfaces.Branching;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
@@ -52,8 +53,8 @@ namespace Chronos.Hashflare
 
         public class Mutations : GraphQlMutation
         {
-            public Mutations(IBus bus, ILog log)
-                : base(bus, log)
+            public Mutations(IBus bus, ILog log, IBranchManager manager)
+                : base(bus, log, manager)
             {
             }
 

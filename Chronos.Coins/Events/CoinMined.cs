@@ -15,15 +15,15 @@
        get; 
        set;
     }  
-    public int BlockHeight
+    public string BlockHash
     {
        get; 
        set;
     }  
-    public CoinMined(Core.Quantity mineQuantity, int blockHeight) 
+    public CoinMined(Core.Quantity mineQuantity, string blockHash) 
     {
       MineQuantity = mineQuantity; 
-      BlockHeight = blockHeight;
+      BlockHash = blockHash;
     }
   }
 }

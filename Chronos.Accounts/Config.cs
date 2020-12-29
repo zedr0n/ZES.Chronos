@@ -62,17 +62,15 @@ namespace Chronos.Accounts
 
             public AccountStats AccountStats(string accountName, string assetId, string date = null, bool? immediate = null)
             {
-                var nDate = date?.ToInstant();
+                var nDate = date.ToInstant(); 
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                if (!nDate?.Success ?? false)
-                    return null;
                 
                 return Resolve(new AccountStatsQuery(accountName, asset)
                 {
                     ConvertToDenominatorAtTxDate = immediate ?? false,
                     Timestamp = nDate.Value,
-                }); 
+                });  
             } 
             
             public TransactionList TransactionList(string account) => Resolve(new TransactionListQuery(account));
@@ -89,7 +87,6 @@ namespace Chronos.Accounts
         /// </summary>
         public class Mutation : GraphQlMutation
         {
-            private readonly IBranchManager _manager;
             private readonly IBus _bus;
             private readonly Query _queries;
             private readonly Core.Config.Query _coreQueries;
@@ -102,10 +99,9 @@ namespace Chronos.Accounts
             /// <param name="manager">Branch manager</param>
             /// <param name="timeline">Timeline</param>
             public Mutation(IBus bus, ILog log, IBranchManager manager, ITimeline timeline) 
-                : base(bus, log)
+                : base(bus, log, manager)
             {
                 _bus = bus;
-                _manager = manager;
                 _queries = new Query(bus);
                 _coreQueries = new Core.Config.Query(bus, timeline);
             }
@@ -131,16 +127,16 @@ namespace Chronos.Accounts
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == denominator);
 
-                if (asset != null)
+                if (asset == null)
+                    throw new InvalidOperationException($"Asset {denominator} not registered");
+                
+                var txList = _queries.TransactionInfos(account); 
+                foreach (var t in txList)
                 {
-                    var txList = _queries.TransactionInfos(account); 
-                    foreach (var t in txList)
-                    {
-                        var fordom = AssetPair.Fordom(t.Quantity.Denominator, asset);
-                        var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
-                        if (!assetPairInfo.QuoteDates.Any(d => d.InUtc().Year == t.Date.InUtc().Year && d.InUtc().Month == t.Date.InUtc().Month && d.InUtc().Day == t.Date.InUtc().Day))
-                            _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant())).Wait();
-                    }
+                    var fordom = AssetPair.Fordom(t.Quantity.Denominator, asset);
+                    var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
+                    if (!assetPairInfo.QuoteDates.Any(d => d.InUtc().Year == t.Date.InUtc().Year && d.InUtc().Month == t.Date.InUtc().Month && d.InUtc().Day == t.Date.InUtc().Day))
+                        _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant())).Wait();
                 }
 
                 return true;
@@ -148,21 +144,14 @@ namespace Chronos.Accounts
             
             public bool AddTransfer(string txId, string fromAccount, string toAccount, string assetId, double amount, string date = null)
             {
-                if (date == null)
-                    date = string.Empty;
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                var nDate = InstantPattern.ExtendedIso.Parse(date);
-                if (asset == null || (!nDate.Success && date != string.Empty ))
-                    return false;
+                var nDate = date.ToInstant();
+                if (asset == null)
+                    throw new InvalidOperationException($"Asset {assetId} not registered");
 
                 var command = new StartTransfer(txId, fromAccount, toAccount, new Quantity(amount, asset));
-                var result = false;
-                if (nDate.Success)
-                    result = Resolve(new RetroactiveCommand<StartTransfer>(command, nDate.Value));
-                else
-                    result = Resolve(command);
-                _manager.Ready.Wait();
+                var result = Resolve(new RetroactiveCommand<StartTransfer>(command, nDate.Value));
 
                 return result;
             }

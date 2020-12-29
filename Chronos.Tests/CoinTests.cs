@@ -130,7 +130,27 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, "Hycon"), "2018-06-01T00:00:00Z".ToInstant().Value));
             await manager.Ready;
 
-            await bus.Command(new UpdateDailyOutflow(address, 0));
+            await bus.Command(new UpdateDailyOutflow(address, 0)); 
+        }
+
+        [Fact]
+        public async void CanGetDailyMining()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var manager = container.GetInstance<IBranchManager>();
+
+            if (Environment.GetEnvironmentVariable("ADDRESS") == string.Empty)
+                return;
+
+            var address = Environment.GetEnvironmentVariable("ADDRESS");
+            
+            var hyc = new Asset("Hycon", "HYC", Asset.Type.Coin);
+            await bus.Command(new CreateCoin("Hycon", "HYC"));
+            await bus.Command(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, "Hycon"), "2018-06-01T00:00:00Z".ToInstant().Value));
+            await manager.Ready;
+
+            await bus.Command(new UpdateDailyMining(address, 0));
         }
     }
 }

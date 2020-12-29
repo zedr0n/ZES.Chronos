@@ -20,7 +20,7 @@
        get; 
        set;
     }  
-    public int BlockHeight
+    public string BlockHash
     {
        get; 
        set;
@@ -32,11 +32,11 @@
         return Address;
       }
     }  
-    public MineCoin(string address, Core.Quantity mineQuantity, int blockHeight) 
+    public MineCoin(string address, Core.Quantity mineQuantity, string blockHash) 
     {
       Address = address; 
       MineQuantity = mineQuantity; 
-      BlockHeight = blockHeight;
+      BlockHash = blockHash;
     }
   }
 }
