@@ -18,18 +18,25 @@ using ZES.Interfaces.Pipes;
 
 namespace Chronos.Core.Commands
 {
+  /// <inheritdoc />
   public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote, AssetPair>
   {
     private readonly IEsRepository<IAggregate> _repository;
     private readonly ICollection<ICommandHandler<UpdateQuote>> _handlers;
-    
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UpdateQuoteHandler"/> class.
+    /// </summary>
+    /// <param name="repository">Aggregate repository</param>
+    /// <param name="handlers">Quote handlers</param>
     public UpdateQuoteHandler(IEsRepository<IAggregate> repository, ICollection<ICommandHandler<UpdateQuote>> handlers) 
-      : base(repository)
+    : base(repository)
     {
       _repository = repository;
       _handlers = handlers;
     }
 
+    /// <inheritdoc/>
     public override async Task Handle(UpdateQuote command)
     {
       var root = await _repository.Find<AssetPair>(command.Target);
@@ -64,12 +71,14 @@ namespace Chronos.Core.Commands
       command.EventType = commandT.EventType;
     }
 
+    /// <inheritdoc/>
     protected override void Act(AssetPair root, UpdateQuote command)
     {
       throw new NotImplementedException();
     }
   }
-  
+
+  /// <inheritdoc cref="ZES.Interfaces.Domain.ICommandHandler" />
   public class UpdateQuoteHandler<T> : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote<T>, AssetPair>, ICommandHandler<UpdateQuote>
     where T : class, IJsonResult
   {
@@ -78,8 +87,15 @@ namespace Chronos.Core.Commands
     private readonly IEsRepository<IAggregate> _repository;
     private readonly IMessageQueue _messageQueue;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UpdateQuoteHandler{T}"/> class.
+    /// </summary>
+    /// <param name="repository">Aggregate repository</param>
+    /// <param name="handler">Quote handler</param>
+    /// <param name="jsonRequestHandler">JSON handler</param>
+    /// <param name="messageQueue">Messaging service</param>
     public UpdateQuoteHandler(IEsRepository<IAggregate> repository, ICommandHandler<AddQuote> handler, ICommandHandler<RequestJson<T>> jsonRequestHandler, IMessageQueue messageQueue) 
-      : base(repository)
+    : base(repository)
     {
       _repository = repository;
       _handler = handler;
@@ -87,6 +103,7 @@ namespace Chronos.Core.Commands
       _messageQueue = messageQueue;
     }
 
+    /// <inheritdoc/>
     public override async Task Handle(UpdateQuote<T> command)
     {
       var root = await _repository.Find<AssetPair>(command.Target);
@@ -121,11 +138,13 @@ namespace Chronos.Core.Commands
       command.EventType = addQuoteCommand.EventType;
     }
 
+    /// <inheritdoc/>
     Task ICommandHandler<UpdateQuote>.Handle(UpdateQuote iCommand)
     {
       return Handle(iCommand as UpdateQuote<T>);
     }
-    
+
+    /// <inheritdoc/>
     protected override void Act(AssetPair root, UpdateQuote<T> command)
     {
       throw new System.NotImplementedException();

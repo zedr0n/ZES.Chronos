@@ -1,35 +1,52 @@
-﻿using System.Collections.Generic;
-using ZES.Infrastructure;
-using ZES.Interfaces.Net;
+﻿using ZES.Infrastructure;
 
 namespace Chronos.Core.Json
 {
-    public class BlockList : IJsonResult
-    {
-        public List<Block> Blocks { get; set; }
-        public string RequestorId { get; set; }
-    }
-
+    /// <summary>
+    /// Block list JSON
+    /// </summary>
     public class BlockListV2 : JsonList<BlockV2>
     {
     }
 
-    public class Block
-    {
-        public List<Tx> Txs { get; set; }
-        public string Hash { get; set; }
-        public string Miner { get; set; }
-        public long Timestamp { get; set; }
-    }
-
+    /// <summary>
+    /// Block JSON
+    /// </summary>
     public class BlockV2
     {
+        /// <summary>
+        /// Gets or sets the block height
+        /// </summary>
         public int Height { get; set; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether block is in the main chain
+        /// </summary>
         public bool IsMain { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the block hashh
+        /// </summary>
         public string Blockhash { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the number of transactions in the block
+        /// </summary>
         public int TxCount { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the block timestamp
+        /// </summary>
         public long Blocktimestamp { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the block miner
+        /// </summary>
         public string Miner { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the number of uncles
+        /// </summary>
         public int UncleCount { get; set; }
     }
 }

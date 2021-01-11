@@ -6,11 +6,17 @@ using ZES.Infrastructure.Utils;
 
 namespace Chronos.Coins.Sagas
 {
+    /// <summary>
+    /// Mine -> Balance saga
+    /// </summary>
     public class MiningSaga : StatelessSaga<MiningSaga.State, MiningSaga.Trigger>
     {
         private Quantity _quantity;
         private string _blockHash;
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MiningSaga"/> class.
+        /// </summary>
         public MiningSaga()
         {
             Register<CoinMined>(e => e.AggregateRootId(), Trigger.CoinMined, e =>
@@ -21,6 +27,9 @@ namespace Chronos.Coins.Sagas
             Register<WalletBalanceChanged>(e => e.AggregateRootId(), Trigger.BalanceChanged);
         }
         
+        /// <summary>
+        /// States
+        /// </summary>
         public enum State
         {
             Open,
@@ -28,12 +37,16 @@ namespace Chronos.Coins.Sagas
             Complete,
         }
 
+        /// <summary>
+        /// Triggers
+        /// </summary>
         public enum Trigger
         {
             CoinMined,
             BalanceChanged,
         }
 
+        /// <inheritdoc/>
         protected override void ConfigureStateMachine()
         {
             base.ConfigureStateMachine();

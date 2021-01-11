@@ -7,10 +7,16 @@ using ZES.Infrastructure.Utils;
 
 namespace Chronos.Accounts.Sagas
 {
+    /// <summary>
+    /// Hashflare saga
+    /// </summary>
     public class HashflareSaga : StatelessSaga<HashflareSaga.State, HashflareSaga.Trigger>
     {
         private double _quantity;
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HashflareSaga"/> class.
+        /// </summary>
         public HashflareSaga()
         {
             Register<HashflareRegistered>(e => "Hashflare", Trigger.Register);
@@ -18,7 +24,10 @@ namespace Chronos.Accounts.Sagas
             Register<CoinMined>(e => "Hashflare", Trigger.CoinMined, e => _quantity = e.Quantity);
             RegisterIf<AssetDeposited>(e => "Hashflare", e => Trigger.AccountUpdated, e => e.AggregateRootId() == "Hashflare" && e.Quantity.Amount == _quantity && e.Quantity.Denominator.Ticker == "BTC");
         }
-        
+       
+        /// <summary>
+        /// Triggers
+        /// </summary>
         public enum Trigger
         {
             Register,
@@ -27,6 +36,9 @@ namespace Chronos.Accounts.Sagas
             AccountUpdated,
         }
 
+        /// <summary>
+        /// States
+        /// </summary>
         public enum State
         {
             Open,
@@ -35,6 +47,7 @@ namespace Chronos.Accounts.Sagas
             Processing,
         }
 
+        /// <inheritdoc/>
         protected override void ConfigureStateMachine()
         {
             base.ConfigureStateMachine();

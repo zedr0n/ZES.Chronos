@@ -7,6 +7,8 @@
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
         <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>1587;1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -48,7 +50,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.679" />
+                <PackageReference Include="ZES" Version="1.0.681" />
             </ItemGroup>
         </Otherwise>
     </Choose>

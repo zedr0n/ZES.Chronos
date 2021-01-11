@@ -8,7 +8,9 @@ using ZES.Infrastructure.Utils;
 
 namespace Chronos.Hashflare.Sagas
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Contract saga
+    /// </summary>
     public class ContractSaga : StatelessSaga<ContractSaga.State, ContractSaga.Trigger>
     {
         private Instant _expiry;
@@ -31,12 +33,18 @@ namespace Chronos.Hashflare.Sagas
                 _txId = e.ContractId;
             });    
         }
-         
+        
+        /// <summary>
+        /// Triggers
+        /// </summary>
         public enum Trigger
         {
             ContractCreated,
         }
         
+        /// <summary>
+        /// States
+        /// </summary>
         public enum State 
         {
             Open,

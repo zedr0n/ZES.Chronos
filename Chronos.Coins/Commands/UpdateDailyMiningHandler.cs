@@ -6,124 +6,46 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Core;
 using Chronos.Core.Json;
 using NodaTime;
-using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Domain;
-using ZES.Infrastructure.Net;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
-using ZES.Interfaces.Pipes;
 
 namespace Chronos.Coins.Commands
 {
-  public class UpdateDailyMiningHandler : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateDailyMining, Wallet>
+  public abstract class UpdateDailyMiningHandler : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateDailyMining, Wallet>
   {
-    private readonly IMessageQueue _messageQueue;
+    protected string Server;
+
     private readonly IEsRepository<IAggregate> _repository;
     private readonly ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> _balanceHandler;
-    private readonly ICommandHandler<RequestJson<AddressInfo>> _addressHandler;
-    private readonly ICommandHandler<RequestJson<BlockListV2>> _blockListV2Handler;
-    private readonly ICommandHandler<RequestJson<BlockInfoV2>> _blockInfoV2Handler;
-    private readonly ICommandHandler<RequestJson<MinedResults>> _handler;
 
     private readonly ILog _log;
     
-    private readonly string _server;
-    private string _firstBlock;
-
-    public UpdateDailyMiningHandler(ZES.Interfaces.Domain.IEsRepository<ZES.Interfaces.Domain.IAggregate> repository, ICommandHandler<RequestJson<AddressInfo>> addressHandler, IMessageQueue messageQueue, ICommandHandler<RequestJson<MinedResults>> handler, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler, ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler, ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log) 
+    public UpdateDailyMiningHandler(ZES.Interfaces.Domain.IEsRepository<ZES.Interfaces.Domain.IAggregate> repository, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler, ILog log) 
         : base(repository)
     {
         _repository = repository;
-        _addressHandler = addressHandler;
-        _messageQueue = messageQueue;
-        _handler = handler;
         _balanceHandler = balanceHandler;
-        _blockListV2Handler = blockListV2Handler;
-        _blockInfoV2Handler = blockInfoV2Handler;
         _log = log;
-
-        if (Environment.GetEnvironmentVariable("SERVER") != "")
-            _server = Environment.GetEnvironmentVariable("SERVER");
     }
 
     public override async Task Handle(UpdateDailyMining command)
     {
-        if (_server == null)
+        if (!Api.TryGetServer(command.UseRemote, out Server))
             return;
-      
+
         var root = await _repository.Find<Wallet>(command.Target);
         if (root == null)
             throw new ArgumentNullException(nameof(command.Address));
 
-        List<MinedBlock> minedBlocks = null;
-        if (command.UseV2)
-        {
-            minedBlocks = new List<MinedBlock>();
-            var count = command.Count / 20;
-            for (var i = 0; i < count; ++i)
-            {
-                var url = GetBlockListV2Url(command.Index - 20 * i);
-                await _blockListV2Handler.Handle(new RequestJson<BlockListV2>(command.Target, url));
-
-                var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<BlockListV2>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
-                if (res.Data == null)
-                    throw new InvalidOperationException();
-
-                if (res.Data.AsList().All(b => b.Miner != command.Target))
-                    continue;
-
-                minedBlocks.AddRange(res.Data.AsList().Where(b => b.Miner == command.Target && b.IsMain).Select(b => new MinedBlock
-                {
-                    Blockhash = b.Blockhash,
-                    Feereward = 120,
-                    Miner = b.Miner,
-                    Timestamp = b.Blocktimestamp,
-                }));
-
-                foreach (var blockv2 in res.Data.AsList().Where(b => b.UncleCount > 0))
-                {
-                    var blockInfoUrl = GetBlockInfoV2Url(blockv2.Height); 
-                    await _blockInfoV2Handler.Handle(new RequestJson<BlockInfoV2>(command.Target, blockInfoUrl));
-
-                    var blockInfo = await _messageQueue.Alerts.OfType<JsonRequestCompleted<BlockInfoV2>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
-                    if (blockInfo.Data == null)
-                        throw new InvalidOperationException();
-
-                    if (blockInfo.Data.Uncles.All(u => u.Miner != command.Address))
-                        continue;
-                    
-                    minedBlocks.AddRange(blockInfo.Data.Uncles.Where(u => u.Miner == command.Address).Select(u => new MinedBlock
-                    {
-                        Blockhash = u.UncleHash,
-                        Feereward = 120 * 1.2 * Math.Pow(0.75, u.Depth),
-                        Miner = u.Miner,
-                        Timestamp = u.UncleTimeStamp,
-                    }));
-                }
-            }
-        }
-        else
-        {
-            var url = await GetMinedUrl(command.Address, command.Index);
-            if (_firstBlock == null)
-            {
-                _log.Warn("No mined blocks received");
-                return;
-            }
-
-            await _handler.Handle(new RequestJson<MinedResults>(command.Target, url));
-            var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<MinedResults>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
-            if (res.Data == null)
-                throw new InvalidOperationException();
-            minedBlocks = res.Data.AsList();
-        }
-
+        var minedBlocks = await GetMinedBlocks(command);
+        if (minedBlocks == null)
+            return;
+        
         var blocks = new Dictionary<Instant, (Instant time, double amount)>();
         foreach (var block in minedBlocks)
         {
@@ -145,54 +67,21 @@ namespace Chronos.Coins.Commands
             ++idx;
         }
 
-        command.StoreInLog = false;
         command.EventType = changeBalanceCommand?.EventType;
     }
 
-    protected virtual async Task<string> GetMinedUrl(string address, int index) 
-    {
-        if (_firstBlock == null)
-            _firstBlock = await GetFirstBlock(address);
-
-        var url = $"http://{_server}/api/v1/getMinedInfo/{address}/{_firstBlock ?? ""}/{index}";
-        return url;
-    }
-
-    protected virtual string GetAddressInfoUrl(string address)
-    {
-        var url = $"http://{_server}/api/v1/address/{address}";
-        return url;
-    }
-
+    /// <inheritdoc/>
     protected override void Act (Wallet wallet, UpdateDailyMining command)
     {
         throw new NotImplementedException();
     }
-    
-    protected virtual string GetBlockInfoV2Url(int blockHeight)
-    {
-        var url = $"http://{_server}/api/v2/block/height/{blockHeight}";
-        return url;
- 
-    }
 
-    protected virtual string GetBlockListV2Url(int blockHeight)
-    {
-        var url = $"http://{_server}/api/v2/blockList/{blockHeight}";
-        return url;
-    }
-
-    private async Task<string> GetFirstBlock(string address)
-    {
-        var url = GetAddressInfoUrl(address);
-        await _addressHandler.Handle(new RequestJson<AddressInfo>(address, url));
-      
-        var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<AddressInfo>>().FirstOrDefaultAsync(r => r.RequestorId == address).Timeout(TimeSpan.FromMinutes(1));
-        if (res.Data == null)
-            throw new InvalidOperationException();
-
-        return res.Data.MinedBlocks.FirstOrDefault()?.Blockhash;
-    }
+    /// <summary>
+    /// Gets the list mined blocks from server
+    /// </summary>
+    /// <param name="command">Input command</param>
+    /// <returns>List of mined blocks</returns>
+    protected abstract Task<IEnumerable<MinedBlock>> GetMinedBlocks(UpdateDailyMining command);
   }
 }
 

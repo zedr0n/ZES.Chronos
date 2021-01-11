@@ -6,6 +6,9 @@ using ZES.Infrastructure.Domain;
 
 namespace Chronos.Accounts.Sagas
 {
+    /// <summary>
+    /// Transfer -> Transactions saga
+    /// </summary>
     public class AccountTransferSaga : StatelessSaga<AccountTransferSaga.State, AccountTransferSaga.Trigger>
     {
         private string _fromAccount;
@@ -16,7 +19,10 @@ namespace Chronos.Accounts.Sagas
         private string _toTxId;
         
         private int _accountsCompleted;
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AccountTransferSaga"/> class.
+        /// </summary>
         public AccountTransferSaga()
         {
             Register<TransferStarted>(e => e.TxId, Trigger.TransferStarted, e =>
@@ -30,6 +36,9 @@ namespace Chronos.Accounts.Sagas
             RegisterIf<TransactionAdded>(e => GetTransferTxId(e.TxId), e => Trigger.AccountUpdated, e => e.TxId == _fromTxId || e.TxId == _toTxId, e => _accountsCompleted++);
         }
         
+        /// <summary>
+        /// Triggers
+        /// </summary>
         public enum Trigger
         {
             TransferStarted,
@@ -37,6 +46,9 @@ namespace Chronos.Accounts.Sagas
             TransferCompleted,
         }
 
+        /// <summary>
+        /// States
+        /// </summary>
         public enum State
         {
             Open, 
@@ -44,6 +56,7 @@ namespace Chronos.Accounts.Sagas
             Completed,
         }
 
+        /// <inheritdoc/>
         protected override void ConfigureStateMachine()
         {
             base.ConfigureStateMachine();

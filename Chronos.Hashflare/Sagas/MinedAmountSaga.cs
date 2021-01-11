@@ -10,7 +10,9 @@ using ZES.Infrastructure.Domain;
 
 namespace Chronos.Hashflare.Sagas
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Mined -> Contract saga
+    /// </summary>
     public class MinedAmountSaga : StatelessSaga<MinedAmountSaga.State, MinedAmountSaga.Trigger>
     {
         private readonly Dictionary<string, double> _contracts = new Dictionary<string, double>();
@@ -29,6 +31,9 @@ namespace Chronos.Hashflare.Sagas
             });
         }
 
+        /// <summary>
+        /// Triggers
+        /// </summary>
         public enum Trigger
         {
             ContractCreated,
@@ -36,6 +41,9 @@ namespace Chronos.Hashflare.Sagas
             Completed,
         }
 
+        /// <summary>
+        /// States
+        /// </summary>
         public enum State
         {
             Open,

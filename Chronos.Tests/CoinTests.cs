@@ -120,7 +120,7 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var manager = container.GetInstance<IBranchManager>();
 
-            if (Environment.GetEnvironmentVariable("ADDRESS") == string.Empty)
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ADDRESS")))
                 return;
 
             var address = Environment.GetEnvironmentVariable("ADDRESS");
@@ -140,7 +140,7 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var manager = container.GetInstance<IBranchManager>();
 
-            if (Environment.GetEnvironmentVariable("ADDRESS") == string.Empty)
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ADDRESS")))
                 return;
 
             var address = Environment.GetEnvironmentVariable("ADDRESS");

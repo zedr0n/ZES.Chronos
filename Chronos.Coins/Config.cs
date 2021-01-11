@@ -18,6 +18,8 @@ using ZES.Interfaces.Branching;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
+#pragma warning disable SA1600
+
 namespace Chronos.Coins
 {
     public static class Config
@@ -50,16 +52,18 @@ namespace Chronos.Coins
                 _bus = bus;
             }
 
-            public bool UpdateDailyOutflow(string address, int index, bool? useV2 = null, int? count = null) => Resolve(new UpdateDailyOutflow(address, index)
+            public bool UpdateDailyOutflow(string address, int index, bool? useRemote = null, bool? useV2 = null, int? count = null) => Resolve(new UpdateDailyOutflow(address, index)
             {
+                UseRemote = useRemote ?? false,
                 UseV2 = useV2 ?? false,
                 Count = count ?? 1000,
             });
 
-            public bool UpdateDailyMining(string address, int index, bool? useV2 = null, int? count = null)
+            public bool UpdateDailyMining(string address, int index, bool? useRemote = null, bool? useV2 = null, int? count = null)
             {
                 var command = new UpdateDailyMining(address, index)
                 {
+                    UseRemote = useRemote ?? false,
                     UseV2 = useV2 ?? false, 
                     Count = count ?? 1000,
                 };

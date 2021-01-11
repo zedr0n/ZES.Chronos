@@ -9,20 +9,37 @@ using ZES.Interfaces;
 
 namespace Chronos.Core
 {
+    /// <summary>
+    /// Asset tree graph
+    /// </summary>
     public class AssetTree
     {
         private readonly BidirectionalGraph<Asset, RateEdge> _graph = new BidirectionalGraph<Asset, RateEdge>();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AssetTree"/> class.
+        /// </summary>
         public AssetTree()
         {
             _graph.AddVertex(new Currency("GBP"));
             _graph.AddVertex(new Currency("USD"));
         }
         
+        /// <summary>
+        /// Gets or sets the log service
+        /// </summary>
         public ILog Log { get; set; }
 
+        /// <summary>
+        /// Gets the registered assets
+        /// </summary>
         public IEnumerable<Asset> Assets => _graph.Vertices;
         
+        /// <summary>
+        /// Register the FORDOM pair
+        /// </summary>
+        /// <param name="forAsset">Foreign asset</param>
+        /// <param name="domAsset">Domestic asset</param>
         public void Add(Asset forAsset, Asset domAsset)
         {
             if (!_graph.ContainsVertex(forAsset))
@@ -39,6 +56,12 @@ namespace Chronos.Core
                 _graph.AddEdge(inverseEdge);
         }
 
+        /// <summary>
+        /// Gets the pricing path from FOR to DOM
+        /// </summary>
+        /// <param name="forAsset">Foreign asset</param>
+        /// <param name="domAsset">Domestic asset</param>
+        /// <returns>Path enumerable</returns>
         public IEnumerable<(string forAsset, string domAsset)> GetPath(Asset forAsset, Asset domAsset)
         {
             if (!_graph.ContainsVertex(forAsset) || !_graph.ContainsVertex(domAsset))

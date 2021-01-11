@@ -15,8 +15,13 @@ using ZES.Interfaces.Branching;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
+#pragma warning disable SA1600
+
 namespace Chronos.Core
 {
+    /// <summary>
+    /// Core config
+    /// </summary>
     public class Config
     {
         [Registration]
@@ -24,7 +29,8 @@ namespace Chronos.Core
         {
             c.RegisterAll(Assembly.GetExecutingAssembly());
         }
-        
+
+        /// <inheritdoc />
         public class Query : GraphQlQuery
         {
             private readonly IBus _bus;
@@ -82,6 +88,7 @@ namespace Chronos.Core
             }
         }
 
+        /// <inheritdoc />
         public class Mutation : GraphQlMutation
         {
             private readonly IBus _bus;

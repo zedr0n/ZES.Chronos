@@ -118,6 +118,10 @@ export default class App extends React.Component<AppProps, AppState> {
   createCoin = async() => {
     await this.doRange(this.createCoinEx);
   }
+ 
+  addTransaction = async() => {
+    await this.doRange(this.addTransactionEx)
+  }
   
   recordTransaction = async() => {
     await this.doRange(this.recordTransactionEx)
@@ -237,6 +241,37 @@ export default class App extends React.Component<AppProps, AppState> {
       console.error("Name header not found!")
     }
   }
+ 
+  addTransactionEx = async(range : Excel.Range) => {
+    var data = range.values;
+    var rInput = new RangeInput(data);
+
+    var account : any[]
+    var txId : any[]
+    var res : any[][]
+    
+    if (data.length < 1 || data[0].length < 2)
+      return null
+
+    const rows = rInput.getRows();
+    const hasTotal =  rInput.headers.indexOf("Total") > 0
+    res = rows.map(v => [ v.get("Account"), v.get("TxId") ])
+
+    console.log(res)
+
+    if (res != undefined) {
+      for (const r of res) {
+        const mutation = `mutation {
+              addTransaction( name : "${r[0]}", txId : "${r[1]}")
+            }`
+        console.log(mutation)
+        await request(this.server, mutation)
+      }
+    }
+    else {
+      console.error("Headers not found")
+    }
+  }
   
   recordTransactionEx = async(range : Excel.Range) => {
     var data = range.values;
@@ -340,7 +375,8 @@ export default class App extends React.Component<AppProps, AppState> {
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createAccount}>Create account</Button>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createCoin}>Create coin</Button>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.recordTransaction}>Record transaction</Button>
-
+          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.addTransaction}>Add transaction</Button>
+          
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.updateQuote}>Update quote</Button>
 
         </HeroList>

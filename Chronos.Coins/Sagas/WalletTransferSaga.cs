@@ -6,13 +6,19 @@ using ZES.Infrastructure.Utils;
 
 namespace Chronos.Coins.Sagas
 {
+    /// <summary>
+    /// Wallet transfer saga
+    /// </summary>
     public class WalletTransferSaga : StatelessSaga<WalletTransferSaga.State, WalletTransferSaga.Trigger>
     {
         private Quantity _fee;
         private Quantity _quantity;
         private string _fromAddress;
         private string _toAddress;
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WalletTransferSaga"/> class.
+        /// </summary>
         public WalletTransferSaga()
         {
             InitialState = State.Open;
@@ -26,6 +32,9 @@ namespace Chronos.Coins.Sagas
             Register<WalletBalanceChanged>(e => e.TxId, e => e.AggregateRootId() == _fromAddress ? Trigger.FeePaid : Trigger.BalanceUpdated);
         }
         
+        /// <summary>
+        /// States
+        /// </summary>
         public enum State
         {
             Open,
@@ -34,6 +43,9 @@ namespace Chronos.Coins.Sagas
             Completed,
         }
 
+        /// <summary>
+        /// Triggers
+        /// </summary>
         public enum Trigger
         {
             StartTransfer,
@@ -42,6 +54,7 @@ namespace Chronos.Coins.Sagas
             BalanceUpdated,
         }
 
+        /// <inheritdoc/>
         protected override void ConfigureStateMachine()
         {
             base.ConfigureStateMachine();

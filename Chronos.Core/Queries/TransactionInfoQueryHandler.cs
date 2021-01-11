@@ -1,21 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
-using ZES.Utils;
 
 namespace Chronos.Core.Queries
 {
+    /// <inheritdoc />
     public class TransactionInfoQueryHandler : DefaultSingleQueryHandler<TransactionInfoQuery, TransactionInfo, TransactionInfo>
     {
         private readonly IQueryHandler<AssetPriceQuery, AssetPrice> _handler;
         private readonly ILog _log;
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TransactionInfoQueryHandler"/> class.
+        /// </summary>
+        /// <param name="manager">Projection manager</param>
+        /// <param name="handler">Asset price handler</param>
+        /// <param name="log">Log service</param>
         public TransactionInfoQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, ILog log)
             : base(manager)
         {
@@ -23,6 +27,7 @@ namespace Chronos.Core.Queries
             _log = log;
         }
 
+        /// <inheritdoc/>
         protected override async Task<TransactionInfo> Handle(IProjection<TransactionInfo> projection, TransactionInfoQuery query)
         {
             var state = projection.State;

@@ -6,11 +6,17 @@ using ZES.Infrastructure.Domain;
 
 namespace Chronos.Coins.Sagas
 {
+    /// <summary>
+    /// Asset registration saga
+    /// </summary>
     public class AssetSaga : StatelessSaga<AssetSaga.State, AssetSaga.Trigger>
     {
         private string _coinName;
         private string _coinTicker;
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AssetSaga"/> class.
+        /// </summary>
         public AssetSaga()
         {
             Register<CoinCreated>(e => e.Name, Trigger.CoinRegistered, e =>
@@ -20,17 +26,24 @@ namespace Chronos.Coins.Sagas
             });
         }
         
+        /// <summary>
+        /// Triggers
+        /// </summary>
         public enum Trigger
         {
             CoinRegistered,
         }
 
+        /// <summary>
+        /// States
+        /// </summary>
         public enum State
         {
             Open,
             Complete,
         }
 
+        /// <inheritdoc/>
         protected override void ConfigureStateMachine()
         {
             base.ConfigureStateMachine();

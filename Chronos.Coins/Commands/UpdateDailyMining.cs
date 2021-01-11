@@ -19,11 +19,22 @@
     {
        get; 
        set;
-    }
-
-    public bool UseV2 { get; set; } = false;
-    public int Count { get; set; }
-    
+    }  
+    public bool UseRemote
+    {
+       get; 
+       set;
+    }  
+    public bool UseV2
+    {
+       get; 
+       set;
+    }  
+    public int Count
+    {
+       get; 
+       set;
+    }  
     public override string Target
     {
        get
@@ -33,9 +44,9 @@
     }  
     public UpdateDailyMining(string address, int index) 
     {
+      Pure = true; 
       Address = address; 
       Index = index;
-      Pure = true;
     }
   }
 }

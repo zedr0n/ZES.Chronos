@@ -10,12 +10,19 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries
 {
+    /// <inheritdoc />
     [Transient]
     public class AccountStatsQueryHandler : DefaultSingleQueryHandler<AccountStatsQuery, AccountStats, AccountStatsState>
     {
         private readonly IQueryHandler<AssetPriceQuery, AssetPrice> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AccountStatsQueryHandler"/> class.
+        /// </summary>
+        /// <param name="manager">Projection manager</param>
+        /// <param name="handler">Asset price handler</param>
+        /// <param name="transactionInfoHandler">Transaction info handler</param>
         public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler) 
             : base(manager)
         {
@@ -23,6 +30,7 @@ namespace Chronos.Accounts.Queries
             _transactionInfoHandler = transactionInfoHandler;
         }
 
+        /// <inheritdoc/>
         protected override async Task<AccountStats> Handle(IProjection<AccountStatsState> projection, AccountStatsQuery query)
         {
             if (projection == null)

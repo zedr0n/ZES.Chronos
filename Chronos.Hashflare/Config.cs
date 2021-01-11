@@ -11,7 +11,7 @@ using ZES.Interfaces.Branching;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
-#pragma warning disable 1591
+#pragma warning disable SA1600
 
 namespace Chronos.Hashflare
 {
