@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Chronos.Core;
 using Chronos.Core.Json;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Domain;
@@ -28,6 +29,7 @@ namespace Chronos.Coins.Commands
 
         private string _firstBlock;
         private string _remoteFirstBlock;
+        private string _server;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UpdateDailyMiningHyconHandler"/> class.
@@ -41,7 +43,7 @@ namespace Chronos.Coins.Commands
         /// <param name="blockInfoV2Handler">JSON block info handler</param>
         /// <param name="log">Log service</param>
         public UpdateDailyMiningHyconHandler(IEsRepository<IAggregate> repository, ICommandHandler<RequestJson<AddressInfo>> addressHandler, IMessageQueue messageQueue, ICommandHandler<RequestJson<MinedResults>> handler, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler, ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler, ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log) 
-            : base(repository, balanceHandler, log)
+            : base(repository, balanceHandler)
         {
             _addressHandler = addressHandler;
             _messageQueue = messageQueue;
@@ -52,8 +54,14 @@ namespace Chronos.Coins.Commands
         }
 
         /// <inheritdoc/>
+        protected override Asset Asset { get; } = new Asset("Hycon", "HYC", Asset.Type.Coin);
+
+        /// <inheritdoc/>
         protected override async Task<IEnumerable<MinedBlock>> GetMinedBlocks(UpdateDailyMining command)
         {
+            if (!Api.TryGetServer(command.UseRemote, out _server))
+                return null;
+
             List<MinedBlock> minedBlocks = null;
             if (command.UseV2)
             {
@@ -131,25 +139,25 @@ namespace Chronos.Coins.Commands
                 return null;
             }
 
-            var url = $"http://{Server}/api/v1/getMinedInfo/{address}/{firstBlock ?? string.Empty}/{index}";
+            var url = $"http://{_server}/api/v1/getMinedInfo/{address}/{firstBlock ?? string.Empty}/{index}";
             return url;
         }
 
         private string GetAddressInfoUrl(string address)
         {
-            var url = $"http://{Server}/api/v1/address/{address}";
+            var url = $"http://{_server}/api/v1/address/{address}";
             return url;
         }
 
         private string GetBlockInfoV2Url(int blockHeight)
         {
-            var url = $"http://{Server}/api/v2/block/height/{blockHeight}";
+            var url = $"http://{_server}/api/v2/block/height/{blockHeight}";
             return url;
         }
 
         private string GetBlockListV2Url(int blockHeight)
         {
-            var url = $"http://{Server}/api/v2/blockList/{blockHeight}";
+            var url = $"http://{_server}/api/v2/blockList/{blockHeight}";
             return url;
         }
 

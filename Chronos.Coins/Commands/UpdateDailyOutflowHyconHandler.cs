@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Chronos.Core;
 using Chronos.Core.Json;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Domain;
@@ -29,6 +30,8 @@ namespace Chronos.Coins.Commands
         private string _firstTx;
         private string _remoteFirstTx;
 
+        private string _server;
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="UpdateDailyOutflowHyconHandler"/> class.
         /// </summary>
@@ -41,7 +44,7 @@ namespace Chronos.Coins.Commands
         /// <param name="blockInfoV2Handler">Block info JSON handler</param>
         /// <param name="log">Logging service</param>
         public UpdateDailyOutflowHyconHandler(IEsRepository<IAggregate> repository, ICommandHandler<RequestJson<TxResults>> handler, IMessageQueue messageQueue, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler, ICommandHandler<RequestJson<AddressInfo>> addressHandler, ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler, ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log) 
-          : base(repository, messageQueue, balanceHandler, log)
+          : base(repository, balanceHandler)
         {
           _handler = handler;
           _messageQueue = messageQueue;
@@ -52,8 +55,14 @@ namespace Chronos.Coins.Commands
         }
 
         /// <inheritdoc/>
+        protected override Asset Asset { get; } = new Asset("Hycon", "HYC", Asset.Type.Coin);
+
+        /// <inheritdoc/>
         protected override async Task<IEnumerable<Tx>> GetTransactions(UpdateDailyOutflow command)
         {
+          if (!Api.TryGetServer(command.UseRemote, out _server))
+            return null;
+          
           List<Tx> txResults = null;
           if (command.UseV2)
           {
@@ -122,25 +131,25 @@ namespace Chronos.Coins.Commands
           if (string.IsNullOrEmpty(firstTx))
             return null;
       
-          var url = $"http://{Server}/api/v1/nextTxs/{address}/{firstTx}/{index}";
+          var url = $"http://{_server}/api/v1/nextTxs/{address}/{firstTx}/{index}";
           return url;
         }
 
         private string GetBlockInfoV2Url(int blockHeight)
         {
-          var url = $"http://{Server}/api/v2/block/height/{blockHeight}";
+          var url = $"http://{_server}/api/v2/block/height/{blockHeight}";
           return url;
         }
     
         private string GetBlockListV2Url(int blockHeight)
         {
-          var url = $"http://{Server}/api/v2/blockList/{blockHeight}";
+          var url = $"http://{_server}/api/v2/blockList/{blockHeight}";
           return url;
         }
     
         private string GetAddressInfoUrl(string address)
         {
-          var url = $"http://{Server}/api/v1/address/{address}";
+          var url = $"http://{_server}/api/v1/address/{address}";
           return url;
         }
     
