@@ -15,9 +15,21 @@
     {
       When(new Chronos.Coins.Events.CoinCreated(name, ticker));
     }  
+    public string Name
+    {
+      get; 
+      set;
+    }  
+    public string Ticker
+    {
+      get; 
+      set;
+    }  
     private void ApplyEvent (Chronos.Coins.Events.CoinCreated e)
     {
       Id = e.Name;
+      Name = e.Name;
+      Ticker = e.Ticker;
     }
   }
 }

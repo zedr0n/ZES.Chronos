@@ -55,9 +55,6 @@ namespace Chronos.Coins.Commands
         }
 
         /// <inheritdoc/>
-        protected override Asset Asset { get; } = new Asset("Hycon", "HYC", Asset.Type.Coin);
-
-        /// <inheritdoc/>
         protected override async Task<IEnumerable<Tx>> GetTransactions(UpdateDailyOutflow command)
         {
           if (!Api.TryGetServer(command.UseRemote, out _server))

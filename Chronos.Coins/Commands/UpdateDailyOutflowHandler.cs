@@ -28,11 +28,6 @@ namespace Chronos.Coins.Commands
           _repository = repository;
           _balanceHandler = balanceHandler;
         }
-        
-        /// <summary>
-        /// Gets daily outflow asset
-        /// </summary>
-        protected abstract Asset Asset { get; }
 
         /// <inheritdoc/>
         public override async Task Handle(UpdateDailyOutflow command)
@@ -41,6 +36,12 @@ namespace Chronos.Coins.Commands
           if (root == null)
             throw new ArgumentNullException(nameof(command.Address));
 
+          var coin = await _repository.Find<Coin>(root.Coin);
+          if (coin == null)
+            throw new ArgumentNullException(nameof(root.Coin));
+
+          var asset = new Asset(coin.Name, coin.Ticker, Asset.Type.Coin); 
+          
           var txResults = await GetTransactions(command);
           
           var outflows = new Dictionary<Instant, (Instant time, double amount)>();
@@ -62,7 +63,7 @@ namespace Chronos.Coins.Commands
           var idx = 0;
           foreach (var v in outflows)
           {
-            changeBalanceCommand = new RetroactiveCommand<ChangeWalletBalance>(new ChangeWalletBalance(command.Address, new Quantity(-v.Value.amount, Asset), $"Out{command.Index}_{idx}"), v.Value.time);
+            changeBalanceCommand = new RetroactiveCommand<ChangeWalletBalance>(new ChangeWalletBalance(command.Address, new Quantity(-v.Value.amount, asset), $"Out{command.Index}_{idx}"), v.Value.time);
             await _balanceHandler.Handle(changeBalanceCommand);
             ++idx;
           }
