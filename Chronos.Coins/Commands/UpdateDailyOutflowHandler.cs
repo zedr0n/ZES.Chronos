@@ -43,7 +43,9 @@ namespace Chronos.Coins.Commands
           var asset = new Asset(coin.Name, coin.Ticker, Asset.Type.Coin); 
           
           var txResults = await GetTransactions(command);
-          
+          if (txResults == null)
+            return;
+
           var outflows = new Dictionary<Instant, (Instant time, double amount)>();
           foreach (var tx in txResults)
           {
