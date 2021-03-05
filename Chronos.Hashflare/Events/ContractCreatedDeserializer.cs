@@ -7,9 +7,6 @@ namespace Chronos.Hashflare.Events
     public class ContractCreatedDeserializer : EventDeserializerBase<ContractCreated>
     {
         /// <inheritdoc />
-        public override string EventType => nameof(ContractCreated);
-
-        /// <inheritdoc />
         public override void Switch(JsonTextReader reader, string currentProperty, ContractCreated e)
         {
             switch (reader.TokenType)

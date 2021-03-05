@@ -38,12 +38,12 @@ namespace Chronos.Coins.Commands
         /// <param name="addressHandler">Address info handler</param>
         /// <param name="messageQueue">Messaging service</param>
         /// <param name="handler">JSON handler</param>
-        /// <param name="balanceHandler">Modify balance handler</param>
+        /// <param name="mineHandler">Modify balance handler</param>
         /// <param name="blockListV2Handler">JSON block list handler</param>
         /// <param name="blockInfoV2Handler">JSON block info handler</param>
         /// <param name="log">Log service</param>
-        public UpdateDailyMiningHyconHandler(IEsRepository<IAggregate> repository, ICommandHandler<RequestJson<AddressInfo>> addressHandler, IMessageQueue messageQueue, ICommandHandler<RequestJson<MinedResults>> handler, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler, ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler, ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log) 
-            : base(repository, balanceHandler)
+        public UpdateDailyMiningHyconHandler(IEsRepository<IAggregate> repository, ICommandHandler<RequestJson<AddressInfo>> addressHandler, IMessageQueue messageQueue, ICommandHandler<RequestJson<MinedResults>> handler, ICommandHandler<RetroactiveCommand<MineCoin>> mineHandler, ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler, ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log) 
+            : base(repository, mineHandler)
         {
             _addressHandler = addressHandler;
             _messageQueue = messageQueue;

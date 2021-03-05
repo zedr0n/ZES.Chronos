@@ -27,6 +27,7 @@ namespace Chronos.Coins.Queries
         Address = state.Address,
         Asset = state.Asset,
         Balance = state.Balance + e.Delta.Amount,
+        MineQuantity = state.MineQuantity,
       };
     }
     public WalletInfo Handle (Chronos.Coins.Events.CoinMined e, WalletInfo state)

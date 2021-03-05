@@ -7,9 +7,6 @@ namespace Chronos.Hashflare.Events
     public class HashflareRegisteredDeserializer : EventDeserializerBase<HashflareRegistered>
     {
         /// <inheritdoc />
-        public override string EventType => nameof(HashflareRegistered);
-
-        /// <inheritdoc />
         public override void Switch(JsonTextReader reader, string currentProperty, HashflareRegistered e)
         {
             switch (reader.TokenType)

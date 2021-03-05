@@ -7,6 +7,7 @@ using Chronos.Coins.Commands;
 using Chronos.Coins.Events;
 using Chronos.Coins.Queries;
 using Chronos.Core;
+using Chronos.Core.Queries;
 using NodaTime.Extensions;
 using NodaTime.Text;
 using Xunit;
@@ -146,7 +147,7 @@ namespace Chronos.Tests
             await manager.Ready;
 
             await bus.Command(new UpdateDailyOutflow(address, 0) { UseRemote = true });
-            await bus.QueryUntil(new WalletInfoQuery(address), i => i.Balance == -1302598.8557945699);
+            await bus.Equal(new WalletInfoQuery(address), i => i.Balance, -1302598.8557945699);
             var txInfo = await bus.QueryAsync(new TransactionListQuery(address));
             Assert.NotNull(txInfo.TxId);
             Assert.Equal(10, txInfo.TxId.Length);
@@ -179,9 +180,12 @@ namespace Chronos.Tests
             await manager.Ready;
 
             await bus.Command(new UpdateDailyMining(address, 0) { UseRemote = true });
-            var txList = await bus.QueryAsync(new TransactionListQuery(address));
+            await manager.Ready;
+            await bus.Equal(new WalletInfoQuery(address), i => i.MineQuantity, 120);
+            var txList = await bus.QueryUntil(new TransactionListQuery(address));
             Assert.NotNull(txList.TxId);
             Assert.Equal("H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ[Mining0_0]", txList.TxId[0]);
+            await bus.Equal(new TransactionInfoQuery(txList.TxId[0]), t => t.Quantity.Amount, 120);
         }
     }
 }

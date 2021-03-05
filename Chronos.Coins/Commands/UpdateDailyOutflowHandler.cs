@@ -40,8 +40,6 @@ namespace Chronos.Coins.Commands
           if (coin == null)
             throw new ArgumentNullException(nameof(root.Coin));
 
-          var asset = new Asset(coin.Name, coin.Ticker, Asset.Type.Coin); 
-          
           var txResults = await GetTransactions(command);
           if (txResults == null)
             return;
@@ -65,7 +63,7 @@ namespace Chronos.Coins.Commands
           var idx = 0;
           foreach (var v in outflows)
           {
-            changeBalanceCommand = new RetroactiveCommand<ChangeWalletBalance>(new ChangeWalletBalance(command.Address, new Quantity(-v.Value.amount, asset), $"Out{command.Index}_{idx}"), v.Value.time);
+            changeBalanceCommand = new RetroactiveCommand<ChangeWalletBalance>(new ChangeWalletBalance(command.Address, new Quantity(-v.Value.amount, coin.Asset), $"Out{command.Index}_{idx}"), v.Value.time);
             await _balanceHandler.Handle(changeBalanceCommand);
             ++idx;
           }

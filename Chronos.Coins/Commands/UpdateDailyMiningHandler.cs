@@ -13,18 +13,18 @@ namespace Chronos.Coins.Commands
   public abstract class UpdateDailyMiningHandler : CommandHandlerBase<UpdateDailyMining, Wallet>
   {
     private readonly IEsRepository<IAggregate> _repository;
-    private readonly ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> _balanceHandler;
+    private readonly ICommandHandler<RetroactiveCommand<MineCoin>> _mineHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateDailyMiningHandler"/> class.
     /// </summary>
     /// <param name="repository">ES repository</param>
-    /// <param name="balanceHandler">Wallet balance handler</param>
-    protected UpdateDailyMiningHandler(IEsRepository<IAggregate> repository, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler) 
+    /// <param name="mineHandler">Wallet balance handler</param>
+    protected UpdateDailyMiningHandler(IEsRepository<IAggregate> repository, ICommandHandler<RetroactiveCommand<MineCoin>> mineHandler) 
         : base(repository)
     {
         _repository = repository;
-        _balanceHandler = balanceHandler;
+        _mineHandler = mineHandler;
     }
 
     /// <inheritdoc/>
@@ -38,8 +38,6 @@ namespace Chronos.Coins.Commands
         if (coin == null)
             throw new ArgumentNullException(nameof(root.Coin));
 
-        var asset = new Asset(coin.Name, coin.Ticker, Asset.Type.Coin);
-        
         var minedBlocks = await GetMinedBlocks(command);
         if (minedBlocks == null)
             return;
@@ -56,16 +54,16 @@ namespace Chronos.Coins.Commands
             blocks[instant] = (Instant.FromUnixTimeMilliseconds(block.Timestamp), amount);
         }
         
-        ICommand changeBalanceCommand = null;
+        ICommand mineCommand = null;
         var idx = 0;
         foreach (var v in blocks)
         {
-            changeBalanceCommand = new RetroactiveCommand<ChangeWalletBalance>(new ChangeWalletBalance(command.Address, new Quantity(v.Value.amount, asset), $"Mining{command.Index}_{idx}"), v.Value.time);
-            await _balanceHandler.Handle(changeBalanceCommand);
+            mineCommand = new RetroactiveCommand<MineCoin>(new MineCoin(command.Address, new Quantity(v.Value.amount, coin.Asset), $"Mining{command.Index}_{idx}"), v.Value.time);
+            await _mineHandler.Handle(mineCommand);
             ++idx;
         }
 
-        command.EventType = changeBalanceCommand?.EventType;
+        command.EventType = mineCommand?.EventType;
     }
 
     /// <inheritdoc/>

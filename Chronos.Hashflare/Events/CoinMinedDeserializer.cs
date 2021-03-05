@@ -7,9 +7,6 @@ namespace Chronos.Hashflare.Events
     public class CoinMinedDeserializer : EventDeserializerBase<CoinMined>
     {
         /// <inheritdoc />
-        public override string EventType => nameof(CoinMined);
-
-        /// <inheritdoc />
         public override void Switch(JsonTextReader reader, string currentProperty, CoinMined e)
         {
             switch (reader.TokenType)
