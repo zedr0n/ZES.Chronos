@@ -32,7 +32,7 @@
                 <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
-                <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.2" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Crc32.NET" Version="1.2.0" />
@@ -61,6 +61,7 @@
                 <PackageReference Include="HotChocolate.Stitching" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.2" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
@@ -70,8 +71,8 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.684" />
-                <PackageReference Include="ZES.Tests" Version="1.0.684" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.685" />
+                <PackageReference Include="ZES.Tests" Version="1.0.685" />
             </ItemGroup>
         </Otherwise>
     </Choose>
