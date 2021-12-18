@@ -44,7 +44,7 @@ namespace Chronos.Core
             {
                 if (domCurrency.Ticker != "USD")
                     throw new InvalidOperationException("Only USD is supported as domestic currency");
-                return $"https://api.exchangeratesapi.io/$date?symbols={domCurrency.Ticker}&base={forCurrency.Ticker}";
+                return $"https://api.exchangerate.host/$date?symbols={domCurrency.Ticker}&base={forCurrency.Ticker}";
             }
 
             public class JsonResult : IJsonResult
