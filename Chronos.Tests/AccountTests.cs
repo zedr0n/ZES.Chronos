@@ -49,13 +49,15 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            var manager = container.GetInstance<IBranchManager>();
 
             var usd = new Currency("USD");
             await bus.Command(new CreateAccount("Account", AccountType.Saving));
             await bus.Command(new CreateAccount("OtherAccount", AccountType.Saving));
 
             await bus.Command(new StartTransfer("Transfer", "Account", "OtherAccount", new Quantity(100, usd)));
-
+            await manager.Ready;
+            
             await bus.Equal(new AccountStatsQuery("Account", usd), a => a.Balance, new Quantity(-100, usd));
             await bus.Equal(new AccountStatsQuery("OtherAccount", usd), a => a.Balance, new Quantity(100, usd));
 
