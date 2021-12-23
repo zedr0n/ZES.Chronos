@@ -1,6 +1,5 @@
 ﻿using Chronos.Coins.Commands;
 using Chronos.Coins.Events;
-using Chronos.Core;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 
@@ -11,20 +10,13 @@ namespace Chronos.Coins.Sagas
     /// </summary>
     public class MiningSaga : StatelessSaga<MiningSaga.State, MiningSaga.Trigger>
     {
-        private Quantity _quantity;
-        private string _blockHash;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="MiningSaga"/> class.
         /// </summary>
         public MiningSaga()
         {
-            Register<CoinMined>(e => e.AggregateRootId(), Trigger.CoinMined, e =>
-            {
-                _quantity = e.MineQuantity;
-                _blockHash = e.BlockHash;
-            });
-            Register<WalletBalanceChanged>(e => e.AggregateRootId(), Trigger.BalanceChanged);
+            RegisterWithParameters<CoinMined>(e => e.AggregateRootId(), Trigger.CoinMined);
+            RegisterWithParameters<WalletBalanceChanged>(Trigger.BalanceChanged);
         }
         
         /// <summary>
@@ -54,7 +46,7 @@ namespace Chronos.Coins.Sagas
                 .Permit(Trigger.CoinMined, State.Processing);
             StateMachine.Configure(State.Processing)
                 .Permit(Trigger.BalanceChanged, State.Complete)
-                .OnEntry(() => SendCommand(new ChangeWalletBalance(Id, _quantity, _blockHash)));
+                .OnEntryFrom(GetTrigger<CoinMined>(), e => SendCommand(new ChangeWalletBalance(Id, e.MineQuantity, e.BlockHash)));
         }
     }
 }

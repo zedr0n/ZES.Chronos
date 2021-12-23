@@ -16,19 +16,14 @@ namespace Chronos.Hashflare.Sagas
     public class MinedAmountSaga : StatelessSaga<MinedAmountSaga.State, MinedAmountSaga.Trigger>
     {
         private readonly Dictionary<string, double> _contracts = new Dictionary<string, double>();
-        private double _quantity;
-        private string _type;
         
         /// <summary>
         /// Initializes a new instance of the <see cref="MinedAmountSaga"/> class.
         /// </summary>
         public MinedAmountSaga()
         {
-            Register<ContractCreated>(e => $"MinedAmountSaga[{e.Type}]", Trigger.ContractCreated, AddHashrate);
-            Register<CoinMined>(e => $"MinedAmountSaga[{e.Type}]", Trigger.MinedAmountAdded, e =>
-            {
-                Quantity = e.Quantity;
-            });
+            RegisterWithParameters<ContractCreated>(e => $"MinedAmountSaga[{e.Type}]", Trigger.ContractCreated);
+            RegisterWithParameters<CoinMined>(e => $"MinedAmountSaga[{e.Type}]", Trigger.MinedAmountAdded);
         }
 
         /// <summary>
@@ -61,21 +56,6 @@ namespace Chronos.Hashflare.Sagas
             }
         }
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private double Quantity
-        {
-            get
-            {
-                AddHash(_quantity);
-                return _quantity;
-            }
-            set
-            {
-                AddHash(value);
-                _quantity = value;
-            }
-        }
-        
         /// <inheritdoc />
         protected override void ConfigureStateMachine()
         {
@@ -86,22 +66,22 @@ namespace Chronos.Hashflare.Sagas
 
             StateMachine.Configure(State.Active)
                 .PermitReentry(Trigger.ContractCreated)
-                .Permit(Trigger.MinedAmountAdded, State.Complete);
-            
+                .Permit(Trigger.MinedAmountAdded, State.Complete)
+                .OnEntryFrom(GetTrigger<ContractCreated>(), AddHashrate);
+
             StateMachine.Configure(State.Complete)
                 .Permit(Trigger.Completed, State.Active)
-                .OnEntry(() =>
+                .OnEntryFrom(GetTrigger<CoinMined>(), e =>
                 {
                     var total = Contracts.Values.Sum();
                     foreach (var c in Contracts)
-                        SendCommand(new AddMinedCoinToContract(c.Key, _type, c.Value / total * Quantity));
+                        SendCommand(new AddMinedCoinToContract(c.Key, e.Type, c.Value / total * e.Quantity));
                     StateMachine.Fire(Trigger.Completed);
                 });
         }
         
         private void AddHashrate(ContractCreated e)
         {
-            _type = e.Type;
             _contracts.TryGetValue(e.ContractId, out var quantity);
             quantity += e.Quantity; 
             _contracts[e.ContractId] = quantity;

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Chronos.Accounts.Commands;
 using Chronos.Accounts.Events;
 using Chronos.Coins.Events;
@@ -16,24 +15,16 @@ namespace Chronos.Accounts.Sagas
     /// </summary>
     public class WalletSaga : StatelessSaga<WalletSaga.State, WalletSaga.Trigger>
     {
-        private string _accountName;
-        private Quantity _delta;
-        private string _txId;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="WalletSaga"/> class.
         /// </summary>
         public WalletSaga()
         {
-            Register<WalletCreated>(e => e.Address, Trigger.WalletCreated, e => _accountName = e.Address);
-            Register<AccountCreated>(e => e.Name, Trigger.AccountCreated);
-            Register<WalletBalanceChanged>(e => e.AggregateRootId(), Trigger.BalanceChanged, e =>
-            {
-                _delta = e.Delta;
-                _txId = e.TxId;
-            });
-            Register<TransactionRecorded>(e => GetAccountNameFromTxId(e.TxId), Trigger.TransactionRecorded);
-            Register<TransactionAdded>(e => e.AggregateRootId(), Trigger.AccountUpdated);
+            RegisterWithParameters<WalletCreated>(e => e.Address, Trigger.WalletCreated);
+            Register<AccountCreated>(Trigger.AccountCreated);
+            RegisterWithParameters<WalletBalanceChanged>(e => e.AggregateRootId(), Trigger.BalanceChanged);
+            RegisterWithParameters<TransactionRecorded>(Trigger.TransactionRecorded);
+            Register<TransactionAdded>(Trigger.AccountUpdated);
         }
         
         /// <summary>
@@ -64,21 +55,28 @@ namespace Chronos.Accounts.Sagas
         protected override void ConfigureStateMachine()
         {
             base.ConfigureStateMachine();
+            
             StateMachine.Configure(State.Open)
                 .Permit(Trigger.WalletCreated, State.Creating);
             StateMachine.Configure(State.Creating)
                 .Permit(Trigger.AccountCreated, State.Listening)
-                .OnEntry(() => SendCommand(new CreateAccount(_accountName, AccountType.Trading)));
+                .OnEntryFrom(
+                    GetTrigger<WalletCreated>(),
+                    e => SendCommand(new CreateAccount(e.Address, AccountType.Trading)));
+            
             StateMachine.Configure(State.Listening)
                 .Permit(Trigger.BalanceChanged, State.RecordingTransaction);
             StateMachine.Configure(State.RecordingTransaction)
                 .Permit(Trigger.TransactionRecorded, State.UpdatingAccount)
-                .OnEntry(() => SendCommand(new RecordTransaction($"{_accountName}[{_txId}]", _delta, Transaction.TransactionType.Unknown, string.Empty)));
+                .OnEntryFrom(
+                    GetTrigger<WalletBalanceChanged>(),
+                    e => SendCommand(new RecordTransaction($"{Id}[{e.TxId}]", e.Delta, Transaction.TransactionType.Unknown, string.Empty)));
+
             StateMachine.Configure(State.UpdatingAccount)
                 .Permit(Trigger.AccountUpdated, State.Listening)
-                .OnEntry(() => SendCommand(new AddTransaction(_accountName, $"{_accountName}[{_txId}]")));
+                .OnEntryFrom(
+                    GetTrigger<TransactionRecorded>(),
+                    e => SendCommand(new AddTransaction(Id, e.TxId)));
         }
-
-        private string GetAccountNameFromTxId(string txId) => txId.Contains("[") ? txId.Substring(0, txId.IndexOf("[", StringComparison.Ordinal)) : null;
     }
 }

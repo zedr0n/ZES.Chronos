@@ -11,13 +11,6 @@ namespace Chronos.Accounts.Sagas
     /// </summary>
     public class AccountTransferSaga : StatelessSaga<AccountTransferSaga.State, AccountTransferSaga.Trigger>
     {
-        private string _fromAccount;
-        private string _toAccount;
-        private Quantity _quantity;
-
-        private string _fromTxId;
-        private string _toTxId;
-        
         private int _accountsCompleted;
 
         /// <summary>
@@ -25,15 +18,8 @@ namespace Chronos.Accounts.Sagas
         /// </summary>
         public AccountTransferSaga()
         {
-            Register<TransferStarted>(e => e.TxId, Trigger.TransferStarted, e =>
-            {
-                _fromAccount = e.FromAccount;
-                _toAccount = e.ToAccount;
-                _quantity = e.Amount;
-                _fromTxId = $"{e.TxId}[From]";
-                _toTxId = $"{e.TxId}[To]";
-            });
-            RegisterIf<TransactionAdded>(e => GetTransferTxId(e.TxId), e => Trigger.AccountUpdated, e => e.TxId == _fromTxId || e.TxId == _toTxId, e => _accountsCompleted++);
+            RegisterWithParameters<TransferStarted>(e => e.TxId, Trigger.TransferStarted);
+            RegisterWithParameters<TransactionAdded>(Trigger.AccountUpdated);
         }
         
         /// <summary>
@@ -60,30 +46,36 @@ namespace Chronos.Accounts.Sagas
         protected override void ConfigureStateMachine()
         {
             base.ConfigureStateMachine();
+
+            var transferTrigger = GetTrigger<TransferStarted>();
+            var txTrigger = GetTrigger<TransactionAdded>();
+            
             StateMachine.Configure(State.Open)
                 .Permit(Trigger.TransferStarted, State.Processing);
             StateMachine.Configure(State.Processing)
                 .Permit(Trigger.TransferCompleted, State.Completed)
                 .PermitReentry(Trigger.AccountUpdated)
-                .OnEntry(() =>
-                {
-                    if (_accountsCompleted == 0)
-                    {
-                        SendCommand(new RecordTransaction(_fromTxId, new Quantity(-_quantity.Amount, _quantity.Denominator), Transaction.TransactionType.Transfer, $"Transfer to {_toAccount}"));
-                        SendCommand(new AddTransaction(_fromAccount, _fromTxId));
-                    }
-                    else if (_accountsCompleted == 1)
-                    {
-                        SendCommand(new RecordTransaction(_toTxId, new Quantity(_quantity.Amount, _quantity.Denominator), Transaction.TransactionType.Transfer, $"Transfer from {_fromAccount}"));
-                        SendCommand(new AddTransaction(_toAccount, _toTxId));
-                    }
-                    else
-                    {
-                        StateMachine.Fire(Trigger.TransferCompleted);
-                    }
-                });
+                .OnEntryFrom(transferTrigger, Handle)
+                .OnEntryFrom(txTrigger, Handle);
         }
 
-        private string GetTransferTxId(string txId) => txId.Replace("[To]", string.Empty).Replace($"[From]", string.Empty);
+        private void Handle(TransferStarted e)
+        {
+            var fromTxId = $"{e.TxId}[From]";
+            var toTxId = $"{e.TxId}[To]";
+
+            SendCommand(new RecordTransaction(fromTxId, new Quantity(-e.Amount.Amount, e.Amount.Denominator), Transaction.TransactionType.Transfer, $"Transfer to {e.ToAccount}"));
+            SendCommand(new AddTransaction(e.FromAccount, fromTxId));
+            SendCommand(new RecordTransaction(toTxId, new Quantity(e.Amount.Amount, e.Amount.Denominator), Transaction.TransactionType.Transfer, $"Transfer from {e.FromAccount}"));
+            SendCommand(new AddTransaction(e.ToAccount, toTxId));
+        }
+
+        private void Handle(TransactionAdded e)
+        {
+            _accountsCompleted++;
+
+            if (_accountsCompleted == 2)
+                StateMachine.Fire(Trigger.TransferCompleted);
+        }
     }
 }
