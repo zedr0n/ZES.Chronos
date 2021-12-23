@@ -73,6 +73,7 @@ namespace Chronos.Accounts.Sagas
         private void Handle(TransactionAdded e)
         {
             _accountsCompleted++;
+            Log.Info($"Transaction added: {e.TxId}, total : {_accountsCompleted}");
 
             if (_accountsCompleted == 2)
                 StateMachine.Fire(Trigger.TransferCompleted);
