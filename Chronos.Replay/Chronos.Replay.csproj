@@ -41,7 +41,7 @@
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
                 <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
-                <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
                 <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
@@ -50,6 +50,7 @@
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
+                <PackageReference Include="EventStore.Client" Version="20.6.0" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -77,7 +78,7 @@
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
                 <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
-                <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
                 <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
@@ -86,11 +87,12 @@
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
+                <PackageReference Include="EventStore.Client" Version="20.6.0" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.704" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.707" />
             </ItemGroup>
         </Otherwise>
     </Choose>
