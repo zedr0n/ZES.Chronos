@@ -36,6 +36,7 @@
                     <Version>9.0.4</Version>
                 </PackageReference>
                 <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+                <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -70,7 +71,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.703" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.715" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
