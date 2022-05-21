@@ -51,7 +51,7 @@ namespace Chronos.Hashflare.Sagas
         {
             get
             {
-                AddHash(_contracts.Values.ToList());
+                AddHashDoubleList(_contracts.Values.ToList());
                 return _contracts;
             }
         }

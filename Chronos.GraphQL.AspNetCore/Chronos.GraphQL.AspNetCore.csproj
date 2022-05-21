@@ -29,7 +29,7 @@
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
                 <PackageReference Include="Crc32.NET" Version="1.2.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
-                <!--<PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.31" />-->
+                <!--<PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.32" />-->
                 <Reference Include="SqlStreamStore">
                     <HintPath>../../SQLStreamStore/src/SqlStreamStore/bin/Debug/netstandard2.0/SqlStreamStore.dll</HintPath>
                 </Reference>
@@ -75,7 +75,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.717" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.718" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>9.0.4</Version>
                 </PackageReference>
