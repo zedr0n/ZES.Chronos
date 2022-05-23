@@ -13,6 +13,14 @@ namespace Chronos.Tests
         {
         }
         
+        protected override IEnumerable<Type> Configs => new List<Type>
+        {
+            typeof(Core.Config),
+            typeof(Coins.Config),
+            typeof(Accounts.Config),
+            typeof(Hashflare.Config),
+        };
+
         protected override Container CreateContainer(List<Action<Container>> registrations = null)
         {
             var regs = new List<Action<Container>>

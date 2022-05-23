@@ -42,6 +42,7 @@
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
                 <PackageReference Include="EventStore.Client" Version="20.6.0" />
                 <PackageReference Include="EventStore.Client.Embedded" Version="20.6.0" />
+                <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0"/>
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -74,6 +75,7 @@
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
                 <PackageReference Include="EventStore.Client" Version="20.6.0" />
                 <PackageReference Include="EventStore.Client.Embedded" Version="20.6.0" />
+                <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0"/>
             </ItemGroup>
         </When>
         <Otherwise>
