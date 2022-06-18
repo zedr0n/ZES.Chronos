@@ -50,7 +50,7 @@ namespace Chronos.Core.Queries
           Timestamp = query.Timestamp,
         });
         
-        if (result == null || result.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(result.Timestamp).Days > 0)
+        if (result == null || result.Timestamp.Minus(timestamp.ToInstant()).Days > 0 || timestamp.ToInstant().Minus(result.Timestamp).Days > 0)
           throw new InvalidOperationException($"Stale pricing date for {fordom}");
         price = result.Price;
       }
@@ -74,7 +74,7 @@ namespace Chronos.Core.Queries
             Timestamp = query.Timestamp,
           });
 
-          if (pathResult == null || pathResult.Timestamp.Minus(timestamp).Days > 0 || timestamp.Minus(pathResult.Timestamp).Days > 0)
+          if (pathResult == null || pathResult.Timestamp.Minus(timestamp.ToInstant()).Days > 0 || timestamp.ToInstant().Minus(pathResult.Timestamp).Days > 0)
             throw new InvalidOperationException($"Stale pricing date for {pathForDom}");
 
           if (isInverse)
@@ -84,7 +84,7 @@ namespace Chronos.Core.Queries
         }
       }
       
-      return new AssetPrice(price, timestamp); 
+      return new AssetPrice(price, timestamp.ToInstant()); 
     }
   }
 }

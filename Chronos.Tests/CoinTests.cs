@@ -80,7 +80,7 @@ namespace Chronos.Tests
             var historicalQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), now);
             await bus.Equal(historicalQuery, s => s.NumberOfCoins, 1);
             
-            var liveQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), DateTime.UtcNow.ToInstant());
+            var liveQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), DateTime.UtcNow.ToInstant().ToTime());
             await bus.Equal(liveQuery, s => s.NumberOfCoins, 2);
         }
 
@@ -143,7 +143,7 @@ namespace Chronos.Tests
             var manager = container.GetInstance<IBranchManager>();
             
             await bus.Command(new CreateCoin("Hycon", "HYC"));
-            await bus.Command(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, "Hycon"), "2018-06-01T00:00:00Z".ToInstant().Value));
+            await bus.Command(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, "Hycon"), "2018-06-01T00:00:00Z".ToInstant().Value.ToTime()));
             await manager.Ready;
 
             await bus.Command(new UpdateDailyOutflow(address, 0) { UseRemote = true });
@@ -176,7 +176,7 @@ namespace Chronos.Tests
                 @"[{""blockhash"":""A2hGkq7QLwZbwVtMNnSXy8SNwZpo6tt3G7MnA5ue7fHm"",""timestamp"":1614527085989,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""4KcHAHynVrchWtAqhxoGD8c6UptobzGTmzquYZPQTTEL"",""timestamp"":1614527009705,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""3qqw3tKg6ktF58tQf5cikRRhEmAcRftgGcYUcdfZHVMt"",""timestamp"":1614526976156,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""X6dXxbrkngmH2q6jPizKdDUMzSw3TdDLLLfQCtk1ZSB"",""timestamp"":1614526908367,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""2WvBHphCcUbVpKLVsKKAVv6evfCDP8iWSXiMqGzxNnvt"",""timestamp"":1614526890291,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""EWgwb35C8NwvvM6fJo2gWwhPNK7zyZfXmAdSFEweAUuc"",""timestamp"":1614526813853,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""8YMZPbp87LfJhpfWXhPBr2Vc9zZCWRLHz5DtYH9UNWSS"",""timestamp"":1614526772180,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""4zd1E4VaAFF33w5TUjBjs72T3yJQct4Tvx4ANvoQEfSv"",""timestamp"":1614526731272,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""8a6enPgJbha6ntnAkLpGAFTi5cSPxPK9gd7CPK7JQaF5"",""timestamp"":1614526729408,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""},{""blockhash"":""4qhDmvqe79mJzU3CgqHHzvX4HDyvunhVBYkDTiroNbz2"",""timestamp"":1614526714026,""miner"":""H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ"",""feeReward"":""12""}]");
  
             await bus.Command(new CreateCoin("Hycon", "HYC"));
-            await bus.Command(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, "Hycon"), "2018-06-01T00:00:00Z".ToInstant().Value));
+            await bus.Command(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, "Hycon"), "2018-06-01T00:00:00Z".ToInstant().Value.ToTime()));
             await manager.Ready;
 
             await bus.Command(new UpdateDailyMining(address, 0) { UseRemote = true });

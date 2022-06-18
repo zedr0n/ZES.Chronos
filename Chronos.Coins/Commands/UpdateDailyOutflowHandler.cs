@@ -5,6 +5,7 @@ using Chronos.Core;
 using Chronos.Core.Json;
 using NodaTime;
 using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins.Commands
@@ -63,7 +64,7 @@ namespace Chronos.Coins.Commands
           var idx = 0;
           foreach (var v in outflows)
           {
-            changeBalanceCommand = new RetroactiveCommand<ChangeWalletBalance>(new ChangeWalletBalance(command.Address, new Quantity(-v.Value.amount, coin.Asset), $"Out{command.Index}_{idx}"), v.Value.time);
+            changeBalanceCommand = new RetroactiveCommand<ChangeWalletBalance>(new ChangeWalletBalance(command.Address, new Quantity(-v.Value.amount, coin.Asset), $"Out{command.Index}_{idx}"), v.Value.time.ToTime());
             await _balanceHandler.Handle(changeBalanceCommand);
             ++idx;
           }

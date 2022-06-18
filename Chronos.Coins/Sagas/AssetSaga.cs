@@ -3,6 +3,7 @@ using Chronos.Core;
 using Chronos.Core.Commands;
 using NodaTime;
 using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 
 namespace Chronos.Coins.Sagas
 {
@@ -55,7 +56,7 @@ namespace Chronos.Coins.Sagas
             var domAsset = new Currency("USD");
             var command = new RegisterAssetPair(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset)
             {
-                Timestamp = new LocalDate(2000, 1, 1).AtMidnight().InUtc().ToInstant(), 
+                Timestamp = new LocalDate(2000, 1, 1).AtMidnight().InUtc().ToInstant().ToTime(), 
                 UseTimestamp = true,
             };
             SendCommand(command);

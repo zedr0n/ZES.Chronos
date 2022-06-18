@@ -12,6 +12,7 @@ using NodaTime.Extensions;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Causality;
@@ -35,7 +36,7 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
             
-            var time = new DateTime(1970, 1, 1, 12, 0, 10, DateTimeKind.Utc).ToInstant(); 
+            var time = new DateTime(1970, 1, 1, 12, 0, 10, DateTimeKind.Utc).ToInstant().ToTime(); 
 
             await await bus.CommandAsync(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare("user@mail.com"), time));
 
@@ -53,7 +54,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
-            var time = new DateTime(1970, 1, 1, 12, 0, 10, DateTimeKind.Utc).ToInstant(); 
+            var time = new DateTime(1970, 1, 1, 12, 0, 10, DateTimeKind.Utc).ToInstant().ToTime(); 
 
             await await bus.CommandAsync(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare("user@mail.com"), time));
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("0", "SHA-256", 100, 1000), time));

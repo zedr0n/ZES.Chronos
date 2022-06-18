@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using Chronos.Accounts.Queries;
@@ -10,6 +12,7 @@ using NodaTime;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Causality;
 using ZES.Interfaces.Domain;
@@ -28,14 +31,24 @@ namespace Chronos.Tests
         protected override string LogEnabled => "INFO";
         
         [Fact]
+        public async void CanReplayHashflareLog()
+        {
+            var result = await Replay("../../../Ad-hoc/ZES_Hashflare.json");
+            Assert.True(result.Result);
+        }
+
+        [Fact]
         public async void CanRetroactivelyAddMinedToContractPerformance()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var timeline = container.GetInstance<ITimeline>();
             var graph = container.GetInstance<IGraph>();
+            var log = container.GetInstance<ILog>();
+            
+            var stopWatch = Stopwatch.StartNew();
 
-            var time = timeline.Now;
+            var time = timeline.Now.ToInstant();
             var nAdds = 25;
             var total = (nAdds + 1) * 0.01;
             var totalBefore = 0.0;
@@ -55,7 +68,7 @@ namespace Chronos.Tests
             do
             {
                 await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(
-                    new CreateContract(nContracts.ToString(), "SHA-256", 100, 1000), time));
+                    new CreateContract(nContracts.ToString(), "SHA-256", 100, 1000), time.ToTime()));
                 
                 contractTimes.Add(time);
                 time -= Duration.FromSeconds(2 * nAdds / nContracts);
@@ -65,24 +78,19 @@ namespace Chronos.Tests
             while (nAdds-- > 0)
             {
                 await bus.Command(
-                    new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), midTime),
+                    new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), midTime.ToTime()),
                     1);
                 var totalHash = contractTimes.Where(t => t <= midTime).Sum(t => 100);
                 totalBefore += 100.0 / totalHash * 0.01;
                 midTime -= Duration.FromSeconds(1);
             }
 
-            await bus.Equal(new ContractStatsQuery("0"), c => Math.Round(c.Mined, 6), Math.Round(totalBefore, 6), TimeSpan.FromSeconds(10));
-
+            lastTime += Duration.FromMilliseconds(500);
             await await bus.CommandAsync(
-                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime + Duration.FromMilliseconds(500)));
+                new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime.ToTime()));
 
-            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + Duration.FromSeconds(1)), c => Math.Round(c.Mined, 6), Math.Round(totalBefore + addAfter, 6), TimeSpan.FromSeconds(10));
-            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery(lastContractId), lastTime + Duration.FromSeconds(1)), c => Math.Round(c.Mined, 6), Math.Round(addAfter, 6), TimeSpan.FromSeconds(10));
-
-            var btcAsset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
-            await bus.Equal(new HistoricalQuery<AccountStatsQuery, AccountStats>(new AccountStatsQuery("Hashflare", btcAsset), lastTime + Duration.FromSeconds(1)), a => Math.Round(a.Balance.Amount, 6), total);
-            await graph.Serialise(nameof(CanRetroactivelyAddMinedToContractPerformance));
+            log.Info(log.StopWatch.Totals.ToImmutableSortedDictionary());
+            log.Info($"Took {stopWatch.ElapsedMilliseconds}ms");
         }
     }
 }

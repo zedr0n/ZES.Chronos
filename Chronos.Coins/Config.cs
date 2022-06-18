@@ -38,8 +38,8 @@ namespace Chronos.Coins
             }
 
             public CoinInfo CoinInfo(string name) => Resolve(new CoinInfoQuery(name));
-            public Stats Stats(string date = null) => Resolve(new StatsQuery { Timestamp = date.ToInstant().Value });
-            public WalletInfo WalletInfo(string address, string date = null) => Resolve(new WalletInfoQuery(address) { Timestamp = date.ToInstant().Value });
+            public Stats Stats(string date = null) => Resolve(new StatsQuery { Timestamp = date.ToTime() });
+            public WalletInfo WalletInfo(string address, string date = null) => Resolve(new WalletInfoQuery(address) { Timestamp = date.ToTime() });
         }
 
         public class Mutation : GraphQlMutation
@@ -79,18 +79,18 @@ namespace Chronos.Coins
                 if (asset == null)
                     throw new InvalidOperationException($"Asset {coinId} not registered");
                 
-                return Resolve(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, coinId), date.ToInstant().Value));
+                return Resolve(new RetroactiveCommand<CreateWallet>(new CreateWallet(address, coinId), date.ToTime()));
             }
 
             public bool MineCoin(string address, double amount, string coinId, string blockHash, string date = null)
             {
-                var nDate = date.ToInstant();
+                var nDate = date.ToTime();
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == coinId);
                 if (asset == null)
                     throw new InvalidOperationException($"Asset {coinId} not registered");
 
-                var result = Resolve(new RetroactiveCommand<MineCoin>(new MineCoin(address, new Quantity(amount, asset), blockHash), nDate.Value));
+                var result = Resolve(new RetroactiveCommand<MineCoin>(new MineCoin(address, new Quantity(amount, asset), blockHash), nDate));
                 return result;
             }
 
@@ -105,7 +105,7 @@ namespace Chronos.Coins
                         throw new InvalidOperationException($"Asset {assetId} not registered");
                 }
 
-                return Resolve(new RetroactiveCommand<TransferCoins>(new TransferCoins(txId, fromAddress, toAddress, new Quantity(amount, asset), new Quantity(fee, asset)), date.ToInstant().Value));
+                return Resolve(new RetroactiveCommand<TransferCoins>(new TransferCoins(txId, fromAddress, toAddress, new Quantity(amount, asset), new Quantity(fee, asset)), date.ToTime()));
             }
         }
     }

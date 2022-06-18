@@ -10,6 +10,7 @@ using NodaTime.Calendars;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Pipes;
@@ -35,7 +36,7 @@ namespace Chronos.Tests
             var usd = new Currency("USD");
 
             await bus.Command(new RegisterAssetPair("GBPUSD", gbp, usd));
-            await bus.Command(new AddQuote("GBPUSD", timeline.Now, 1.2));
+            await bus.Command(new AddQuote("GBPUSD", timeline.Now.ToInstant(), 1.2));
 
             await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
             await bus.Equal(new TransactionInfoQuery("Tx", usd), t => t.Quantity.Amount, 100 * 1.2);
@@ -52,7 +53,7 @@ namespace Chronos.Tests
             var usd = new Currency("USD");
 
             await bus.Command(new RegisterAssetPair("GBPUSD", gbp, usd));
-            await bus.Command(new AddQuote("GBPUSD", timeline.Now, 1.2));
+            await bus.Command(new AddQuote("GBPUSD", timeline.Now.ToInstant(), 1.2));
 
             await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
             await bus.Command(new AddTransactionQuote("Tx", new Quantity(110, usd)));
@@ -70,7 +71,7 @@ namespace Chronos.Tests
             var domAsset = new Currency("USD");
 
             await bus.Command(new RegisterAssetPair("GBPUSD", forAsset, domAsset));
-            await bus.Command(new AddQuote("GBPUSD", timeline.Now, 1.2));
+            await bus.Command(new AddQuote("GBPUSD", timeline.Now.ToInstant(), 1.2));
 
             var assetsInfo = await bus.QueryAsync(new AssetPairsInfoQuery());
             Assert.Contains(forAsset, assetsInfo.Assets);
@@ -83,7 +84,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
-            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant();
+            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
 
             var forAsset = new Currency("GBP");
             var domAsset = new Currency("USD");
@@ -140,7 +141,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
-            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant();
+            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
 
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
@@ -149,14 +150,14 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
 
-            var midDate = new LocalDateTime(2020, 12, 10, 12, 30).InUtc().ToInstant();
-            var lastdate = new LocalDateTime(2020, 12, 15, 12, 30).InUtc().ToInstant(); 
+            var midDate = new LocalDateTime(2020, 12, 10, 12, 30).InUtc().ToInstant().ToTime();
+            var lastdate = new LocalDateTime(2020, 12, 15, 12, 30).InUtc().ToInstant().ToTime(); 
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), midDate));
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), lastdate));
             
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(btc, usd)), midDate));
 
-            await bus.Equal(new AssetPriceQuery(btc, gbp) { Timestamp = midDate }, a => a.Timestamp, midDate);
+            await bus.Equal(new AssetPriceQuery(btc, gbp) { Timestamp = midDate }, a => a.Timestamp, midDate.ToInstant());
             var quote = await bus.QueryAsync(new AssetPriceQuery(btc, gbp) { Timestamp = midDate });
             var historicalQuote = await bus.QueryAsync(new HistoricalQuery<AssetPriceQuery, AssetPrice>(new AssetPriceQuery(btc, gbp), midDate));
             Assert.Equal(quote.Price, historicalQuote.Price);
@@ -169,7 +170,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
-            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant();
+            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
 
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");

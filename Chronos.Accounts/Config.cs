@@ -64,14 +64,14 @@ namespace Chronos.Accounts
 
             public AccountStats AccountStats(string accountName, string assetId, string date = null, bool? immediate = null)
             {
-                var nDate = date.ToInstant(); 
+                var nDate = date.ToTime(); 
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
                 
                 return Resolve(new AccountStatsQuery(accountName, asset)
                 {
                     ConvertToDenominatorAtTxDate = immediate ?? false,
-                    Timestamp = nDate.Value,
+                    Timestamp = nDate,
                 });  
             } 
             
@@ -138,7 +138,7 @@ namespace Chronos.Accounts
                     var fordom = AssetPair.Fordom(t.Quantity.Denominator, asset);
                     var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
                     if (!assetPairInfo.QuoteDates.Any(d => d.InUtc().Year == t.Date.InUtc().Year && d.InUtc().Month == t.Date.InUtc().Month && d.InUtc().Day == t.Date.InUtc().Day))
-                        _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant())).Wait();
+                        _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant().ToTime())).Wait();
                 }
 
                 return true;
@@ -148,12 +148,12 @@ namespace Chronos.Accounts
             {
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                var nDate = date.ToInstant();
+                var nDate = date.ToTime();
                 if (asset == null)
                     throw new InvalidOperationException($"Asset {assetId} not registered");
 
                 var command = new StartTransfer(txId, fromAccount, toAccount, new Quantity(amount, asset));
-                var result = Resolve(new RetroactiveCommand<StartTransfer>(command, nDate.Value));
+                var result = Resolve(new RetroactiveCommand<StartTransfer>(command, nDate));
 
                 return result;
             }

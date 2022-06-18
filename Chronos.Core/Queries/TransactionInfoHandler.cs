@@ -13,7 +13,7 @@
     }  
     public TransactionInfo Handle (Chronos.Core.Events.TransactionRecorded e, TransactionInfo state)
     {
-      return new TransactionInfo(e.TxId, e.Timestamp, e.Quantity, e.TransactionType, e.Comment);
+      return new TransactionInfo(e.TxId, e.Timestamp.ToInstant(), e.Quantity, e.TransactionType, e.Comment);
     }  
     public TransactionInfo Handle (Chronos.Core.Events.TransactionDetailsUpdated e, TransactionInfo state)
     {

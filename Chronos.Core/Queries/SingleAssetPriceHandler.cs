@@ -22,7 +22,7 @@ namespace Chronos.Core.Queries
     
     public SingleAssetPrice Handle (Chronos.Core.Events.QuoteAdded e, SingleAssetPrice state)
     {
-      return new SingleAssetPrice(e.Close, e.Timestamp);
+      return new SingleAssetPrice(e.Close, e.Timestamp.ToInstant());
     }
   }
 }

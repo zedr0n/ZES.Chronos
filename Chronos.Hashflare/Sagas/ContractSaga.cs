@@ -25,7 +25,7 @@ namespace Chronos.Hashflare.Sagas
         {
             Register<ContractCreated>(e => e.AggregateRootId(), Trigger.ContractCreated, e =>
             {
-                _expiry = e.Timestamp;
+                _expiry = e.Timestamp.ToInstant();
                 _expiry += Duration.FromDays(365);
 
                 _type = e.Type;

@@ -44,11 +44,11 @@ namespace Chronos.Core.Commands
         throw new ArgumentNullException(nameof(AssetPair));
 
       if (root.QuoteDates.Any(d =>
-        d.InUtc().Year == command.Timestamp.InUtc().Year && d.InUtc().Month == command.Timestamp.InUtc().Month &&
-        d.InUtc().Day == command.Timestamp.InUtc().Day))
+        d.InUtc().Year == command.Timestamp.ToInstant().InUtc().Year && d.InUtc().Month == command.Timestamp.ToInstant().InUtc().Month &&
+        d.InUtc().Day == command.Timestamp.ToInstant().InUtc().Day))
       {
         throw new InvalidOperationException(
-          $"Quote already added for {command.Timestamp.InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
+          $"Quote already added for {command.Timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
       }
 
       ICommandHandler handler = null;
@@ -127,9 +127,9 @@ namespace Chronos.Core.Commands
       var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
       ICommand addQuoteCommand;
       if (res.Data is Api.Fx.JsonResult fxResult)
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp, fxResult.Rates.USD) { MessageId = command.MessageId };
+        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), fxResult.Rates.USD) { MessageId = command.MessageId };
       else if (res.Data is Api.Coin.JsonResult coinResult)
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp, coinResult.Market_Data.Current_price.Usd) { MessageId = command.MessageId };
+        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), coinResult.Market_Data.Current_price.Usd) { MessageId = command.MessageId };
       else
         throw new InvalidCastException();
 

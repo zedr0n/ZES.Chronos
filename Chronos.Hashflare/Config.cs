@@ -6,6 +6,7 @@ using SimpleInjector;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Pipes;
@@ -42,13 +43,13 @@ namespace Chronos.Hashflare
                 => Resolve(new HashflareStatsQuery());
 
             public HashflareStats HashflareStatsAsOf(long timestamp) 
-                => Resolve(new HistoricalQuery<HashflareStatsQuery, HashflareStats>(new HashflareStatsQuery(), Instant.FromUnixTimeMilliseconds(timestamp)));
+                => Resolve(new HistoricalQuery<HashflareStatsQuery, HashflareStats>(new HashflareStatsQuery(), Instant.FromUnixTimeMilliseconds(timestamp).ToTime()));
 
             public ContractStats ContractStats(string txId) 
                 => Resolve(new ContractStatsQuery(txId));
 
             public ContractStats ContractStatsAsOf(string txId, long timestamp) 
-                => Resolve(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery(txId), Instant.FromUnixTimeMilliseconds(timestamp)));
+                => Resolve(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery(txId), Instant.FromUnixTimeMilliseconds(timestamp).ToTime()));
         }
 
         public class Mutations : GraphQlMutation
@@ -59,13 +60,13 @@ namespace Chronos.Hashflare
             }
 
             public bool RegisterHashflare(string username, long timestamp) 
-                => Resolve(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare(username), Instant.FromUnixTimeMilliseconds(timestamp)));
+                => Resolve(new RetroactiveCommand<RegisterHashflare>(new RegisterHashflare(username), Instant.FromUnixTimeMilliseconds(timestamp).ToTime()));
 
             public bool BuyHashrate(string txId, string type, int quantity, int total, long timestamp) 
-                => Resolve(new RetroactiveCommand<CreateContract>(new CreateContract(txId, type, quantity, total), Instant.FromUnixTimeMilliseconds(timestamp)));
+                => Resolve(new RetroactiveCommand<CreateContract>(new CreateContract(txId, type, quantity, total), Instant.FromUnixTimeMilliseconds(timestamp).ToTime()));
 
             public bool AddMinedAmount(string type, double quantity, long timestamp) 
-                => Resolve(new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare(type, quantity), Instant.FromUnixTimeMilliseconds(timestamp)));
+                => Resolve(new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare(type, quantity), Instant.FromUnixTimeMilliseconds(timestamp).ToTime()));
         }
     }
 }

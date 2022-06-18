@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
@@ -51,7 +52,7 @@ namespace Chronos.Core.Queries
                 amount = state.Quotes.FirstOrDefault()?.Amount ?? amount;
                 var fxResult = await _handler.Handle(new AssetPriceQuery(denominator, query.Denominator)
                 {
-                    Timestamp = query.ConvertToDenominatorAtTxDate ? state.Date : query.Timestamp,
+                    Timestamp = query.ConvertToDenominatorAtTxDate ? state.Date.ToTime() : query.Timestamp,
                     Timeline = query.Timeline,
                 });
 

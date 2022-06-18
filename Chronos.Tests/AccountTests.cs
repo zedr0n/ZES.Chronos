@@ -94,7 +94,7 @@ namespace Chronos.Tests
             var ccy = new Currency("USD");
             var asset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, ccy), asset, ccy));
-            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, ccy), timeline.Now, 23000));
+            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, ccy), timeline.Now.ToInstant(), 23000));
             
             await await bus.CommandAsync(new CreateAccount("Account", AccountType.Trading));
             await await bus.CommandAsync(new DepositAsset("Account", new Quantity(1.0, asset)));
@@ -119,7 +119,7 @@ namespace Chronos.Tests
             var usd = new Currency("USD");
 
             await bus.Command(new RegisterAssetPair("GBPUSD", gbp, usd));
-            await bus.Command(new AddQuote("GBPUSD", timeline.Now, 1.2));
+            await bus.Command(new AddQuote("GBPUSD", timeline.Now.ToInstant(), 1.2));
 
             await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
 
@@ -162,10 +162,10 @@ namespace Chronos.Tests
             var gbp = new Currency("GBP"); 
             var asset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
-            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now, 23000));
+            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now.ToInstant(), 23000));
 
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd));
-            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(gbp, usd), timeline.Now, 1.3));
+            await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(gbp, usd), timeline.Now.ToInstant(), 1.3));
             
             await await bus.CommandAsync(new CreateAccount("Account", AccountType.Trading));
             await await bus.CommandAsync(new DepositAsset("Account", new Quantity(1.0, asset)));
@@ -187,7 +187,7 @@ namespace Chronos.Tests
             var asset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
             var usd = new Currency("USD");
             await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
-            await bus.Command(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now, 23000));
+            await bus.Command(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now.ToInstant(), 23000));
             
             await bus.Command(new RegisterHashflare("user@mail.com"));
             await manager.Ready;
