@@ -24,7 +24,7 @@
             <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath> 
           </Reference>
           <PackageReference Include="SimpleInjector" Version="4.4.2" />
-          <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+          <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
           <PackageReference Include="Stateless" Version="3.0.0" />
           <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
           <PackageReference Include="NodaTime" Version="3.0.3" />
@@ -43,7 +43,7 @@
             <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
           </Reference>
           <PackageReference Include="SimpleInjector" Version="4.4.2" />
-          <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+          <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
           <PackageReference Include="Stateless" Version="3.0.0" />
           <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
           <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
