@@ -43,7 +43,7 @@
                 </Reference>-->
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
-                <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+                <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
                 <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
@@ -80,7 +80,7 @@
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
-                <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+                <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
                 <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
@@ -95,7 +95,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.725" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.733" />
             </ItemGroup>
         </Otherwise>
     </Choose>
