@@ -48,7 +48,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.740" />
+                <PackageReference Include="ZES" Version="1.0.742" />
                 <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
