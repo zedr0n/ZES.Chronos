@@ -21,7 +21,7 @@ namespace Chronos.Tests
             typeof(Hashflare.Config),
         };
 
-        protected override Container CreateContainer(List<Action<Container>> registrations = null)
+        protected override Container CreateContainer(List<Action<Container>> registrations = null, bool resetDb = false, int db = 0)
         {
             var regs = new List<Action<Container>>
             {
@@ -33,7 +33,7 @@ namespace Chronos.Tests
             if (registrations != null)
                 regs.AddRange(registrations);
 
-            return base.CreateContainer(regs);
+            return base.CreateContainer(regs, resetDb, db);
         }
     }
 }

@@ -34,6 +34,7 @@
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
+                <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
                 <!--<Reference Include="SqlStreamStore">
                     <HintPath>../../SQLStreamStore/src/SqlStreamStore/bin/Debug/netstandard2.0/SqlStreamStore.dll</HintPath>
                 </Reference>-->
@@ -70,6 +71,7 @@
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
+                <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Crc32.NET" Version="1.2.0" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
@@ -80,8 +82,8 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.746" />
-                <PackageReference Include="ZES.Tests" Version="1.0.746" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.748" />
+                <PackageReference Include="ZES.Tests" Version="1.0.748" />
             </ItemGroup>
         </Otherwise>
     </Choose>
