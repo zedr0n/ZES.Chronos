@@ -48,6 +48,7 @@
                 <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
                 <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.AspNetCore">
@@ -85,6 +86,7 @@
                 <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="2.2.0" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
                 <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
                 <PackageReference Include="HotChocolate.AspNetCore">
@@ -95,7 +97,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.748" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.753" />
             </ItemGroup>
         </Otherwise>
     </Choose>

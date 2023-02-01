@@ -30,6 +30,7 @@
                 <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+                <PackageReference Include="System.Threading.Channels" Version="5.0.0" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -46,11 +47,12 @@
                 <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+                <PackageReference Include="System.Threading.Channels" Version="5.0.0" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.748" />
+                <PackageReference Include="ZES" Version="1.0.753" />
             </ItemGroup>
         </Otherwise>
     </Choose>

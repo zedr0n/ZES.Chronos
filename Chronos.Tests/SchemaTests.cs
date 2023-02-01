@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using HotChocolate.Execution;
 using Xunit;
 using Xunit.Abstractions;
@@ -21,13 +23,23 @@ namespace Chronos.Tests
             var schemaProvider = container.GetInstance<ISchemaProvider>();
 
             var executor = schemaProvider.Build();
+            log.Info(executor.Schema);
             
             var commandResult = await executor.ExecuteAsync(@"mutation { createCoin( coin : ""Bitcoin"", ticker : ""BTC"" ) }");
-            foreach (var e in commandResult.Errors)
-                log.Error(e.Message, this);
+            if (commandResult.Errors != null)
+            {
+                foreach (var e in commandResult.Errors)
+                    log.Error(e.Message, this);
+            }
 
             var statsResult = await executor.ExecuteAsync(@"{ stats { numberOfCoins } }") as IReadOnlyQueryResult;
-            dynamic statsDict = statsResult?.Data["stats"];
+            if (statsResult.Errors != null)
+            {
+                foreach (var e in statsResult.Errors)
+                    log.Error(e.Message, this);
+            }
+            
+            var statsDict = statsResult?.Data.SingleOrDefault().Value as IReadOnlyDictionary<string, object>;
             log.Info(statsDict);
             Assert.NotNull(statsDict);
             Assert.Equal(1, statsDict["numberOfCoins"]); 

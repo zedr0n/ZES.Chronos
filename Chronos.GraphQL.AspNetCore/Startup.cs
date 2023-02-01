@@ -15,6 +15,7 @@ namespace Chronos.GraphQL.AspNetCore
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
+            services.AddGraphQLServer();
             services.UseGraphQl(new[] { typeof(Chronos.Coins.Config), typeof(Chronos.Accounts.Config), typeof(Chronos.Hashflare.Config), typeof(Chronos.Core.Config) });
         }
 
@@ -31,7 +32,8 @@ namespace Chronos.GraphQL.AspNetCore
                     .AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod());
-            app.UseGraphQL();
+            app.UseRouting()
+                .UseEndpoints(x => x.MapGraphQL("/"));
         }
     }
 }

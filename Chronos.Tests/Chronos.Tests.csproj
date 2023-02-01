@@ -26,13 +26,11 @@
                 <Reference Include="ZES.GraphQL">
                     <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
-                <PackageReference Include="HotChocolate" Version="10.3.5" />
+                <PackageReference Include="HotChocolate" Version="12.16.0" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
-                <PackageReference Include="HotChocolate.Stitching" Version="10.3.5" />
-                <PackageReference Include="HotChocolate.Subscriptions" Version="10.3.5" />
-                <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
+                <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
                 <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
                 <!--<Reference Include="SqlStreamStore">
@@ -70,6 +68,7 @@
                 <PackageReference Include="HotChocolate.Subscriptions.InMemory" Version="10.3.5" />
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
+                <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
                 <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
@@ -82,8 +81,8 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.748" />
-                <PackageReference Include="ZES.Tests" Version="1.0.748" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.753" />
+                <PackageReference Include="ZES.Tests" Version="1.0.753" />
             </ItemGroup>
         </Otherwise>
     </Choose>

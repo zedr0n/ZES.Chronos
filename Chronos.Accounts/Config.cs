@@ -60,7 +60,7 @@ namespace Chronos.Accounts
             /// Account stats GraphQL query
             /// </summary>
             /// <returns>Account stats</returns>
-            public Stats Stats() => Resolve(new StatsQuery());
+            public Stats AccountStats() => Resolve(new StatsQuery());
 
             public AccountStats AccountStats(string accountName, string assetId, string date = null, bool? immediate = null)
             {
