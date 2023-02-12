@@ -90,14 +90,14 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
 
-            var btc = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var btc = new Asset("Bitcoin", "BTC", AssetType.Coin);
             await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
             await await bus.CommandAsync(new CreateWallet("0x1", "Bitcoin"));
 
             await await bus.CommandAsync(new ChangeWalletBalance("0x1", new Quantity(0.1, btc), null));
 
             await bus.Equal(new WalletInfoQuery("0x1"), s => s.Balance, 0.1);
-            await bus.Equal(new WalletInfoQuery("0x1"), s => s.Asset, new Asset("Bitcoin", "BTC", Asset.Type.Coin));
+            await bus.Equal(new WalletInfoQuery("0x1"), s => s.Asset, new Asset("Bitcoin", "BTC", AssetType.Coin));
         }
 
         [Fact]
@@ -106,7 +106,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
-            var btc = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var btc = new Asset("Bitcoin", "BTC", AssetType.Coin);
             await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
             await await bus.CommandAsync(new CreateWallet("0x1", "Bitcoin"));
             await await bus.CommandAsync(new CreateWallet("0x2", "Bitcoin"));

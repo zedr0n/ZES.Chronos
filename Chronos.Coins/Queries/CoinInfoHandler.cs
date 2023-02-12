@@ -18,7 +18,7 @@ namespace Chronos.Coins.Queries
     {
       state.Name = e.Name; 
       state.Ticker = e.Ticker;
-      state.Asset = new Asset(e.Name, e.Ticker, Asset.Type.Coin);
+      state.Asset = new Asset(e.Name, e.Ticker, AssetType.Coin);
       return state;
     }
   }

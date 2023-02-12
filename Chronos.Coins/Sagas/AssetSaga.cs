@@ -52,7 +52,7 @@ namespace Chronos.Coins.Sagas
 
         private void Handle(CoinCreated e)
         {
-            var forAsset = new Asset(e.Name, e.Ticker, Asset.Type.Coin);
+            var forAsset = new Asset(e.Name, e.Ticker, AssetType.Coin);
             var domAsset = new Currency("USD");
             var command = new RegisterAssetPair(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset)
             {

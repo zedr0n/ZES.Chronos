@@ -17,7 +17,7 @@ namespace Chronos.Coins.Queries
     public WalletInfo Handle (Chronos.Coins.Events.WalletCreated e, WalletInfo state)
     {
       state.Address = e.Address;
-      state.Asset = new Asset(e.Coin, e.Coin, Asset.Type.Currency);
+      state.Asset = new Asset(e.Coin, e.Coin, AssetType.Currency);
       return state;
     }  
     public WalletInfo Handle (Chronos.Coins.Events.WalletBalanceChanged e, WalletInfo state)

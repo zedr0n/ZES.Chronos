@@ -94,7 +94,7 @@ namespace Chronos.Tests
             var timeline = container.GetInstance<ITimeline>();
            
             var ccy = new Currency("USD");
-            var asset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var asset = new Asset("Bitcoin", "BTC", AssetType.Coin);
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, ccy), asset, ccy));
             await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, ccy), timeline.Now.ToInstant(), 23000));
             
@@ -184,7 +184,6 @@ namespace Chronos.Tests
                 if (!assetPairInfo.QuoteDates.Any(d =>
                         d.InUtc().Year == t.Date.InUtc().Year && d.InUtc().Month == t.Date.InUtc().Month &&
                         d.InUtc().Day == t.Date.InUtc().Day))
-                    // await await bus.CommandAsync(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant().ToTime()));
                     await await bus.CommandAsync(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.ToTime()));
             }
 
@@ -203,7 +202,7 @@ namespace Chronos.Tests
            
             var usd = new Currency("USD");
             var gbp = new Currency("GBP"); 
-            var asset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var asset = new Asset("Bitcoin", "BTC", AssetType.Coin);
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
             await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now.ToInstant(), 23000));
 
@@ -227,7 +226,7 @@ namespace Chronos.Tests
             var timeline = container.GetInstance<ITimeline>();
             var manager = container.GetInstance<IBranchManager>();
 
-            var asset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var asset = new Asset("Bitcoin", "BTC", AssetType.Coin);
             var usd = new Currency("USD");
             await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
             await bus.Command(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now.ToInstant(), 23000));

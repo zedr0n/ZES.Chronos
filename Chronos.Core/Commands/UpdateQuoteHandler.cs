@@ -53,12 +53,12 @@ namespace Chronos.Core.Commands
 
       ICommandHandler handler = null;
       ICommand commandT = null;
-      if (root.ForAsset.AssetType == Asset.Type.Currency && root.DomAsset.AssetType == Asset.Type.Currency)
+      if (root.ForAsset.AssetType == AssetType.Currency && root.DomAsset.AssetType == AssetType.Currency)
       {
         commandT = new UpdateQuote<Api.Fx.JsonResult>(command.Target) { MessageId = command.MessageId };
         handler = _handlers.SingleOrDefault(h => h.CanHandle(commandT));
       }
-      else if (root.ForAsset.AssetType == Asset.Type.Coin && root.DomAsset.AssetType == Asset.Type.Currency)
+      else if (root.ForAsset.AssetType == AssetType.Coin && root.DomAsset.AssetType == AssetType.Currency)
       {
         commandT = new UpdateQuote<Api.Coin.JsonResult>(command.Target) { MessageId = command.MessageId };
         handler = _handlers.SingleOrDefault(h => h.CanHandle(commandT));

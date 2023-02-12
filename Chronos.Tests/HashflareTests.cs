@@ -151,7 +151,7 @@ namespace Chronos.Tests
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);
 
-            var btcAsset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var btcAsset = new Asset("Bitcoin", "BTC", AssetType.Coin);
             await bus.Equal(new AccountStatsQuery("Hashflare", btcAsset), a => a.Balance, new Quantity(0.02, btcAsset));
         }
         
@@ -182,7 +182,7 @@ namespace Chronos.Tests
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.055);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.055);
             
-            var btcAsset = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var btcAsset = new Asset("Bitcoin", "BTC", AssetType.Coin);
             await bus.Equal(new HistoricalQuery<AccountStatsQuery, AccountStats>(new AccountStatsQuery("Hashflare", btcAsset), ultimateTime), a => a.Balance, new Quantity(0.11, btcAsset));
         }
     }

@@ -5,6 +5,7 @@
         <IsPackable>true</IsPackable>
         <Version>1.0.0</Version>
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
+        <LangVersion>9.0</LangVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
@@ -12,7 +13,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
+      <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.435">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
@@ -60,7 +64,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.755" />
+                <PackageReference Include="ZES" Version="1.0.759" />
             </ItemGroup>
         </Otherwise>
     </Choose>

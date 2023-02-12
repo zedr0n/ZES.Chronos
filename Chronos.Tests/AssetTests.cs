@@ -145,7 +145,7 @@ namespace Chronos.Tests
 
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
-            var btc = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var btc = new Asset("Bitcoin", "BTC", AssetType.Coin);
             
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
@@ -174,7 +174,7 @@ namespace Chronos.Tests
 
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
-            var btc = new Asset("Bitcoin", "BTC", Asset.Type.Coin);
+            var btc = new Asset("Bitcoin", "BTC", AssetType.Coin);
 
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
             await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl(AssetPair.Fordom(btc, usd), Api.Coin.Url(btc, usd)), date));

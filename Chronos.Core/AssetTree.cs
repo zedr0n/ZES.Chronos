@@ -62,7 +62,7 @@ namespace Chronos.Core
         /// <param name="forAsset">Foreign asset</param>
         /// <param name="domAsset">Domestic asset</param>
         /// <returns>Path enumerable</returns>
-        public IEnumerable<(string forAsset, string domAsset)> GetPath(Asset forAsset, Asset domAsset)
+        public IEnumerable<(string ForAsset, string DomAsset)> GetPath(Asset forAsset, Asset domAsset)
         {
             if (!_graph.ContainsVertex(forAsset) || !_graph.ContainsVertex(domAsset))
                 return null;

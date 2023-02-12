@@ -27,7 +27,7 @@ namespace Chronos.Coins.Queries
             var state = projection.State;
 
             var coinInfo = await _handler.Handle(new CoinInfoQuery(state.Asset.AssetId));
-            return new WalletInfo(state.Address, new Asset(coinInfo.Name, coinInfo.Ticker, Asset.Type.Coin), state.Balance, state.MineQuantity);
+            return new WalletInfo(state.Address, new Asset(coinInfo.Name, coinInfo.Ticker, AssetType.Coin), state.Balance, state.MineQuantity);
         }
     }
 }

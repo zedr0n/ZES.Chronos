@@ -56,7 +56,7 @@ namespace Chronos.Accounts.Sagas
             StateMachine.Configure(State.Created)
                 .Permit(Trigger.CoinMined, State.Processing);
             StateMachine.Configure(State.Processing)
-                .OnEntryFrom(GetTrigger<CoinMined>(), e => SendCommand(new DepositAsset("Hashflare", new Quantity(e.Quantity, new Asset("Bitcoin", "BTC", Asset.Type.Coin)))))
+                .OnEntryFrom(GetTrigger<CoinMined>(), e => SendCommand(new DepositAsset("Hashflare", new Quantity(e.Quantity, new Asset("Bitcoin", "BTC", AssetType.Coin)))))
                 .Permit(Trigger.AccountUpdated, State.Created);
         }
     }
