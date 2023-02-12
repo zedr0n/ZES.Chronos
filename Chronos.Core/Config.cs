@@ -12,6 +12,7 @@ using ZES.Infrastructure.GraphQl;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Pipes;
 using ZES.Utils;
 
@@ -99,11 +100,21 @@ namespace Chronos.Core
                 _bus = bus;
             }
 
+            public bool RegisterCurrencyPair(string forCcy, string domCcy)
+            {
+                var forAsset = new Currency(forCcy);
+                var domAsset = new Currency(domCcy);
+                var fordom = AssetPair.Fordom(forAsset, domAsset);
+                var command = new RegisterAssetPair(fordom, forAsset, domAsset);
+                var result = Resolve(new RetroactiveCommand<RegisterAssetPair>(command, Time.MinValue));
+                return result;
+            }
+
             public bool RecordTransaction(string txId, double amount, string assetId, string type, string comment, string date = null)
             {
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                var nDate = date.ToTime();
+                var nDate = date?.ToTime() ?? Time.Default;
                 if (asset == null)
                     throw new InvalidOperationException($"Asset {assetId} not registered");
                 if (!Enum.TryParse<Transaction.TransactionType>(type, out var eType))

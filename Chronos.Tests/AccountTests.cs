@@ -11,6 +11,8 @@ using Chronos.Core.Queries;
 using Chronos.Hashflare.Commands;
 using Xunit;
 using Xunit.Abstractions;
+using ZES.Infrastructure.Domain;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
@@ -148,7 +150,48 @@ namespace Chronos.Tests
             Assert.Contains("Tx2", list.TxId);
             
             await bus.Equal(new AccountStatsQuery("Account", gbp), a => a.Balance, new Quantity(0, gbp));
-        }   
+        }
+
+        [Fact]
+        public async void CanGetBalanceInUsd()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+
+            await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd));
+
+            var account = "Bank";
+            await await bus.CommandAsync(new CreateAccount(account, AccountType.Saving));
+
+            var txId = "ATM";
+            await await bus.CommandAsync(new RecordTransaction(txId, new Quantity(100, gbp), Transaction.TransactionType.Income, null));
+
+            await await bus.CommandAsync(new AddTransaction(account, txId));
+            
+            var assetsList = await bus.QueryAsync(new AssetPairsInfoQuery());
+            var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == usd.AssetId);
+
+            var txIds = await bus.QueryAsync(new TransactionListQuery(account));
+            var txList = txIds.TxId.ToList().Select(tx => bus.QueryAsync(new TransactionInfoQuery(tx)).Result).ToList();
+
+            foreach (var t in txList)
+            {
+                var fordom = AssetPair.Fordom(t.Quantity.Denominator, asset);
+                var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(fordom));
+                if (!assetPairInfo.QuoteDates.Any(d =>
+                        d.InUtc().Year == t.Date.InUtc().Year && d.InUtc().Month == t.Date.InUtc().Month &&
+                        d.InUtc().Day == t.Date.InUtc().Day))
+                    // await await bus.CommandAsync(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant().ToTime()));
+                    await await bus.CommandAsync(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.ToTime()));
+            }
+
+            var balance = await bus.QueryAsync(new AccountStatsQuery(account, usd));
+            Assert.NotNull(balance);
+            Assert.NotNull(balance.Balance.Denominator);
+        }
 
         [Fact]
         public async void CanGetAssetTriangulationPrice()
