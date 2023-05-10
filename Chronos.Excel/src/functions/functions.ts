@@ -21,6 +21,71 @@ function ExcelDateToJSDate (serial : number) : Date {
 
 /**
  * @customfunction
+ * @param username Hashflare username
+ * @param timestamp Registration timestamp
+ */
+export async function getOrRegisterHashflare(username: string, timestamp: any) : Promise<any>
+{
+  let stats = await hashflareStats()
+  if(stats != "")
+    return stats
+  
+  timestamp = ExcelDateToJSDate(timestamp).getTime()
+
+  const mutation = `mutation {
+        registerHashflare( username : "${username}", timestamp : ${timestamp} )
+    }`;
+  
+  let result = await Mutation(mutation);
+  return result
+}
+
+/**
+ * @customfunction
+ */
+export async function hashflareStats() : Promise<any>
+{
+  let query = `query { hashflareStats {
+      username
+      bitcoinHashRate
+      scryptHashRate
+      details {
+        key    
+        value {
+          type
+          quantity
+        }
+      }
+    }}  
+  `
+
+  let result = await SingleQuery(query, data => data.hashflareStats)
+  if(!result.username)
+    return ""
+  
+  const myEntity : Excel.EntityCellValue = {
+    type : Excel.CellValueType.entity,
+    text : "Hashflare",
+    properties : {
+      "Username" : {
+        type : Excel.CellValueType.string,
+        basicValue : result.username
+      },
+      "Bitcoin Hash Rate" : {
+        type : Excel.CellValueType.double,
+        basicValue : result.bitcoinHashRate
+      },
+      "Scrypt Hash Rate" : {
+        type : Excel.CellValueType.double,
+        basicValue : result.scryptHashRate
+      }
+    }
+  }
+  return myEntity
+}
+
+/**
+ * @customfunction
  * @param {string} account account name
  * @param {number} asOfDate as of date
  * @param {string} assetId denominator asset

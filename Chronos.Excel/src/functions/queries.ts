@@ -1,4 +1,4 @@
-import { request } from 'graphql-request';
+import {ClientError, request} from 'graphql-request';
 
 function setIntervalImmediately(func, interval) {
     func();
@@ -6,10 +6,11 @@ function setIntervalImmediately(func, interval) {
 }
 
 export async function SingleQuery(query : string, 
-                                  parseFn : (data : any) => string) : Promise<string>
+                                  parseFn : (data : any) => string) : Promise<any>
 {
     const value = await graphQlQuerySingle(window.server, query, parseFn);
-    return String(value);
+    return value;
+    //return String(value);
 }
 
 export function Query(query : string,
@@ -21,28 +22,33 @@ export function Query(query : string,
 
 export async function Mutation(mutation : string)
 {
-    await graphQlMutation(window.server, mutation); 
+    let result = await graphQlMutation(window.server, mutation); 
+    return result
 }
 
+
+function getGraphQlError(error : ClientError) : string
+{
+    let response = error.response
+    let errors = response.errors
+    if (errors)
+    {
+        let message = errors[0]['extensions']['message']
+        return message
+    }
+    else
+        return error.message
+}
 async function graphQlQuerySingle(server : string,
                       query : string,
-                      parseFn: ( data : any ) => string,
-                      retry? : boolean) : Promise<string>
+                      parseFn: ( data : any ) => string ) : Promise<any>
 {
     let result : string = "";
     try {
-        let reqResult = await request(server, query)
-        // console.log(reqResult)
-        result = parseFn(reqResult);
+        result = parseFn(await request(server, query));
     }
     catch(error) {
-        /*if (retry == undefined) {
-            console.log("Retrying...")
-            await new Promise(r => setTimeout(r, 100));
-            result = await graphQlQuerySingle(server, query, parseFn, false)
-        }
-        else*/
-            result = error.message;
+        result = getGraphQlError(error) 
     }
     return result;
 }
@@ -53,8 +59,9 @@ async function graphQlMutation(server : string, mutation : string)
         await request(server, mutation);
     }
     catch(error) {
-        return error.message;
+        return getGraphQlError(error)
     }
+    return true
 }
 
 function graphQlQuery(server : string,
@@ -64,10 +71,10 @@ function graphQlQuery(server : string,
                                      invocation : CustomFunctions.StreamingInvocation<string>,
                                      continueFn? : ( result : string ) => boolean) : void {
    if (continueFn == undefined)
-       continueFn = _ => true;
+       continueFn = result => true;
     
     const timer = setIntervalImmediately(() => {
-        // invocation.setResult("Querying...");
+        invocation.setResult("Querying...");
         try {
             request(server, query).then(data => {
                 let result = parseFn(data);
@@ -78,7 +85,7 @@ function graphQlQuery(server : string,
                 .catch(r => invocation.setResult(r.message))
         }
         catch(error) {
-            invocation.setResult(error.message)
+            invocation.setResult(getGraphQlError(error))
         }
     }, period);
 
