@@ -32,7 +32,7 @@ namespace Chronos.Hashflare.Queries
         /// Gets or sets total scrypt hash rate
         /// </summary>
         public int ScryptHashRate { get; set; }
-        
+
         /// <summary>
         /// Contract details class
         /// </summary>

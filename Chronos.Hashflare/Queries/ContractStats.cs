@@ -17,7 +17,13 @@ namespace Chronos.Hashflare.Queries
     {
        get; 
        set;
-    }  
+    }
+
+    public int Quantity
+    {
+        get;
+        set;
+    }
     public string Type
     {
        get; 
@@ -32,13 +38,22 @@ namespace Chronos.Hashflare.Queries
     {
       get; 
       set;
-    }  
-    public ContractStats(string contractId, string type, double mined, Time date) 
+    }
+
+    public double Cost
+    {
+        get;
+        set;
+    }
+    
+    public ContractStats(string contractId, string type, double mined, Time date, int quantity, double cost) 
     {
       ContractId = contractId; 
       Type = type; 
       Mined = mined; 
       Date = date;
+      Quantity = quantity;
+      Cost = cost;
     }
   }
 }

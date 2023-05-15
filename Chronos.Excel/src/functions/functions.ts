@@ -19,6 +19,11 @@ function ExcelDateToJSDate (serial : number) : Date {
   return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
 }
 
+function JSDateToExcelDate(date : Date) : number {
+  let converted = 25569.0 + ((date.getTime() - (date.getTimezoneOffset() * 60 * 1000)) / (1000 * 60 * 60 * 24));
+  return converted
+}
+
 /**
  * @customfunction
  * @param contractId Contract id
@@ -67,6 +72,32 @@ export async function getOrRegisterHashflare(username: string, timestamp: any) :
   return result
 }
 
+
+/**
+ * @customfunction
+ * @param type Hash type
+ * @param amount Mine amount
+ * @param timestamp Mining timestamp
+ */
+export async function addMinedAmount(type : string[][], amount : number[][], timestamp : any[][]) : Promise<any>
+{
+  for(let i = 0; i < timestamp.length; i++)
+  {
+    let t = ExcelDateToJSDate(timestamp[i][0]).getTime()
+
+    const mutation = `mutation {
+      addMinedAmount( type : "${type[i][0]}", quantity : ${amount[i][0]}, timestamp : ${t})
+    }`
+    
+    let result = await Mutation(mutation)
+    if (result != true)
+      return result
+  }
+  
+  return true
+}
+
+
 /**
  * @customfunction
  * @param contractId Contract Id
@@ -75,9 +106,11 @@ export async function contractStats(contractId : number) : Promise<any>
 {
   let query = `query {contractStats(txId: "${contractId}") {
       contractId
+      quantity
       type
       mined
       date
+      cost
     }}  
   `
   
@@ -90,12 +123,21 @@ export async function contractStats(contractId : number) : Promise<any>
     text : `Contract@${result.contractId}`,
     properties : {
       "Date" : {
-        type : Excel.CellValueType.string,
-        basicValue : result.date
+        type : Excel.CellValueType.formattedNumber,
+        basicValue : JSDateToExcelDate(new Date(result.date)),
+        numberFormat: "dd/mm/yyyy hh:mm"
       },
       "Type" : {
         type : Excel.CellValueType.string,
         basicValue : result.type
+      },
+      "Quantity" : {
+        type : Excel.CellValueType.double,
+        basicValue : result.quantity
+      },
+      "Cost" : {
+        type : Excel.CellValueType.double,
+        basicValue : result.cost
       },
       "Total mined" : {
         type : Excel.CellValueType.double,

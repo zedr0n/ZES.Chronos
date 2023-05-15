@@ -30,6 +30,7 @@
                 <Reference Include="ZES.GraphQL">
                     <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
+                <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="Crc32.NET" Version="1.2.0" />
@@ -91,7 +92,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.769" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.770" />
             </ItemGroup>
         </Otherwise>
     </Choose>
