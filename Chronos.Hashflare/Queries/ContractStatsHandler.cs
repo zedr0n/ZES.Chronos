@@ -14,7 +14,8 @@
     public ContractStats Handle (Chronos.Hashflare.Events.ContractCreated e, ContractStats state)
     {
       state.ContractId = e.ContractId; 
-      state.Type = e.Type; 
+      state.Type = e.Type;
+      state.Date = e.Timestamp;
       return state;
     }  
     public ContractStats Handle (Chronos.Hashflare.Events.CoinMinedByContract e, ContractStats state)
@@ -24,6 +25,7 @@
         ContractId = state.ContractId,
         Type = state.Type,
         Mined = state.Mined + e.Quantity,
+        Date = state.Date
       };
     }
   }

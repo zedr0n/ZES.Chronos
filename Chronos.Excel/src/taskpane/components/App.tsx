@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Button, ButtonType } from "@fluentui/react";
+import {Button, ButtonType, PrimaryButton} from "@fluentui/react";
 import Header from "./Header";
 import HeroList, { HeroListItem } from "./HeroList";
 import Progress from "./Progress";
@@ -346,8 +346,13 @@ export default class App extends React.Component<AppProps, AppState> {
       console.error("Domestic or foreign asset not found")
     }
   }
-    
-  
+
+  flushLog = async() =>
+  {
+    const mutation = "mutation { flushLog }"
+    await request(window.server, mutation)
+  }
+
   render() {
     const {
       title,
@@ -366,7 +371,10 @@ export default class App extends React.Component<AppProps, AppState> {
 
     return (
       <div className='ms-welcome'>
-        <Header logo='assets/logo-filled.png' title={this.props.title} message='Welcome' />
+        <Header logo='assets/logo-filled.png' title={this.props.title} message='Chronos' />
+        <div style={{display: "flex", justifyContent: "center"}}>
+          <PrimaryButton onClick={this.flushLog}>Flush log</PrimaryButton>
+        </div>
         <HeroList message='' items={this.state.listItems}>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.registerHashflare}>Register hashflare</Button>
           <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.buyHashrate}>Buy hashrate</Button>

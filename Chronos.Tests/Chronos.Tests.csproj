@@ -26,6 +26,7 @@
                 <Reference Include="ZES.GraphQL">
                     <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
+                <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
                 <PackageReference Include="HotChocolate" Version="12.16.0" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
@@ -81,8 +82,8 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.764" />
-                <PackageReference Include="ZES.Tests" Version="1.0.764" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.769" />
+                <PackageReference Include="ZES.Tests" Version="1.0.769" />
             </ItemGroup>
         </Otherwise>
     </Choose>

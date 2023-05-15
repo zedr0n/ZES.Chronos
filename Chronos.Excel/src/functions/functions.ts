@@ -21,6 +21,31 @@ function ExcelDateToJSDate (serial : number) : Date {
 
 /**
  * @customfunction
+ * @param contractId Contract id
+ * @param product Hash type
+ * @param quantity Hash rate amount
+ * @param total Total cost
+ * @param timestamp Transaction date
+ */
+export async function getOrAddContract(contractId : number, product : string, quantity : number, total : number, timestamp : any) : Promise<any>
+{
+  let stats = await contractStats(contractId)
+  if (stats != "")
+    return stats
+  
+  timestamp = ExcelDateToJSDate(timestamp).getTime();
+  const mutation = `mutation {
+        buyHashrate ( txId : "${contractId}", type : "${product}", quantity : ${quantity}, total : ${total}, timestamp : ${timestamp} )
+      }`;
+  
+  let result = await Mutation(mutation);
+  if(result == true)
+    return await contractStats(contractId)
+  return result;
+}
+
+/**
+ * @customfunction
  * @param username Hashflare username
  * @param timestamp Registration timestamp
  */
@@ -37,7 +62,48 @@ export async function getOrRegisterHashflare(username: string, timestamp: any) :
     }`;
   
   let result = await Mutation(mutation);
+  if(result == true)
+    return await hashflareStats()
   return result
+}
+
+/**
+ * @customfunction
+ * @param contractId Contract Id
+ */
+export async function contractStats(contractId : number) : Promise<any>
+{
+  let query = `query {contractStats(txId: "${contractId}") {
+      contractId
+      type
+      mined
+      date
+    }}  
+  `
+  
+  let result = await SingleQuery(query, data => data.contractStats)
+  if (!result.contractId)
+    return ""
+  
+  let myEntity : Excel.EntityCellValue = {
+    type : Excel.CellValueType.entity,
+    text : `Contract@${result.contractId}`,
+    properties : {
+      "Date" : {
+        type : Excel.CellValueType.string,
+        basicValue : result.date
+      },
+      "Type" : {
+        type : Excel.CellValueType.string,
+        basicValue : result.type
+      },
+      "Total mined" : {
+        type : Excel.CellValueType.double,
+        basicValue : result.mined,
+      }
+    }
+  }
+  return myEntity
 }
 
 /**
@@ -49,13 +115,6 @@ export async function hashflareStats() : Promise<any>
       username
       bitcoinHashRate
       scryptHashRate
-      details {
-        key    
-        value {
-          type
-          quantity
-        }
-      }
     }}  
   `
 
