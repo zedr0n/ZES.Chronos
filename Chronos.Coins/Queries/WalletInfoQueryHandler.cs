@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Chronos.Core;
 using ZES.Infrastructure.Domain;
+using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins.Queries
@@ -14,9 +15,10 @@ namespace Chronos.Coins.Queries
         /// Initializes a new instance of the <see cref="WalletInfoQueryHandler"/> class.
         /// </summary>
         /// <param name="manager">Projection manager</param>
+        /// <param name="activeTimeline">Active timeline</param>
         /// <param name="handler">Coin info query handler</param>
-        public WalletInfoQueryHandler(IProjectionManager manager, IQueryHandler<CoinInfoQuery, CoinInfo> handler) 
-            : base(manager)
+        public WalletInfoQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<CoinInfoQuery, CoinInfo> handler) 
+            : base(manager, activeTimeline)
         {
             _handler = handler;
         }

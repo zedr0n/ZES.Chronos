@@ -22,8 +22,8 @@ namespace Chronos.Core.Queries
     private readonly ILog _log;
     private readonly IBranchManager _branchManager;
 
-    public AssetPriceHandler(IProjectionManager manager, ILog log, IBranchManager branchManager, IQueryHandler<SingleAssetPriceQuery, SingleAssetPrice> handler) 
-      : base(manager)
+    public AssetPriceHandler(IProjectionManager manager, ITimeline activeTimeline, ILog log, IBranchManager branchManager, IQueryHandler<SingleAssetPriceQuery, SingleAssetPrice> handler) 
+      : base(manager, activeTimeline)
     {
       _log = log;
       _branchManager = branchManager;

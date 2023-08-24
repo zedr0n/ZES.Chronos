@@ -18,6 +18,7 @@
       state.Date = e.Timestamp;
       state.Quantity = e.Quantity;
       state.Cost = e.Total;
+      state.Mined = 0.0;
       return state;
     }  
     public ContractStats Handle (Chronos.Hashflare.Events.CoinMinedByContract e, ContractStats state)

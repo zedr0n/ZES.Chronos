@@ -55,12 +55,12 @@ namespace Chronos.Core.Commands
       ICommand commandT = null;
       if (root.ForAsset.AssetType == AssetType.Currency && root.DomAsset.AssetType == AssetType.Currency)
       {
-        commandT = new UpdateQuote<Api.Fx.JsonResult>(command.Target) { MessageId = command.MessageId };
+        commandT = new UpdateQuote<Api.Fx.JsonResult>(command.Target);
         handler = _handlers.SingleOrDefault(h => h.CanHandle(commandT));
       }
       else if (root.ForAsset.AssetType == AssetType.Coin && root.DomAsset.AssetType == AssetType.Currency)
       {
-        commandT = new UpdateQuote<Api.Coin.JsonResult>(command.Target) { MessageId = command.MessageId };
+        commandT = new UpdateQuote<Api.Coin.JsonResult>(command.Target);
         handler = _handlers.SingleOrDefault(h => h.CanHandle(commandT));
       }
       
@@ -122,14 +122,18 @@ namespace Chronos.Core.Commands
         url = root.Url;
       
       url = url.Replace("$date", command.Timestamp.ToString(dateFormat, new DateTimeFormatInfo())); 
-      await _jsonRequestHandler.Handle(new RequestJson<T>(command.Target, url)).Timeout();
+
+      var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
+      obs.Connect();
       
-      var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
+      await _jsonRequestHandler.Handle(new RequestJson<T>(command.Target, url)).Timeout();
+
+      var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
       ICommand addQuoteCommand;
       if (res.Data is Api.Fx.JsonResult fxResult)
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), fxResult.Rates.USD) { MessageId = command.MessageId };
+        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), fxResult.Rates.USD);
       else if (res.Data is Api.Coin.JsonResult coinResult)
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), coinResult.Market_Data.Current_price.Usd) { MessageId = command.MessageId };
+        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), coinResult.Market_Data.Current_price.Usd);
       else
         throw new InvalidCastException();
 

@@ -6,6 +6,7 @@ using Chronos.Core;
 using Chronos.Core.Queries;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
+using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries
@@ -21,10 +22,11 @@ namespace Chronos.Accounts.Queries
         /// Initializes a new instance of the <see cref="AccountStatsQueryHandler"/> class.
         /// </summary>
         /// <param name="manager">Projection manager</param>
+        /// <param name="activeTimeline">Active timeline</param>
         /// <param name="handler">Asset price handler</param>
         /// <param name="transactionInfoHandler">Transaction info handler</param>
-        public AccountStatsQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler) 
-            : base(manager)
+        public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AssetPriceQuery, AssetPrice> handler, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler) 
+            : base(manager, activeTimeline)
         {
             _handler = handler;
             _transactionInfoHandler = transactionInfoHandler;

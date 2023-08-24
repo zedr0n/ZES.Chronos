@@ -19,10 +19,11 @@ namespace Chronos.Core.Queries
         /// Initializes a new instance of the <see cref="TransactionInfoQueryHandler"/> class.
         /// </summary>
         /// <param name="manager">Projection manager</param>
+        /// <param name="activeTimeline">Active timeline</param>
         /// <param name="handler">Asset price handler</param>
         /// <param name="log">Log service</param>
-        public TransactionInfoQueryHandler(IProjectionManager manager, IQueryHandler<AssetPriceQuery, AssetPrice> handler, ILog log)
-            : base(manager)
+        public TransactionInfoQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AssetPriceQuery, AssetPrice> handler, ILog log)
+            : base(manager, activeTimeline)
         {
             _handler = handler;
             _log = log;

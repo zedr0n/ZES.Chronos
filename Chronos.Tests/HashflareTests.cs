@@ -11,6 +11,7 @@ using NodaTime;
 using NodaTime.Extensions;
 using Xunit;
 using Xunit.Abstractions;
+using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
@@ -120,6 +121,7 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var timeline = container.GetInstance<ITimeline>();
             var manager = container.GetInstance<IBranchManager>();
+            var queue = container.GetInstance<IMessageQueue>();
             
             var time = timeline.Now;
             var lastTime = time + Duration.FromSeconds(30);
@@ -140,13 +142,15 @@ namespace Chronos.Tests
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.005);
             
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("2", "SHA-256", 200, 1000), lastQuarterTime));
+            queue.Alert(new ImmediateInvalidateProjections());
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);
 
             await await bus.CommandAsync(
                 new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), quarterTime));
-            
+
+            queue.Alert(new ImmediateInvalidateProjections());
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.0125);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);

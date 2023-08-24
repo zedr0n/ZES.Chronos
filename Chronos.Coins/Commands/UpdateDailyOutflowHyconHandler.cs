@@ -68,18 +68,25 @@ namespace Chronos.Coins.Commands
             for (var i = 0; i < count; ++i)
             {
               var url = GetBlockListV2Url(command.Index - (20 * i));
+              
+              var obsList = _messageQueue.Alerts.OfType<JsonRequestCompleted<BlockListV2>>().Replay();
+              obsList.Connect();
+              
               await _blockListV2Handler.Handle(new RequestJson<BlockListV2>(command.Target, url));
             
-              var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<BlockListV2>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
+              var res = await obsList.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
               if (res.Data == null)
                 throw new InvalidOperationException();
 
               foreach (var blockv2 in res.Data.Where(b => b.TxCount > 0))
               {
                 var blockInfoUrl = GetBlockInfoV2Url(blockv2.Height); 
+                var obsInfo = _messageQueue.Alerts.OfType<JsonRequestCompleted<BlockInfoV2>>().Replay();
+                obsInfo.Connect();
+
                 await _blockInfoV2Handler.Handle(new RequestJson<BlockInfoV2>(command.Target, blockInfoUrl));
 
-                var blockInfo = await _messageQueue.Alerts.OfType<JsonRequestCompleted<BlockInfoV2>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
+                var blockInfo = await obsInfo.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
                 if (blockInfo.Data == null)
                   throw new InvalidOperationException();
 
@@ -106,8 +113,11 @@ namespace Chronos.Coins.Commands
               return null;
             }
             
+            var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<TxResults>>().Replay();
+            obs.Connect();
+
             await _handler.Handle(new RequestJson<TxResults>(command.Target, url));
-            var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<TxResults>>().FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
+            var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(TimeSpan.FromMinutes(1));
             if (res.Data == null)
               throw new InvalidOperationException();
 
@@ -153,9 +163,12 @@ namespace Chronos.Coins.Commands
         private async Task<string> GetFirstTx(string address)
         {
           var url = GetAddressInfoUrl(address);
+          var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<AddressInfo>>().Replay();
+          obs.Connect();
+
           await _addressHandler.Handle(new RequestJson<AddressInfo>(address, url));
       
-          var res = await _messageQueue.Alerts.OfType<JsonRequestCompleted<AddressInfo>>().FirstOrDefaultAsync(r => r.RequestorId == address).Timeout(TimeSpan.FromMinutes(1));
+          var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == address).Timeout(TimeSpan.FromMinutes(1));
           if (res.Data == null)
             throw new InvalidOperationException();
 
