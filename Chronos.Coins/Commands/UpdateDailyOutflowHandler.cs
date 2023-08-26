@@ -68,8 +68,6 @@ namespace Chronos.Coins.Commands
             await _balanceHandler.Handle(changeBalanceCommand);
             ++idx;
           }
-
-          command.EventType = changeBalanceCommand?.EventType;
         }
 
         /// <summary>

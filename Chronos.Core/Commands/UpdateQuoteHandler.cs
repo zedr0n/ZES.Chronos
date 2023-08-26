@@ -68,7 +68,6 @@ namespace Chronos.Core.Commands
         throw new InvalidOperationException($"Automatic quote retrieval for {root.ForAsset.Ticker}{root.DomAsset.Ticker} not supported");
       
       await handler.Handle(commandT);
-      command.EventType = commandT.EventType;
     }
 
     /// <inheritdoc/>
@@ -139,7 +138,6 @@ namespace Chronos.Core.Commands
 
       addQuoteCommand.StoreInLog = false;
       await _handler.Handle(addQuoteCommand);
-      command.EventType = addQuoteCommand.EventType;
     }
 
     /// <inheritdoc/>

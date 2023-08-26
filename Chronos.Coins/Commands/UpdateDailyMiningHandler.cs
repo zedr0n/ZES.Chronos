@@ -63,8 +63,6 @@ namespace Chronos.Coins.Commands
             await _mineHandler.Handle(mineCommand);
             ++idx;
         }
-
-        command.EventType = mineCommand?.EventType;
     }
 
     /// <inheritdoc/>
