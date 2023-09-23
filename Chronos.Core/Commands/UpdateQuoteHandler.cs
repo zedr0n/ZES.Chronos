@@ -141,11 +141,8 @@ namespace Chronos.Core.Commands
     }
 
     /// <inheritdoc/>
-    Task ICommandHandler<UpdateQuote>.Handle(UpdateQuote iCommand)
-    {
-      return Handle(iCommand as UpdateQuote<T>);
-    }
-
+    public Task Handle(UpdateQuote iCommand, bool trackCompletion) => Handle(iCommand as UpdateQuote<T>);
+    
     /// <inheritdoc/>
     protected override void Act(AssetPair root, UpdateQuote<T> command)
     {
