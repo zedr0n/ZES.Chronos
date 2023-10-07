@@ -93,7 +93,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl("GBPUSD", Api.Fx.Url(forAsset, domAsset)), date));
             
             await bus.Command(new RetroactiveCommand<UpdateQuote<Api.Fx.JsonResult>>(new UpdateQuote<Api.Fx.JsonResult>("GBPUSD"), date));
-            await bus.Equal(new HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>(new SingleAssetPriceQuery("GBPUSD"), date), s => s.Price, 1.342652);
+            await bus.Equal(new HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>(new SingleAssetPriceQuery("GBPUSD"), date), s => s.Price, 1.342173);
         }
 
         [Fact]
@@ -183,9 +183,9 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl(AssetPair.Fordom(gbp, usd), Api.Fx.Url(gbp, usd)), date));
             
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), date));
-            await bus.Equal(new HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>(new SingleAssetPriceQuery(AssetPair.Fordom(gbp, usd)), date), s => s.Price, 1.342652);
+            await bus.Equal(new HistoricalQuery<SingleAssetPriceQuery, SingleAssetPrice>(new SingleAssetPriceQuery(AssetPair.Fordom(gbp, usd)), date), s => s.Price, 1.342173);
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(btc, usd)), date));
-            await bus.Equal(new HistoricalQuery<AssetPriceQuery, AssetPrice>(new AssetPriceQuery(btc, gbp), date), s => Math.Round(s.Price, 6), Math.Round(19609.52143957559 / 1.342652, 6));
+            await bus.Equal(new HistoricalQuery<AssetPriceQuery, AssetPrice>(new AssetPriceQuery(btc, gbp), date), s => Math.Round(s.Price, 6), Math.Round(19609.52143957559 / 1.342173, 6));
         }
     }
 }

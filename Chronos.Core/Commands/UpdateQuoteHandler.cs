@@ -130,11 +130,19 @@ namespace Chronos.Core.Commands
       var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
       ICommand addQuoteCommand;
       if (res.Data is Api.Fx.JsonResult fxResult)
+      {
+        if (!fxResult.Success)
+          throw new InvalidOperationException($"Failed extracting the FX rate");
         addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), fxResult.Rates.USD);
+      }
       else if (res.Data is Api.Coin.JsonResult coinResult)
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), coinResult.Market_Data.Current_price.Usd);
+      {
+        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(),coinResult.Market_Data.Current_price.Usd);
+      }
       else
+      {
         throw new InvalidCastException();
+      }
 
       addQuoteCommand.StoreInLog = false;
       await _handler.Handle(addQuoteCommand);
