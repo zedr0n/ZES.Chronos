@@ -13,6 +13,7 @@ using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Net;
 using ZES.Interfaces.Pipes;
 using ZES.Tests;
 
@@ -83,6 +84,11 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+
+            var url = "https://api.apilayer.com/exchangerates_data/2020-12-01?symbols=USD&base=GBP";
+            await connector.SetAsync(url,
+                "{\n    \"success\": true,\n    \"timestamp\": 1606867199,\n    \"historical\": true,\n    \"base\": \"GBP\",\n    \"date\": \"2020-12-01\",\n    \"rates\": {\n        \"USD\": 1.342173\n    }\n}");
             
             var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
 
@@ -170,6 +176,12 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             
+            var connector = container.GetInstance<IJSonConnector>();
+
+            var url = "https://api.apilayer.com/exchangerates_data/2020-12-01?symbols=USD&base=GBP";
+            await connector.SetAsync(url,
+                "{\n    \"success\": true,\n    \"timestamp\": 1606867199,\n    \"historical\": true,\n    \"base\": \"GBP\",\n    \"date\": \"2020-12-01\",\n    \"rates\": {\n        \"USD\": 1.342173\n    }\n}");
+
             var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
 
             var gbp = new Currency("GBP");
