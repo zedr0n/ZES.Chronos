@@ -146,7 +146,15 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
             
+            var url = "https://api.apilayer.com/exchangerates_data/2020-12-10?symbols=USD&base=GBP";
+            await connector.SetAsync(url,
+                "{\n  \"success\": true,\n  \"timestamp\": 1607644799,\n  \"historical\": true,\n  \"base\": \"GBP\",\n  \"date\": \"2020-12-10\",\n  \"rates\": {\n    \"USD\": 1.330442\n  }\n}");
+            
+            url = "https://api.apilayer.com/exchangerates_data/2020-12-15?symbols=USD&base=GBP";
+            await connector.SetAsync(url,
+                "{\n  \"success\": true,\n  \"timestamp\": 1608076799,\n  \"historical\": true,\n  \"base\": \"GBP\",\n  \"date\": \"2020-12-15\",\n  \"rates\": {\n    \"USD\": 1.344357\n  }\n}");
             var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
 
             var gbp = new Currency("GBP");
