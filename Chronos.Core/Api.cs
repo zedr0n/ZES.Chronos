@@ -33,6 +33,8 @@ namespace Chronos.Core
             /// </summary>
             public static string DateFormat => "yyyy-MM-dd";
 
+            public static string ApiKey => Environment.GetEnvironmentVariable("FX_APIKEY");
+            
             /// <summary>
             /// Get the url for FORDOM fx
             /// </summary>
@@ -46,8 +48,6 @@ namespace Chronos.Core
                     throw new InvalidOperationException("Only USD is supported as domestic currency");
                 return $"https://api.apilayer.com/exchangerates_data/$date?symbols={domCurrency.Ticker}&base={forCurrency.Ticker};{ApiKey}";
             }
-
-            public static string ApiKey => Environment.GetEnvironmentVariable("FX_APIKEY");
 
             public class JsonResult : IJsonResult
             {

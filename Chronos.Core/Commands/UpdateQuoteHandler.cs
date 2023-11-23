@@ -137,7 +137,7 @@ namespace Chronos.Core.Commands
       }
       else if (res.Data is Api.Coin.JsonResult coinResult)
       {
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(),coinResult.Market_Data.Current_price.Usd);
+        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), coinResult.Market_Data.Current_price.Usd);
       }
       else
       {
