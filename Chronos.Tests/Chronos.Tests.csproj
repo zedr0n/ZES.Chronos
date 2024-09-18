@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
         <IsPackable>false</IsPackable>
         <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
@@ -12,19 +13,19 @@
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/net8.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/net8.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Debug/net8.0/ZES.dll</HintPath>
                 </Reference>
-                <Reference Include="ZES.Tests">
-                    <HintPath>../../ZES/ZES.Tests/bin/Debug/netcoreapp3.1/ZES.Tests.dll</HintPath>
+                <Reference Include="ZES.TestBase">
+                    <HintPath>../../ZES/ZES.Tests/bin/Debug/net8.0/ZES.TestBase.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.GraphQL">
-                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/net8.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
                 <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
                 <PackageReference Include="HotChocolate" Version="12.16.0" />
@@ -35,7 +36,7 @@
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
                 <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
                 <!--<Reference Include="SqlStreamStore">
-                    <HintPath>../../SQLStreamStore/src/SqlStreamStore/bin/Debug/netstandard2.0/SqlStreamStore.dll</HintPath>
+                    <HintPath>../../SQLStreamStore/src/SqlStreamStore/bin/Debug/net8.0/SqlStreamStore.dll</HintPath>
                 </Reference>-->
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Crc32.NET" Version="1.2.0" />
@@ -48,19 +49,19 @@
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/net8.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/net8.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Release/net8.0/ZES.dll</HintPath>
                 </Reference>
-                <Reference Include="ZES.Tests">
-                    <HintPath>../../ZES/ZES.Tests/bin/Release/netcoreapp3.1/ZES.Tests.dll</HintPath>
+                <Reference Include="ZES.TestBase">
+                    <HintPath>../../ZES/ZES.Tests/bin/Release/net8.0/ZES.TestBase.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.GraphQL">
-                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/netstandard2.0/ZES.GraphQL.dll</HintPath>
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/net8.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
                 <PackageReference Include="HotChocolate" Version="10.3.5" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
@@ -82,16 +83,19 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.836" />
-                <PackageReference Include="ZES.Tests" Version="1.0.836" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.840" />
+                <PackageReference Include="ZES.TestBase" Version="1.0.840" />
             </ItemGroup>
         </Otherwise>
     </Choose>
     
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
         <PackageReference Include="xunit" Version="2.3.1" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>

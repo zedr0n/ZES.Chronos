@@ -14,7 +14,7 @@
     public ContractStats Handle (Chronos.Hashflare.Events.ContractCreated e, ContractStats state)
     {
       state.ContractId = e.ContractId; 
-      state.Type = e.Type;
+        state.Type = e.Type;
       state.Date = e.Timestamp;
       state.Quantity = e.Quantity;
       state.Cost = e.Total;

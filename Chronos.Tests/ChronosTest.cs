@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using SimpleInjector;
 using Xunit.Abstractions;
-using ZES.Tests;
+using ZES.TestBase;
 
 namespace Chronos.Tests
 {
@@ -29,6 +29,7 @@ namespace Chronos.Tests
                 Coins.Config.RegisterAll,
                 Accounts.Config.RegisterAll,
                 Hashflare.Config.RegisterAll,
+                Core.Config.RegisterOverrides
             };
             if (registrations != null)
                 regs.AddRange(registrations);

@@ -18,7 +18,7 @@ using ZES.Interfaces;
 using ZES.Interfaces.Causality;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
-using ZES.Tests;
+using ZES.TestBase;
 
 namespace Chronos.Tests
 {

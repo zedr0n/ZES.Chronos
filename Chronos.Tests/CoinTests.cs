@@ -19,7 +19,7 @@ using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Net;
 using ZES.Interfaces.Pipes;
-using ZES.Tests;
+using ZES.TestBase;
 using ZES.Utils;
 using Stats = Chronos.Coins.Queries.Stats;
 using StatsQuery = Chronos.Coins.Queries.StatsQuery;

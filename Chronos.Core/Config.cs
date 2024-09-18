@@ -20,11 +20,25 @@ using ZES.Utils;
 
 namespace Chronos.Core
 {
+    /// <inheritdoc />
+    public class ConfigurationOverride : IConfigurationOverride
+    {
+        /// <inheritdoc />
+        public void ApplyOverride()
+        {
+        }
+    }    
+    
     /// <summary>
     /// Core config
     /// </summary>
     public class Config
     {
+        public static void RegisterOverrides(Container c)
+        {
+            c.RegisterConfigurationOverrides([Assembly.GetExecutingAssembly()]);    
+        }        
+        
         [Registration]
         public static void RegisterAll(Container c)
         {

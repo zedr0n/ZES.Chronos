@@ -9,16 +9,18 @@ using Chronos.Core;
 using Chronos.Core.Commands;
 using Chronos.Core.Queries;
 using Chronos.Hashflare.Commands;
+using NodaTime;
 using Xunit;
 using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Net;
 using ZES.Interfaces.Pipes;
-using ZES.Tests;
+using ZES.TestBase;
 using ZES.Utils;
 using StatsQuery = Chronos.Accounts.Queries.StatsQuery;
 
@@ -160,6 +162,8 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var connector = container.GetInstance<IJSonConnector>();
 
+            var date = new LocalDateTime(2023, 10, 7, 12, 30).InUtc().ToInstant().ToTime();
+            
             var url = "https://api.apilayer.com/exchangerates_data/2023-10-07?symbols=USD&base=GBP";
             await connector.SetAsync(url,
                 " {\n    \"success\": true,\n    \"timestamp\": 1696687263,\n    \"historical\": true,\n    \"base\": \"GBP\",\n    \"date\": \"2023-10-07\",\n    \"rates\": {\n        \"USD\": 1.224\n    }\n}");
@@ -167,15 +171,15 @@ namespace Chronos.Tests
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
 
-            await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd));
+            await await bus.CommandAsync(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
 
             var account = "Bank";
-            await await bus.CommandAsync(new CreateAccount(account, AccountType.Saving));
+            await await bus.CommandAsync(new RetroactiveCommand<CreateAccount>(new CreateAccount(account, AccountType.Saving), date));
 
             var txId = "ATM";
-            await await bus.CommandAsync(new RecordTransaction(txId, new Quantity(100, gbp), Transaction.TransactionType.Income, null));
+            await await bus.CommandAsync(new RetroactiveCommand<RecordTransaction>(new RecordTransaction(txId, new Quantity(100, gbp), Transaction.TransactionType.Income, null), date));
 
-            await await bus.CommandAsync(new AddTransaction(account, txId));
+            await await bus.CommandAsync(new RetroactiveCommand<AddTransaction>(new AddTransaction(account, txId), date));
             
             var assetsList = await bus.QueryAsync(new AssetPairsInfoQuery());
             var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == usd.AssetId);
@@ -193,7 +197,7 @@ namespace Chronos.Tests
                     await await bus.CommandAsync(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.ToTime()));
             }
 
-            var balance = await bus.QueryAsync(new AccountStatsQuery(account, usd));
+            var balance = await bus.QueryAsync(new HistoricalQuery<AccountStatsQuery,AccountStats>(new AccountStatsQuery(account, usd), date));
             Assert.NotNull(balance);
             Assert.NotNull(balance.Balance.Denominator);
         }

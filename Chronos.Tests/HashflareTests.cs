@@ -19,7 +19,7 @@ using ZES.Interfaces.Branching;
 using ZES.Interfaces.Causality;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Pipes;
-using ZES.Tests;
+using ZES.TestBase;
 
 namespace Chronos.Tests
 {
@@ -142,7 +142,7 @@ namespace Chronos.Tests
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.005);
             
             await await bus.CommandAsync(new RetroactiveCommand<CreateContract>(new CreateContract("2", "SHA-256", 200, 1000), lastQuarterTime));
-            queue.Alert(new ImmediateInvalidateProjections());
+                queue.Alert(new ImmediateInvalidateProjections());
             await bus.Equal(new ContractStatsQuery("0"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.0025);
             await bus.Equal(new ContractStatsQuery("2"), c => c.Mined, 0.005);

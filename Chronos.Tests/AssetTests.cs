@@ -15,7 +15,7 @@ using ZES.Interfaces;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Net;
 using ZES.Interfaces.Pipes;
-using ZES.Tests;
+using ZES.TestBase;
 
 namespace Chronos.Tests
 {
@@ -155,7 +155,13 @@ namespace Chronos.Tests
             url = "https://api.apilayer.com/exchangerates_data/2020-12-15?symbols=USD&base=GBP";
             await connector.SetAsync(url,
                 "{\n  \"success\": true,\n  \"timestamp\": 1608076799,\n  \"historical\": true,\n  \"base\": \"GBP\",\n  \"date\": \"2020-12-15\",\n  \"rates\": {\n    \"USD\": 1.344357\n  }\n}");
+
+            var coinUrl = "https://api.coingecko.com/api/v3/coins/bitcoin/history?date=10-12-2020&localization=false";
+            await connector.SetAsync(coinUrl,
+                "{\n    \"id\": \"bitcoin\",\n    \"symbol\": \"btc\",\n    \"name\": \"Bitcoin\",\n    \"market_data\": {\n        \"current_price\": {\n            \"btc\": 1.0,\n            \"usd\": 19609.52143957559\n        }\n    }\n}");
+            
             var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
+            
 
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
@@ -190,6 +196,10 @@ namespace Chronos.Tests
             await connector.SetAsync(url,
                 "{\n    \"success\": true,\n    \"timestamp\": 1606867199,\n    \"historical\": true,\n    \"base\": \"GBP\",\n    \"date\": \"2020-12-01\",\n    \"rates\": {\n        \"USD\": 1.342173\n    }\n}");
 
+            var coinUrl = "https://api.coingecko.com/api/v3/coins/bitcoin/history?date=01-12-2020&localization=false";
+            await connector.SetAsync(coinUrl,
+                "{\n    \"id\": \"bitcoin\",\n    \"symbol\": \"btc\",\n    \"name\": \"Bitcoin\",\n    \"market_data\": {\n        \"current_price\": {\n            \"btc\": 1.0,\n            \"usd\": 19609.52143957559\n        }\n    }\n}");
+            
             var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
 
             var gbp = new Currency("GBP");

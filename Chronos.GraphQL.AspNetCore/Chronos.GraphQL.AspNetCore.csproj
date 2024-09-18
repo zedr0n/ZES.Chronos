@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
         <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
@@ -11,16 +11,16 @@
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/net8.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/net8.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Debug/net8.0/ZES.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.GraphQL">
-                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/net8.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
                 <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
                 <PackageReference Include="HotChocolate" Version="12.16.0" />
@@ -31,7 +31,7 @@
                 <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
                 <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
                 <!--<Reference Include="SqlStreamStore">
-                    <HintPath>../../SQLStreamStore/src/SqlStreamStore/bin/Debug/netstandard2.0/SqlStreamStore.dll</HintPath>
+                    <HintPath>../../SQLStreamStore/src/SqlStreamStore/bin/Debug/net8.0/SqlStreamStore.dll</HintPath>
                 </Reference>-->
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
@@ -46,16 +46,16 @@
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/net8.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/net8.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Release/net8.0/ZES.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.GraphQL">
-                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/netstandard2.0/ZES.GraphQL.dll</HintPath>
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/net8.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
                 <PackageReference Include="HotChocolate" Version="10.3.5" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
@@ -78,7 +78,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.836" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.840" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>12.16.0</Version>
                 </PackageReference>

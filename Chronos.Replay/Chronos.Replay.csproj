@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -19,16 +19,16 @@
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/net8.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/net8.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Debug/net8.0/ZES.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.GraphQL">
-                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/netstandard2.0/ZES.GraphQL.dll</HintPath>
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/net8.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
                 <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
@@ -55,16 +55,16 @@
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/net8.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/net8.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Release/net8.0/ZES.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.GraphQL">
-                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/netstandard2.0/ZES.GraphQL.dll</HintPath>
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/net8.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Stateless" Version="3.0.0" />
@@ -92,7 +92,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.836" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.840" />
             </ItemGroup>
         </Otherwise>
     </Choose>

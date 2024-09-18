@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <IsPackable>true</IsPackable>
         <Version>1.0.0</Version>
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
@@ -19,13 +19,13 @@
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/net8.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/net8.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Debug/netstandard2.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Debug/net8.0/ZES.dll</HintPath>
                 </Reference>
                 <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
@@ -36,13 +36,13 @@
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/netstandard2.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/net8.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/netstandard2.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/net8.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Release/netstandard2.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Release/net8.0/ZES.dll</HintPath>
                 </Reference>
                 <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
@@ -52,7 +52,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.836" />
+                <PackageReference Include="ZES" Version="1.0.840" />
             </ItemGroup>
         </Otherwise>
     </Choose>
