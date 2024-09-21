@@ -28,7 +28,7 @@
                 <PackageReference Include="Crc32.NET" Version="1.2.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
-                <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
+                <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.35" />
                 <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
                 <!--<Reference Include="SqlStreamStore">
                     <HintPath>../../SQLStreamStore/src/SqlStreamStore/bin/Debug/net8.0/SqlStreamStore.dll</HintPath>
@@ -78,7 +78,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.840" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.844" />
                 <PackageReference Include="HotChocolate.AspNetCore">
                     <Version>12.16.0</Version>
                 </PackageReference>
