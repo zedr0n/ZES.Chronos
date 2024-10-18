@@ -34,7 +34,7 @@ namespace Chronos.Core.Commands
   }
 
   public class UpdateQuote<T> : UpdateQuote
-    where T : class, IJsonResult
+    where T : class, IJsonQuoteResult
   {
     public UpdateQuote()
     { }

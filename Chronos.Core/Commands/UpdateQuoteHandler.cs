@@ -79,7 +79,7 @@ namespace Chronos.Core.Commands
 
   /// <inheritdoc cref="ZES.Interfaces.Domain.ICommandHandler" />
   public class UpdateQuoteHandler<T> : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote<T>, AssetPair>, ICommandHandler<UpdateQuote>
-    where T : class, IJsonResult
+    where T : class, IJsonQuoteResult
   {
     private readonly ICommandHandler<AddQuote> _handler;
     private readonly ICommandHandler<RequestJson<T>> _jsonRequestHandler;
@@ -149,7 +149,7 @@ namespace Chronos.Core.Commands
     }
 
     /// <inheritdoc/>
-    public Task Handle(UpdateQuote iCommand, bool trackCompletion) => Handle(iCommand as UpdateQuote<T>);
+    Task ICommandHandler<UpdateQuote>.Handle(UpdateQuote iCommand) => Handle(iCommand as UpdateQuote<T>); 
     
     /// <inheritdoc/>
     protected override void Act(AssetPair root, UpdateQuote<T> command)

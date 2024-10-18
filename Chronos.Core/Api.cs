@@ -5,6 +5,11 @@ using ZES.Interfaces.Net;
 
 namespace Chronos.Core
 {
+    /// <inheritdoc />
+    public interface IJsonQuoteResult : IJsonResult 
+    {
+    }
+    
     /// <summary>
     /// JSON Api static data
     /// </summary>
@@ -49,7 +54,7 @@ namespace Chronos.Core
                 return $"https://api.apilayer.com/exchangerates_data/$date?symbols={domCurrency.Ticker}&base={forCurrency.Ticker}" + (ApiKey != null ? $";{ApiKey}" : string.Empty);
             }
 
-            public class JsonResult : IJsonResult
+            public class JsonResult : IJsonQuoteResult
             {
                 public Rates Rates { get; set; }
                 public string RequestorId { get; set; }
@@ -87,7 +92,7 @@ namespace Chronos.Core
                 return url;
             }
             
-            public class JsonResult : IJsonResult
+            public class JsonResult : IJsonQuoteResult
             {
                 public string Id { get; set; }
                 public string Symbol { get; set; } 
