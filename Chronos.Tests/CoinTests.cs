@@ -1,6 +1,7 @@
 using System;
 using System.Reactive.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Chronos.Accounts.Queries;
 using Chronos.Coins;
 using Chronos.Coins.Commands;
@@ -11,7 +12,6 @@ using Chronos.Core.Queries;
 using NodaTime.Extensions;
 using NodaTime.Text;
 using Xunit;
-using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
@@ -34,7 +34,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanCreateCoin()
+        public async Task CanCreateCoin()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -48,7 +48,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetCoinInfo()
+        public async Task CanGetCoinInfo()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -63,7 +63,7 @@ namespace Chronos.Tests
         }
         
         [Fact]
-        public async void CanGetNumberOfCoins()
+        public async Task CanGetNumberOfCoins()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -85,7 +85,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetWalletInfo()
+        public async Task CanGetWalletInfo()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -101,7 +101,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanTransferCoins()
+        public async Task CanTransferCoins()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -119,7 +119,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetDailyOutflow()
+        public async Task CanGetDailyOutflow()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -154,7 +154,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetDailyMining()
+        public async Task CanGetDailyMining()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();

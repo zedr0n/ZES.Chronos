@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Chronos.Accounts.Queries;
 using Chronos.Coins.Events;
 using Chronos.Core;
@@ -8,7 +9,6 @@ using Chronos.Core.Queries;
 using NodaTime;
 using NodaTime.Calendars;
 using Xunit;
-using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
@@ -27,7 +27,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanRecordTransaction()
+        public async Task CanRecordTransaction()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -44,7 +44,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanUseTransactionQuote()
+        public async Task CanUseTransactionQuote()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -62,7 +62,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanUseCurrencyPair()
+        public async Task CanUseCurrencyPair()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -80,7 +80,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetAssetPairRateFromUrl()
+        public async Task CanGetAssetPairRateFromUrl()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -103,7 +103,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetLatestPairQuote()
+        public async Task CanGetLatestPairQuote()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -124,7 +124,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanRollbackQuote()
+        public async Task CanRollbackQuote()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -142,7 +142,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetHistoricalPairQuote()
+        public async Task CanGetHistoricalPairQuote()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -185,7 +185,7 @@ namespace Chronos.Tests
         }   
         
         [Fact]
-        public async void CanGetAssetPairRateFromUrlGeneric()
+        public async Task CanGetAssetPairRateFromUrlGeneric()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();

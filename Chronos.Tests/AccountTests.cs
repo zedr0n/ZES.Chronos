@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 using Chronos.Accounts;
 using Chronos.Accounts.Commands;
 using Chronos.Accounts.Queries;
@@ -11,7 +12,6 @@ using Chronos.Core.Queries;
 using Chronos.Hashflare.Commands;
 using NodaTime;
 using Xunit;
-using Xunit.Abstractions;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces;
@@ -34,7 +34,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanCreateAccount()
+        public async Task CanCreateAccount()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -50,7 +50,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanCreateTransfer()
+        public async Task CanCreateTransfer()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -71,7 +71,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanTrackWallet()
+        public async Task CanTrackWallet()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -89,7 +89,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanDepositAsset()
+        public async Task CanDepositAsset()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -112,7 +112,7 @@ namespace Chronos.Tests
         }
         
         [Fact]
-        public async void CanAddTransaction()
+        public async Task CanAddTransaction()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -133,7 +133,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanListTransactions()
+        public async Task CanListTransactions()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -156,7 +156,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetBalanceInUsd()
+        public async Task CanGetBalanceInUsd()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -203,7 +203,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanGetAssetTriangulationPrice()
+        public async Task CanGetAssetTriangulationPrice()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -229,7 +229,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanProcessHashflare()
+        public async Task CanProcessHashflare()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();

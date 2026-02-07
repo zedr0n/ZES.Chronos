@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Runtime.InteropServices.ComTypes;
+using System.Threading.Tasks;
 using Chronos.Accounts.Queries;
 using Chronos.Core;
 using Chronos.Hashflare.Commands;
@@ -10,7 +11,6 @@ using Chronos.Hashflare.Queries;
 using NodaTime;
 using NodaTime.Extensions;
 using Xunit;
-using Xunit.Abstractions;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
@@ -31,7 +31,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanRegisterHashflare()
+        public async Task CanRegisterHashflare()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -50,7 +50,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanCreatePurchase()
+        public async Task CanCreatePurchase()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -68,7 +68,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanAddMinedToContract()
+        public async Task CanAddMinedToContract()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -84,7 +84,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async void CanRetroactivelyAddMinedToContract()
+        public async Task CanRetroactivelyAddMinedToContract()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -115,7 +115,7 @@ namespace Chronos.Tests
         }
         
         [Fact]
-        public async void CanRetroactivelyAddPurchase()
+        public async Task CanRetroactivelyAddPurchase()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -160,7 +160,7 @@ namespace Chronos.Tests
         }
         
         [Fact]
-        public async void CanRetroactivelyAddPurchaseWithSeveralMined()
+        public async Task CanRetroactivelyAddPurchaseWithSeveralMined()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();

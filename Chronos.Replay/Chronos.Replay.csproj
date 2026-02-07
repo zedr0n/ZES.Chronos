@@ -2,10 +2,15 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Configurations>Debug;Release;DebugLocal;ReleaseLocal</Configurations>
         <Platforms>AnyCPU</Platforms>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <TieredCompilation>false</TieredCompilation>
+        <PublishReadyToRun>true</PublishReadyToRun>
+        <TieredPGO>true</TieredPGO>
+        <ServerGarbageCollection>true</ServerGarbageCollection>
+        <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>        
         <CodeAnalysisRuleSet>..\Analysis.ruleset</CodeAnalysisRuleSet>
     </PropertyGroup>
 
@@ -19,16 +24,16 @@
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/net8.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Debug/net10.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/net8.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Debug/net10.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Debug/net8.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Debug/net10.0/ZES.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.GraphQL">
-                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/net8.0/ZES.GraphQL.dll</HintPath>
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Debug/net10.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
                 <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
@@ -38,7 +43,7 @@
                 <PackageReference Include="NLog" Version="4.6.8" />
                 <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
                 <PackageReference Include="HotChocolate.Stitching" Version="10.3.5" />
-                <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.35" />
+                <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.38" />
                 <PackageReference Include="StackExchange.Redis" Version="2.6.86" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
@@ -55,16 +60,16 @@
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
             <ItemGroup>
                 <Reference Include="ZES.Interfaces">
-                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/net8.0/ZES.Interfaces.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Interfaces/bin/Release/net10.0/ZES.Interfaces.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.Infrastructure">
-                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/net8.0/ZES.Infrastructure.dll</HintPath>
+                    <HintPath>../../ZES/ZES.Infrastructure/bin/Release/net10.0/ZES.Infrastructure.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES">
-                    <HintPath>../../ZES/ZES/bin/Release/net8.0/ZES.dll</HintPath>
+                    <HintPath>../../ZES/ZES/bin/Release/net10.0/ZES.dll</HintPath>
                 </Reference>
                 <Reference Include="ZES.GraphQL">
-                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/net8.0/ZES.GraphQL.dll</HintPath>
+                    <HintPath>../../ZES/ZES.GraphQL/bin/Release/net10.0/ZES.GraphQL.dll</HintPath>
                 </Reference>
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Stateless" Version="3.0.0" />
@@ -73,7 +78,7 @@
                 <PackageReference Include="NLog" Version="4.6.8" />
                 <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
                 <PackageReference Include="HotChocolate.Stitching" Version="10.3.5" />
-                <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.33" />
+                <PackageReference Include="SqlStreamStore" Version="1.2.1-alpha.3.38" />
                 <PackageReference Include="Common.Logging.NLog45" Version="3.4.1" />
                 <PackageReference Include="Gridsum.DataflowEx" Version="2.0.0" />
                 <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
@@ -92,7 +97,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.864" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.866" />
             </ItemGroup>
         </Otherwise>
     </Choose>
