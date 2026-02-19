@@ -30,13 +30,8 @@
        get; 
        set;
     }  
-    public override string Target
-    {
-       get
-      {
-        return TxId;
-      }
-    }  
+    public override string Target => TxId;
+
     public RecordTransaction(string txId, Quantity amount, Transaction.TransactionType transactionType, string comment) 
     {
       TxId = txId; 

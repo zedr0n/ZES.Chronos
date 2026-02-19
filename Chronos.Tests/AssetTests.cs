@@ -1,20 +1,16 @@
 ﻿using System;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
-using Chronos.Accounts.Queries;
-using Chronos.Coins.Events;
 using Chronos.Core;
 using Chronos.Core.Commands;
 using Chronos.Core.Queries;
 using NodaTime;
-using NodaTime.Calendars;
 using Xunit;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
-using ZES.Interfaces;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Infrastructure;
 using ZES.Interfaces.Net;
-using ZES.Interfaces.Pipes;
 using ZES.TestBase;
 
 namespace Chronos.Tests

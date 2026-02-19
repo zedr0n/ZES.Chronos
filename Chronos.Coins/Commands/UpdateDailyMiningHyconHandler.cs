@@ -8,9 +8,9 @@ using Chronos.Core.Json;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Net;
-using ZES.Interfaces;
 using ZES.Interfaces.Domain;
-using ZES.Interfaces.Pipes;
+using ZES.Interfaces.EventStore;
+using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Coins.Commands
 {

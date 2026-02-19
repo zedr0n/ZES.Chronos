@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using HotChocolate.Execution;
 using Xunit;
 using ZES.GraphQL;
+using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Tests
 {
@@ -18,7 +19,7 @@ namespace Chronos.Tests
         public async Task CanCreateCoinWithSchema()
         {
             var container = CreateContainer();
-            var log = container.GetInstance<ZES.Interfaces.ILog>(); 
+            var log = container.GetInstance<ILog>(); 
             
             var schemaProvider = container.GetInstance<ISchemaProvider>();
 

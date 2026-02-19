@@ -9,9 +9,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
-using ZES.Interfaces;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
+using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Core.Queries
 {

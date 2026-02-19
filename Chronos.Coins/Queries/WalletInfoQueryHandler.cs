@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Chronos.Core;
 using ZES.Infrastructure.Domain;
-using ZES.Interfaces;
+using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Coins.Queries

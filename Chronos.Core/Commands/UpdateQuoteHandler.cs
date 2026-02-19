@@ -13,8 +13,8 @@ using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Net;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Domain;
-using ZES.Interfaces.Net;
-using ZES.Interfaces.Pipes;
+using ZES.Interfaces.EventStore;
+using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Core.Commands
 {

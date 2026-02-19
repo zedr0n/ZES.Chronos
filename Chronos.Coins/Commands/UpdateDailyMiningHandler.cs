@@ -7,6 +7,7 @@ using NodaTime;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Domain;
+using ZES.Interfaces.EventStore;
 
 namespace Chronos.Coins.Commands
 {

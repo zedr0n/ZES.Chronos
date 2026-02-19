@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using Chronos.Accounts.Queries;
 using Chronos.Core;
@@ -14,11 +10,10 @@ using Xunit;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
-using ZES.Interfaces;
 using ZES.Interfaces.Branching;
-using ZES.Interfaces.Causality;
 using ZES.Interfaces.Domain;
-using ZES.Interfaces.Pipes;
+using ZES.Interfaces.EventStore;
+using ZES.Interfaces.Infrastructure;
 using ZES.TestBase;
 
 namespace Chronos.Tests
