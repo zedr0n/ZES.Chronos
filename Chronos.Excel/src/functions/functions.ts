@@ -1,4 +1,15 @@
 ﻿import {Mutation, Query, SingleQuery} from './queries';
+import {v4 as uuidv4} from 'uuid';
+
+
+/**
+ * @customfunction
+ */
+export async function guid() : Promise<any> {
+
+  let guid = uuidv4();
+  return guid;
+}
 
 function ExcelDateToJSDate (serial : number) : Date {
   var utc_days  = Math.floor(serial - 25569);
@@ -22,6 +33,55 @@ function ExcelDateToJSDate (serial : number) : Date {
 function JSDateToExcelDate(date : Date) : number {
   let converted = 25569.0 + ((date.getTime() - (date.getTimezoneOffset() * 60 * 1000)) / (1000 * 60 * 60 * 24));
   return converted
+}
+
+function getIdOrError(id : string, parseFn: ( data : any ) => string ) : (data : any) => string {
+  return data => {
+    let res = parseFn(data);
+    if (res == "true" || res == "false")
+      return id;
+    else
+      return res;
+  };
+}
+
+/**
+ * @customfunction
+ * @param contractId Contract id
+ * @param product Hash type
+ * @param quantity Hash rate amount
+ * @param total Total cost
+ * @param timestamp Transaction date
+ * @param guid Command guid
+ */
+export async function addContract(contractId : number, product : string, quantity : number, total : number, timestamp : any, guid : string) : Promise<any>
+{
+  timestamp = ExcelDateToJSDate(timestamp).getTime();
+  const mutation = `mutation {
+        buyHashrate ( txId : "${contractId}", type : "${product}", quantity : ${quantity}, total : ${total}, timestamp : ${timestamp}, guid : "${guid}" )
+      }`;
+
+  let result = await SingleQuery(mutation, getIdOrError(contractId.toString(), data => data.buyHashrate.toString()) )
+  return result;
+}
+
+/**
+ * @customfunction
+ * @param contractId Contract id
+ * @param product Hash type
+ * @param quantity Hash rate amount
+ * @param total Total cost
+ * @param timestamp Transaction date
+ * @param guid Command guid
+ */
+export async function addContracts(contractId : number[][], product : string[][], quantity : number[][], total : number[][], timestamp : any[][], guid : string[][]) : Promise<any>
+{
+  let start = new Date(Date.now()).getTime();
+  let mutation = `mutation { createContracts( txId : [ ${contractId.map(x => `"${x}"`)} ], type: [ ${product.map(x => `"${x}"`)} ], quantity : [ ${quantity} ], total : [ ${total} ], timestamp : [ ${timestamp.map(x => ExcelDateToJSDate(x[0]).getTime())} ], guid : [ ${guid.map(x => `"${x}"`)} ] ) }`
+
+  let result = await Mutation(mutation)
+  let end = new Date(Date.now()).getTime();
+  return end - start;
 }
 
 /**
@@ -53,6 +113,24 @@ export async function getOrAddContract(contractId : number, product : string, qu
  * @customfunction
  * @param username Hashflare username
  * @param timestamp Registration timestamp
+ * @param guid Command guid
+ */
+export async function registerHashflare(username: string, timestamp: any, guid : string) : Promise<any>
+{
+  timestamp = ExcelDateToJSDate(timestamp).getTime()
+
+  const mutation = `mutation {
+        registerHashflare( username : "${username}", timestamp : ${timestamp}, guid : "${guid}" )
+    }`;
+
+  let result = await SingleQuery(mutation, getIdOrError(username, data => data.registerHashflare.toString()) )
+  return result
+}
+
+/**
+ * @customfunction
+ * @param username Hashflare username
+ * @param timestamp Registration timestamp
  */
 export async function getOrRegisterHashflare(username: string, timestamp: any) : Promise<any>
 {
@@ -72,6 +150,43 @@ export async function getOrRegisterHashflare(username: string, timestamp: any) :
   return result
 }
 
+/**
+ * @customfunction
+ * @param type Hash type
+ * @param amount Mine amount
+ * @param timestamp Mining timestamp
+ * @param guid Command guid
+ */
+export async function addSingleMinedAmount(type : string, amount : number, timestamp : any, guid : string) : Promise<any>
+{
+  let t = ExcelDateToJSDate(timestamp).getTime()
+
+  const mutation = `mutation {
+      addMinedAmount( type : "${type}", quantity : ${amount}, timestamp : ${t}, guid : "${guid}")
+    }`
+
+  let result = await SingleQuery(mutation, getIdOrError(type, data => data.addMinedAmount.toString()) )
+  return result
+
+}
+
+/**
+ * @customfunction
+ * @param guid Command guid
+ * @param type Hash type
+ * @param amount Mine amount
+ * @param timestamp Mining timestamp
+ */
+export async function addMinedAmounts(guid: string[][], type : string[][], amount : number[][], timestamp : any[][]) : Promise<any>
+{
+  let start = new Date(Date.now()).getTime();
+  let mutation = `mutation { addMinedAmounts( type: [ ${type.map(x => `"${x}"`)} ], quantity : [ ${amount} ], timestamp : [ ${timestamp.map(x => ExcelDateToJSDate(x[0]).getTime())} ], guid : [ ${guid.map(x => `"${x}"`)} ] ) }`
+
+  await Mutation(mutation)
+  let end = new Date(Date.now()).getTime();
+
+  return end - start;
+}
 
 /**
  * @customfunction
@@ -115,6 +230,7 @@ export async function contractStats(contractId : number) : Promise<any>
   `
   
   let result = await SingleQuery(query, data => data.contractStats)
+  window.console.log(result)
   if (!result.contractId)
     return ""
   
@@ -124,7 +240,7 @@ export async function contractStats(contractId : number) : Promise<any>
     properties : {
       "Date" : {
         type : Excel.CellValueType.formattedNumber,
-        basicValue : JSDateToExcelDate(new Date(result.date)),
+        basicValue : JSDateToExcelDate(new Date(Number.parseInt(result.date)/10000)),
         numberFormat: "dd/mm/yyyy hh:mm"
       },
       "Type" : {

@@ -49,6 +49,7 @@
                 <PackageReference Include="EventStore.Client" Version="20.6.0" />
                 <PackageReference Include="EventStore.Client.Embedded" Version="20.6.0" />
                 <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
+                <PackageReference Include="StringTemplate4" Version="4.0.8" />
             </ItemGroup>
         </When>
         <When Condition="'$(Configuration)' == 'ReleaseLocal'">
@@ -82,12 +83,13 @@
                 <PackageReference Include="EventStore.Client" Version="20.6.0" />
                 <PackageReference Include="EventStore.Client.Embedded" Version="20.6.0" />
                 <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
+                <PackageReference Include="StringTemplate4" Version="4.0.8" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.870" />
-                <PackageReference Include="ZES.TestBase" Version="1.0.870" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.874" />
+                <PackageReference Include="ZES.TestBase" Version="1.0.874" />
             </ItemGroup>
         </Otherwise>
     </Choose>
