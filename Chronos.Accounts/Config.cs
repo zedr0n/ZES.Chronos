@@ -41,15 +41,19 @@ namespace Chronos.Accounts
         public class Query : GraphQlQuery
         {
             private readonly IBus _bus;
-            
+            private readonly ITimeline _timeline;
+
             /// <summary>
             /// Initializes a new instance of the <see cref="Query"/> class.
             /// </summary>
             /// <param name="bus">ZES Bus</param>
-            public Query(IBus bus) 
-                : base(bus)
+            /// <param name="log">Log service</param>
+            /// <param name="timeline"></param>
+            public Query(IBus bus, ILog log, ITimeline timeline) 
+                : base(bus, log )
             {
                 _bus = bus;
+                _timeline = timeline;
             }
 
             /// <summary>
@@ -58,13 +62,15 @@ namespace Chronos.Accounts
             /// <returns>Account stats</returns>
             public Stats AccountStats() => Resolve(new StatsQuery());
 
-            public AccountStats AccountStats(string accountName, string assetId, string date = null, bool? immediate = null)
+            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, bool? immediate = null)
             {
-                var nDate = date.ToTime(); 
-                var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
-                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                
-                return Resolve(new AccountStatsQuery(accountName, asset)
+                var nDate = date.ToTime();
+                if (nDate == null)
+                    nDate = _timeline.Now;
+
+                if (denominator == null && currency != null)
+                    denominator = currency;
+                return Resolve(new AccountStatsQuery(accountName, denominator)
                 {
                     ConvertToDenominatorAtTxDate = immediate ?? false,
                     Timestamp = nDate,
@@ -86,6 +92,7 @@ namespace Chronos.Accounts
         public class Mutation : GraphQlMutation
         {
             private readonly IBus _bus;
+            private readonly ITimeline _timeline;
             private readonly Query _queries;
             private readonly Core.Config.Query _coreQueries;
 
@@ -100,8 +107,9 @@ namespace Chronos.Accounts
                 : base(bus, log, manager)
             {
                 _bus = bus;
-                _queries = new Query(bus);
-                _coreQueries = new Core.Config.Query(bus, timeline);
+                _timeline = timeline;
+                _queries = new Query(bus, log, timeline);
+                _coreQueries = new Core.Config.Query(bus, timeline, log);
             }
 
             /// <summary>
@@ -109,29 +117,46 @@ namespace Chronos.Accounts
             /// </summary>
             /// <param name="name">Account name</param>
             /// <param name="type">Account type</param>
+            /// <param name="guid">Command guid</param>
             /// <returns>True if successful</returns>
-            public bool CreateAccount(string name, string type)
+            public bool CreateAccount(string name, string type, string guid)
             {
                 if (!Enum.TryParse<AccountType>(type, out var accountType))
                     return false;
                 
-                return Resolve(new CreateAccount(name, accountType));
+                return Resolve(new CreateAccount(name, accountType) { Guid = guid });
+            }
+
+            public bool DepositAsset(string name, Asset asset, Currency currency, double amount)
+            {
+                if(currency != null)
+                    asset = currency;
+                return Resolve(new DepositAsset(name, new Quantity(amount, asset)));
             }
 
             public bool AddTransaction(string name, string txId) => Resolve(new AddTransaction(name, txId));
 
             public bool UpdateQuotes(string account, string denominator)
             {
+                var time = _timeline.Now;
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
-                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == denominator);
+                var denominatorAsset = assetsList.Assets.SingleOrDefault(a => a.AssetId == denominator);
 
-                if (asset == null)
+                if (denominatorAsset == null)
                     throw new InvalidOperationException($"Asset {denominator} not registered");
-                
+
+                foreach (var asset in assetsList.Assets.Where(a => a.AssetId != denominator))
+                {
+                    var fordom = AssetPair.Fordom(asset, denominatorAsset);
+                    var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
+                    if (assetPairInfo.QuoteDates.All(d => d != time.ToInstant()))
+                        _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), time)).Wait();
+                }
+                    
                 var txList = _queries.TransactionInfos(account); 
                 foreach (var t in txList)
                 {
-                    var fordom = AssetPair.Fordom(t.Quantity.Denominator, asset);
+                    var fordom = AssetPair.Fordom(t.Quantity.Denominator, denominatorAsset);
                     var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
                     if (!assetPairInfo.QuoteDates.Any(d => d.InUtc().Year == t.Date.InUtc().Year && d.InUtc().Month == t.Date.InUtc().Month && d.InUtc().Day == t.Date.InUtc().Day))
                         _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant().ToTime())).Wait();

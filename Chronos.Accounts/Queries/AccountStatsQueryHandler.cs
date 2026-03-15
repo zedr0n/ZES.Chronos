@@ -14,7 +14,7 @@ namespace Chronos.Accounts.Queries
     [Transient]
     public class AccountStatsQueryHandler : DefaultSingleQueryHandler<AccountStatsQuery, AccountStats, AccountStatsState>
     {
-        private readonly IQueryHandler<AssetPriceQuery, AssetPrice> _handler;
+        private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
 
         /// <summary>
@@ -24,7 +24,7 @@ namespace Chronos.Accounts.Queries
         /// <param name="activeTimeline">Active timeline</param>
         /// <param name="handler">Asset price handler</param>
         /// <param name="transactionInfoHandler">Transaction info handler</param>
-        public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AssetPriceQuery, AssetPrice> handler, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler) 
+        public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AssetQuoteQuery, AssetQuote> handler, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler) 
             : base(manager, activeTimeline)
         {
             _handler = handler;
@@ -38,18 +38,22 @@ namespace Chronos.Accounts.Queries
                 throw new ArgumentNullException(nameof(projection), $"{typeof(IProjection<AccountStatsState>).Name}");
             var state = projection.State;
             var total = 0.0;
+            var denominator = query.Denominator;
+            if (query.Denominator == null)
+                denominator = state.Assets.SingleOrDefault();
+            
             foreach (var (asset, amount) in state.Assets.Zip(state.Quantities, (asset, value) => (asset, value)))
             {
                 var price = 1.0;
-                if (asset != query.Denominator)
-                    price = (await _handler.Handle(new AssetPriceQuery(asset, query.Denominator) { Timestamp = query.Timestamp })).Price;
+                if (asset.AssetId != denominator?.AssetId)
+                    price = (await _handler.Handle(new AssetQuoteQuery(asset, denominator) { Timestamp = query.Timestamp })).Quantity.Amount;
 
                 total += amount * price;
             }
 
             foreach (var txId in state.Transactions)
             {
-                var tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, query.Denominator)
+                var tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, denominator)
                 {
                     ConvertToDenominatorAtTxDate = query.ConvertToDenominatorAtTxDate,
                     Timestamp = query.Timestamp,
@@ -71,7 +75,7 @@ namespace Chronos.Accounts.Queries
                 total += amount;
             }
 
-            return new AccountStats(new Quantity(total, query.Denominator));
+            return new AccountStats(new Quantity(total, denominator));
         }
     }
 }

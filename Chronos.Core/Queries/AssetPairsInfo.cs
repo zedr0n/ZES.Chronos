@@ -14,7 +14,7 @@ namespace Chronos.Core.Queries
     {
         Tree = new AssetTree();
         Assets = Tree.Assets.ToArray();
-        Pairs = new string[0];
+        Pairs = [];
     }  
     public Asset[] Assets
     {

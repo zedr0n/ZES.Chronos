@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Hosting;
 using ZES.GraphQL;
 
+#pragma warning disable ASPDEPR008
+
 namespace Chronos.GraphQL.AspNetCore
 {
     public class Program

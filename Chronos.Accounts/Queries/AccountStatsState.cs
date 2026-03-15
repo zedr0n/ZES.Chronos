@@ -53,10 +53,8 @@ namespace Chronos.Accounts.Queries
         /// <param name="amount">Amount of added asset</param>
         public void Add(Asset asset, double amount)
         {
-            if (_positions.ContainsKey(asset))
+            if (!_positions.TryAdd(asset, amount))
                 _positions[asset] += amount;
-            else
-                _positions[asset] = amount;
         }
     }
 }

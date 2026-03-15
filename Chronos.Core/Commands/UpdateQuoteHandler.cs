@@ -1,9 +1,4 @@
-/// <filename>
-///     UpdateQuoteHandler.cs
-/// </filename>
-
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reactive.Linq;
@@ -22,18 +17,26 @@ namespace Chronos.Core.Commands
   public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote, AssetPair>
   {
     private readonly IEsRepository<IAggregate> _repository;
-    private readonly ICollection<ICommandHandler<UpdateQuote>> _handlers;
+    private readonly IUpdateQuoteCommandFactory _factory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateQuoteHandler"/> class.
+    /// Handles the `UpdateQuote` command, updating quotes for a specific asset pair
+    /// and managing the necessary business logic for processing updates, including
+    /// invoking command factories to generate sub-commands and handlers.
     /// </summary>
     /// <param name="repository">Aggregate repository</param>
-    /// <param name="handlers">Quote handlers</param>
-    public UpdateQuoteHandler(IEsRepository<IAggregate> repository, ICollection<ICommandHandler<UpdateQuote>> handlers) 
+    /// <param name="factory">Command factory</param>
+    /// <remarks>
+    /// This handler is responsible for ensuring that quotes are updated for a given
+    /// target asset pair and validating that updates align with the intended rules
+    /// (e.g., no duplicate updates for the same date).
+    /// </remarks>
+    public UpdateQuoteHandler(IEsRepository<IAggregate> repository, IUpdateQuoteCommandFactory factory)
     : base(repository)
     {
       _repository = repository;
-      _handlers = handlers;
+      _factory = factory;
     }
 
     /// <inheritdoc/>
@@ -51,22 +54,7 @@ namespace Chronos.Core.Commands
           $"Quote already added for {command.Timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
       }
 
-      ICommandHandler handler = null;
-      ICommand commandT = null;
-      if (root.ForAsset.AssetType == AssetType.Currency && root.DomAsset.AssetType == AssetType.Currency)
-      {
-        commandT = new UpdateQuote<Api.Fx.JsonResult>(command.Target);
-        handler = _handlers.SingleOrDefault(h => h.CanHandle(commandT));
-      }
-      else if (root.ForAsset.AssetType == AssetType.Coin && root.DomAsset.AssetType == AssetType.Currency)
-      {
-        commandT = new UpdateQuote<Api.Coin.JsonResult>(command.Target);
-        handler = _handlers.SingleOrDefault(h => h.CanHandle(commandT));
-      }
-      
-      if (handler == null)
-        throw new InvalidOperationException($"Automatic quote retrieval for {root.ForAsset.Ticker}{root.DomAsset.Ticker} not supported");
-      
+      var (commandT, handler) = _factory.Create(command.Target, root.ForAsset.AssetType, root.DomAsset.AssetType);
       await handler.Handle(commandT);
     }
 
@@ -109,13 +97,8 @@ namespace Chronos.Core.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
       
-      var dateFormat = Api.Fx.DateFormat;
-      var url = Api.Fx.Url(root.ForAsset, root.DomAsset);
-      if (typeof(T) == typeof(Api.Coin.JsonResult))
-      {
-        dateFormat = Api.Coin.DateFormat;
-        url = Api.Coin.Url(root.ForAsset, root.DomAsset);
-      }
+      var dateFormat = T.GetDateFormat();
+      var url = T.GetUrl(root.ForAsset, root.DomAsset);
 
       if (root.Url != null)
         url = root.Url;
@@ -128,23 +111,11 @@ namespace Chronos.Core.Commands
       await _jsonRequestHandler.Handle(new RequestJson<T>(command.Target, url)).Timeout();
 
       var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
-      ICommand addQuoteCommand;
-      if (res.Data is Api.Fx.JsonResult fxResult)
-      {
-        if (!fxResult.Success)
-          throw new InvalidOperationException($"Failed extracting the FX rate");
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), fxResult.Rates.USD);
-      }
-      else if (res.Data is Api.Coin.JsonResult coinResult)
-      {
-        addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), coinResult.Market_Data.Current_price.Usd);
-      }
-      else
-      {
-        throw new InvalidCastException();
-      }
+      var addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), T.GetValue(res.Data, root.DomAsset))
+        {
+          StoreInLog = false,
+        };
 
-      addQuoteCommand.StoreInLog = false;
       await _handler.Handle(addQuoteCommand);
     }
 

@@ -1,12 +1,30 @@
 import {ClientError, request} from 'graphql-request';
 
+export function getIdOrError(id : string, parseFn: ( data : any ) => string ) : (data : any) => string {
+    return data => {
+        let res = parseFn(data);
+        if (res == "true" || res == "false")
+            return id;
+        else
+            return res;
+    };
+}
+
 function setIntervalImmediately(func, interval) {
     func();
     return setInterval(func, interval);
 }
 
+export async function MutationWithId(id: string, mutation : string) : Promise<any>
+{
+    let value = await Mutation(mutation);
+    if(value != true)
+        return value;
+    return id;
+}
+
 export async function SingleQuery(query : string, 
-                                  parseFn : (data : any) => string) : Promise<any>
+                                  parseFn : (data : any) => any) : Promise<any>
 {
     const value = await graphQlQuerySingle(window.server, query, parseFn);
     return value;
@@ -45,7 +63,8 @@ async function graphQlQuerySingle(server : string,
 {
     let result : string = "";
     try {
-        result = parseFn(await request(server, query));
+        result = await request(server, query);
+        result = parseFn(result);
     }
     catch(error) {
         result = getGraphQlError(error) 

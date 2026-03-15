@@ -10,6 +10,7 @@ using ZES.Infrastructure.GraphQl;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Clocks;
+using ZES.Interfaces.GraphQL;
 using ZES.Interfaces.Infrastructure;
 using ZES.Utils;
 
@@ -40,6 +41,7 @@ namespace Chronos.Core
         public static void RegisterAll(Container c)
         {
             c.RegisterAll(Assembly.GetExecutingAssembly());
+            c.RegisterSingleton<IUpdateQuoteCommandFactory, UpdateQuoteCommandFactory>();
         }
 
         /// <inheritdoc />
@@ -48,12 +50,14 @@ namespace Chronos.Core
             private readonly IBus _bus;
             private readonly ITimeline _timeline;
 
-            public Query(IBus bus, ITimeline timeline)
-                : base(bus)
+            public Query(IBus bus, ITimeline timeline, ILog log)
+                : base(bus, log)
             {
                 _bus = bus;
                 _timeline = timeline;
             }
+            
+            public Currency Currency { get; }
 
             public AssetPairInfo AssetPairInfo(string fordom) => Resolve(new AssetPairInfoQuery(fordom));
 

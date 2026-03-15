@@ -35,8 +35,9 @@ namespace Chronos.Hashflare
             /// Initializes a new instance of the <see cref="Queries"/> class.
             /// </summary>
             /// <param name="bus">Message bus</param>
-            public Queries(IBus bus) 
-                : base(bus)
+            /// <param name="log">Log service</param>
+            public Queries(IBus bus, ILog log) 
+                : base(bus, log)
             {
             }
 
@@ -71,7 +72,7 @@ namespace Chronos.Hashflare
 
             public bool AddMinedAmount(string type, double quantity, long timestamp, string guid) 
                 => Resolve(new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare(type, quantity), Instant.FromUnixTimeMilliseconds(timestamp).ToTime()) { Guid = guid });
-
+            
             public bool CreateContracts(string[] txId, string[] type, int[] quantity, int[] total, long[] timestamp, string[] guid)
             {
                 var i = 0;

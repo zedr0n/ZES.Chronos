@@ -1,4 +1,4 @@
-﻿import {Mutation, Query, SingleQuery} from './queries';
+﻿import {Mutation, Query, SingleQuery, getIdOrError, MutationWithId} from './queries';
 import {v4 as uuidv4} from 'uuid';
 
 
@@ -35,14 +35,52 @@ function JSDateToExcelDate(date : Date) : number {
   return converted
 }
 
-function getIdOrError(id : string, parseFn: ( data : any ) => string ) : (data : any) => string {
-  return data => {
-    let res = parseFn(data);
-    if (res == "true" || res == "false")
-      return id;
-    else
-      return res;
-  };
+/**
+ * @customfunction
+ * @param account Account name
+ * @param denominator Denominator asset
+ */
+export async function updateQuotes(account: string, denominator: string)
+{
+  const mutation = `mutation {
+    updateQuotes( account : "${account}", denominator : "${denominator}" )
+  }`
+  
+  let result = await MutationWithId(account, mutation)
+  return result
+}
+
+/**
+ * @customfunction
+ * @param forCcy Foreign currency
+ * @param domCcy Domestic currency
+ */
+export async function registerCurrencyPair(forCcy: string, domCcy: string)
+{
+  const mutation = `mutation {
+    registerCurrencyPair( forCcy : "${forCcy}", domCcy : "${domCcy}" )
+  }`
+  
+  let result = await MutationWithId(forCcy, mutation)
+  return result
+}
+
+/**
+ * @customfunction
+ * @param name Account name
+ * @param amount Amount to deposit
+ * @param assetId Asset id
+ * @param ticker Ticker
+ * @param assetType Asset type
+ */
+export async function depositAsset(name : string, amount : number, assetId : string, ticker : string,  assetType : string)
+{
+  const mutation = `mutation {
+    depositAsset( name : "${name}", amount : ${amount}, asset: {assetId : "${assetId}", ticker : "${ticker}", assetType : ${assetType.toUpperCase()}} )
+  }`
+  
+  let result = await MutationWithId(name, mutation)
+  return result
 }
 
 /**
@@ -212,6 +250,21 @@ export async function addMinedAmount(type : string[][], amount : number[][], tim
   return true
 }
 
+/**
+ * @customfunction
+ * @param name Account name
+ * @param type Account type
+ * @param guid Command guid
+ */
+export async function createAccount(name : string, type : string, guid : string) : Promise<any>
+{
+  const mutation = `mutation {
+    createAccount( name : "${name}", type : "${type}", guid : "${guid}" )
+  }`
+  
+  let result = await MutationWithId(name, mutation)
+  return result
+}
 
 /**
  * @customfunction
@@ -310,31 +363,50 @@ export async function hashflareStats() : Promise<any>
  */
 export async function accountStats(account : string, asOfDate : number, assetId? : string, immediate? : boolean) : Promise<any> {
   let query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}" ) { balance { amount } } 
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}" ) { balance { amount denominator { assetId } } } 
   }`;
   if (assetId != undefined && assetId != "")
   {
     if (immediate != undefined && immediate) {
       query = `{
-        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount } } 
+        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount denominator { assetId } } } 
       }`;
     }
     else {
         query = `{
-        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}" ) { balance { amount } } 
+        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", ticker : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } }  
       }`;
     }
   }
   
   window.console.log(query)
 
-  let amount = 0
   // amount = Number(await SingleQuery(query, data => data.accountStats.balance.amount.toString()))
-  let result = await SingleQuery(query, data => data.accountStats.balance.amount.toString())
-  amount = Number(result)
-  if (isNaN(amount))
+  let result = await SingleQuery(query, data => ({ amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator }))
+  if(typeof(result)  === "string")
     return result
-  return amount
+  
+  const myEntity : Excel.EntityCellValue = {
+    type : Excel.CellValueType.entity,
+    text : account,
+    properties : {
+      "Balance" : {
+        type : Excel.CellValueType.entity,
+        text : "Balance",
+        properties : {
+          "Amount" : {
+            type : Excel.CellValueType.double,
+            basicValue : result.amount,
+          },
+          "Asset" : {
+            type : Excel.CellValueType.string,
+            basicValue : result.asset ? result.asset.assetId ?? "" : ""
+          }  
+        },
+      }
+    }
+  }
+  return myEntity
 }
 
 /**

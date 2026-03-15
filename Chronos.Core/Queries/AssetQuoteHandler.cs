@@ -16,13 +16,13 @@ using ZES.Interfaces.Infrastructure;
 namespace Chronos.Core.Queries
 {
   [Transient]
-  public class AssetPriceHandler : QueryHandlerBase<AssetPriceQuery, AssetPrice, AssetPairsInfo>
+  public class AssetQuoteHandler : QueryHandlerBase<AssetQuoteQuery, AssetQuote, AssetPairsInfo>
   {
-    private readonly IQueryHandler<SingleAssetPriceQuery, SingleAssetPrice> _handler;
+    private readonly IQueryHandler<SingleAssetQuoteQuery, SingleAssetQuote> _handler;
     private readonly ILog _log;
     private readonly IBranchManager _branchManager;
 
-    public AssetPriceHandler(IProjectionManager manager, ITimeline activeTimeline, ILog log, IBranchManager branchManager, IQueryHandler<SingleAssetPriceQuery, SingleAssetPrice> handler) 
+    public AssetQuoteHandler(IProjectionManager manager, ITimeline activeTimeline, ILog log, IBranchManager branchManager, IQueryHandler<SingleAssetQuoteQuery, SingleAssetQuote> handler) 
       : base(manager, activeTimeline)
     {
       _log = log;
@@ -30,7 +30,7 @@ namespace Chronos.Core.Queries
       _handler = handler;
     }
 
-    protected override async Task<AssetPrice> Handle(IProjection<AssetPairsInfo> projection, AssetPriceQuery query)
+    protected override async Task<AssetQuote> Handle(IProjection<AssetPairsInfo> projection, AssetQuoteQuery query)
     {
       var price = 1.0;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
@@ -44,7 +44,7 @@ namespace Chronos.Core.Queries
       
       if (info.Pairs.ToList().Contains(fordom))
       {
-        var result = await _handler.Handle(new SingleAssetPriceQuery(fordom)
+        var result = await _handler.Handle(new SingleAssetQuoteQuery(fordom)
         {
           Timeline = query.Timeline,
           Timestamp = query.Timestamp,
@@ -68,7 +68,7 @@ namespace Chronos.Core.Queries
           if (isInverse)
             pathForDom = domAsset + forAsset;
 
-          var pathResult = await _handler.Handle(new SingleAssetPriceQuery(pathForDom)
+          var pathResult = await _handler.Handle(new SingleAssetQuoteQuery(pathForDom)
           {
             Timeline = query.Timeline,
             Timestamp = query.Timestamp,
@@ -84,7 +84,7 @@ namespace Chronos.Core.Queries
         }
       }
       
-      return new AssetPrice(price, timestamp.ToInstant()); 
+      return new AssetQuote(new Quantity(price, query.DomAsset), timestamp.ToInstant()); 
     }
   }
 }

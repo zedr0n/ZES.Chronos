@@ -6,10 +6,25 @@ using ZES.Interfaces.Net;
 namespace Chronos.Core
 {
     /// <inheritdoc />
-    public interface IJsonQuoteResult : IJsonResult 
+    public interface IJsonQuoteResult : IJsonResult
     {
+        /// <summary>
+        /// Gets date format string
+        /// </summary>
+        /// <returns>Date format string</returns>
+        static abstract string GetDateFormat();
+        
+        /// <summary>
+        /// Get the url for asset pair quote value
+        /// </summary>
+        /// <param name="forAsset">Foreign asset</param>
+        /// <param name="domAsset">Domestic asset</param>
+        /// <returns>JSON data url</returns>
+        static abstract string GetUrl(Asset forAsset, Asset domAsset);
+        
+        static abstract double GetValue(IJsonResult result, Asset domAsset);
     }
-    
+
     /// <summary>
     /// JSON Api static data
     /// </summary>
@@ -33,37 +48,31 @@ namespace Chronos.Core
         /// </summary>
         public static class Fx
         {
-            /// <summary>
-            /// Gets date format string
-            /// </summary>
-            public static string DateFormat => "yyyy-MM-dd";
-
-            public static string ApiKey => Environment.GetEnvironmentVariable("FX_APIKEY");
-            
-            /// <summary>
-            /// Get the url for FORDOM fx
-            /// </summary>
-            /// <param name="forCurrency">Foreign currency</param>
-            /// <param name="domCurrency">Domestic currency</param>
-            /// <returns>JSON data url</returns>
-            /// <exception cref="InvalidOperationException">Only USD is supported as domestic</exception>
-            public static string Url(Asset forCurrency, Asset domCurrency)
-            {
-                if (domCurrency.Ticker != "USD")
-                    throw new InvalidOperationException("Only USD is supported as domestic currency");
-                return $"https://api.apilayer.com/exchangerates_data/$date?symbols={domCurrency.Ticker}&base={forCurrency.Ticker}" + (ApiKey != null ? $";{ApiKey}" : string.Empty);
-            }
+            private static string ApiKey => Environment.GetEnvironmentVariable("FX_APIKEY");
 
             public class JsonResult : IJsonQuoteResult
             {
                 public Rates Rates { get; set; }
                 public string RequestorId { get; set; }
                 public bool Success { get; set; }
+                public static string GetDateFormat() => "yyyy-MM-dd";
+
+                public static string GetUrl(Asset forAsset, Asset domAsset)
+                {
+                    return $"https://api.apilayer.com/exchangerates_data/$date?symbols={domAsset.Ticker}&base={forAsset.Ticker}" + (ApiKey != null ? $";{ApiKey}" : string.Empty);
+                }
+
+                public static double GetValue(IJsonResult result, Asset domAsset)
+                {
+                    var r = result as JsonResult;
+                    return r?.Rates.GetType().GetProperty(domAsset.Ticker)?.GetValue(r.Rates) as double? ?? 0;
+                }
             }
 
             public class Rates
             {
                 public double USD { get; set; }
+                public double GBP { get; set; }
             }
         }
 
@@ -72,26 +81,6 @@ namespace Chronos.Core
         /// </summary>
         public static class Coin
         {
-            /// <summary>
-            /// Gets date format string
-            /// </summary>
-            public static string DateFormat => "dd-MM-yyyy";
-
-            /// <summary>
-            /// Get the url for coin price in domestic asset 
-            /// </summary>
-            /// <param name="coin">Coin asset</param>
-            /// <param name="domCurrency">Domestic currency</param>
-            /// <returns>JSON data url</returns>
-            /// <exception cref="InvalidOperationException">Only USD is supported as domestic</exception>
-            public static string Url(Asset coin, Asset domCurrency)
-            {
-                if (domCurrency.Ticker != "USD")
-                    throw new InvalidOperationException("Only USD is supported as domestic currency");
-                var url = $"https://api.coingecko.com/api/v3/coins/{coin.AssetId.ToLower()}/history?date=$date&localization=false";
-                return url;
-            }
-            
             public class JsonResult : IJsonQuoteResult
             {
                 public string Id { get; set; }
@@ -99,6 +88,21 @@ namespace Chronos.Core
                 public string Name { get; set; } 
                 public MarketData Market_Data { get; set; } 
                 public string RequestorId { get; set; }
+                
+                public static string GetDateFormat() => "dd-MM-yyyy";
+                
+                public static string GetUrl(Asset forAsset, Asset domAsset)
+                {
+                    if (domAsset.Ticker != "USD")
+                        throw new InvalidOperationException("Only USD is supported as domestic currency");
+                    var url = $"https://api.coingecko.com/api/v3/coins/{forAsset.AssetId.ToLower()}/history?date=$date&localization=false";
+                    return url;
+                }
+
+                public static double GetValue(IJsonResult result, Asset domAsset)
+                {
+                    return (result as JsonResult)?.Market_Data?.Current_price?.Usd ?? 0;    
+                }
             }
             
             public class MarketData

@@ -28,8 +28,8 @@ namespace Chronos.Coins
         
         public class Query : GraphQlQuery
         {
-            public Query(IBus bus)
-                : base(bus)
+            public Query(IBus bus, ILog log)
+                : base(bus, log)
             {
             }
 

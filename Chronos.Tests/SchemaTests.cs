@@ -23,6 +23,17 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public void CanCreateSchema()
+        {
+            var container = CreateContainer();
+            var schemaProvider = container.GetInstance<ISchemaProvider>();
+            var log = container.GetInstance<ILog>();
+            
+            var schema = schemaProvider.Build().Schema;
+            log.Info(schema.ToString());
+        }
+        
+        [Fact]
         public async Task CanCreateCoinWithSchema()
         {
             var container = CreateContainer();
@@ -33,14 +44,14 @@ namespace Chronos.Tests
             var executor = schemaProvider.Build();
             log.Info(executor.Schema);
             
-            var commandResult = await executor.ExecuteAsync(@"mutation { createCoin( coin : ""Bitcoin"", ticker : ""BTC"" ) }");
+            var commandResult = await executor.ExecuteAsync(@"mutation { createCoin( coin : ""Bitcoin"", ticker : ""BTC"" ) }", cancellationToken: TestContext.Current.CancellationToken);
             if (commandResult.Errors != null)
             {
                 foreach (var e in commandResult.Errors)
                     log.Error(e.Message, this);
             }
 
-            var statsResult = await executor.ExecuteAsync(@"{ stats { numberOfCoins } }") as IReadOnlyQueryResult;
+            var statsResult = await executor.ExecuteAsync(@"{ stats { numberOfCoins } }", cancellationToken: TestContext.Current.CancellationToken) as IReadOnlyQueryResult;
             if (statsResult.Errors != null)
             {
                 foreach (var e in statsResult.Errors)

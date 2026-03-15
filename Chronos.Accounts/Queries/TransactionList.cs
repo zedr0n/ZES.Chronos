@@ -9,12 +9,13 @@
   {
     public TransactionList() 
     {
-    }  
+    }
+
     public string[] TxId
     {
-       get; 
-       set;
-    }  
+      get;
+      set;
+    } = [];
     public TransactionList(string[] txId) 
     {
       TxId = txId;
