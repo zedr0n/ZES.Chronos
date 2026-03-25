@@ -3,10 +3,12 @@ using System.Globalization;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using NodaTime.Extensions;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Net;
 using ZES.Infrastructure.Utils;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Infrastructure;
@@ -18,25 +20,26 @@ namespace Chronos.Core.Commands
   {
     private readonly IEsRepository<IAggregate> _repository;
     private readonly IUpdateQuoteCommandFactory _factory;
+    private readonly IClock _clock;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateQuoteHandler"/> class.
-    /// Handles the `UpdateQuote` command, updating quotes for a specific asset pair
-    /// and managing the necessary business logic for processing updates, including
-    /// invoking command factories to generate sub-commands and handlers.
+    /// Responsible for handling the `UpdateQuote` command by updating the quotes of a specific asset pair
+    /// and invoking necessary sub-commands and handlers through the command factory.
     /// </summary>
-    /// <param name="repository">Aggregate repository</param>
-    /// <param name="factory">Command factory</param>
+    /// <param name="repository">The aggregate repository used to retrieve and manage asset pair aggregates.</param>
+    /// <param name="factory">Factory for creating sub-commands and their corresponding handlers.</param>
+    /// <param name="clock">Clock used for time-related operations during quote updates.</param>
     /// <remarks>
-    /// This handler is responsible for ensuring that quotes are updated for a given
-    /// target asset pair and validating that updates align with the intended rules
-    /// (e.g., no duplicate updates for the same date).
+    /// Ensures proper validation and processing of quote updates, including checks to prevent duplicate updates
+    /// for the same date and determining whether the update is intraday or not.
     /// </remarks>
-    public UpdateQuoteHandler(IEsRepository<IAggregate> repository, IUpdateQuoteCommandFactory factory)
-    : base(repository)
+    public UpdateQuoteHandler(IEsRepository<IAggregate> repository, IUpdateQuoteCommandFactory factory, IClock clock)
+      : base(repository)
     {
       _repository = repository;
       _factory = factory;
+      _clock = clock;
     }
 
     /// <inheritdoc/>
@@ -47,14 +50,18 @@ namespace Chronos.Core.Commands
         throw new ArgumentNullException(nameof(AssetPair));
 
       if (root.QuoteDates.Any(d =>
-        d.InUtc().Year == command.Timestamp.ToInstant().InUtc().Year && d.InUtc().Month == command.Timestamp.ToInstant().InUtc().Month &&
-        d.InUtc().Day == command.Timestamp.ToInstant().InUtc().Day))
+            d.InUtc().Year == command.Timestamp.ToInstant().InUtc().Year &&
+            d.InUtc().Month == command.Timestamp.ToInstant().InUtc().Month &&
+            d.InUtc().Day == command.Timestamp.ToInstant().InUtc().Day))
       {
         throw new InvalidOperationException(
           $"Quote already added for {command.Timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
       }
+      
+      var now = _clock.GetCurrentInstant();
+      var intraday = command.Timestamp.ToInstant().Minus(now.ToInstant()).Days >= 0;
 
-      var (commandT, handler) = _factory.Create(command.Target, root.ForAsset.AssetType, root.DomAsset.AssetType);
+      var (commandT, handler) = _factory.Create(command.Target, root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
       await handler.Handle(commandT);
     }
 
