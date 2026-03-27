@@ -59,7 +59,7 @@ namespace Chronos.Core.Queries
         // try to triangulate the price
         var path = info.Tree.GetPath(query.ForAsset, query.DomAsset);
         if (path == null)
-          throw new InvalidOperationException($"No path found from {query.ForAsset?.Ticker} to {query.DomAsset?.Ticker}");
+          throw new InvalidOperationException($"No path found from {query.ForAsset?.AssetId} to {query.DomAsset?.AssetId}");
 
         foreach (var (forAsset, domAsset) in path)
         {

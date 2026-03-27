@@ -42,6 +42,7 @@ namespace Chronos.Core
         {
             c.RegisterAll(Assembly.GetExecutingAssembly());
             c.RegisterSingleton<IUpdateQuoteCommandFactory, UpdateQuoteCommandFactory>();
+            c.RegisterSingleton<IUpdateTickerCommandFactory, UpdateTickerCommandFactory>();
         }
 
         /// <inheritdoc />
@@ -141,8 +142,8 @@ namespace Chronos.Core
             public bool UpdateQuote(string forAsset, string domAsset, string date = null)
             {
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
-                var forAssetObj = assetsList.Assets.SingleOrDefault(a => a.AssetId == forAsset || a.Ticker == forAsset);
-                var domAssetObj = assetsList.Assets.SingleOrDefault(a => a.AssetId == domAsset || a.Ticker == domAsset);
+                var forAssetObj = assetsList.Assets.SingleOrDefault(a => a.AssetId == forAsset);
+                var domAssetObj = assetsList.Assets.SingleOrDefault(a => a.AssetId == domAsset);
                 var nDate = date.ToTime();
 
                 if (forAssetObj == null)

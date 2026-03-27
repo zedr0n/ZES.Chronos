@@ -95,7 +95,7 @@ namespace Chronos.Tests
             var timeline = container.GetInstance<ITimeline>();
            
             var ccy = new Currency("USD");
-            var asset = new Asset("Bitcoin", "BTC", AssetType.Coin);
+            var asset = new Asset("Bitcoin", AssetType.Coin);
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, ccy), asset, ccy));
             await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, ccy), timeline.Now.ToInstant(), 23000));
             
@@ -210,7 +210,7 @@ namespace Chronos.Tests
            
             var usd = new Currency("USD");
             var gbp = new Currency("GBP"); 
-            var asset = new Asset("Bitcoin", "BTC", AssetType.Coin);
+            var asset = new Asset("Bitcoin", AssetType.Coin);
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
             await await bus.CommandAsync(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now.ToInstant(), 23000));
 
@@ -234,15 +234,15 @@ namespace Chronos.Tests
             var timeline = container.GetInstance<ITimeline>();
             var manager = container.GetInstance<IBranchManager>();
 
-            var asset = new Asset("Bitcoin", "BTC", AssetType.Coin);
+            var asset = new Asset("Bitcoin", AssetType.Coin);
             var usd = new Currency("USD");
             await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));
             await bus.Command(new AddQuote(AssetPair.Fordom(asset, usd), timeline.Now.ToInstant(), 23000));
             
             await bus.Command(new RegisterHashflare("user@mail.com"));
             await manager.Ready;
-            await bus.Command(new CreateContract("0", asset.Ticker, 100, 1000));
-            await bus.Command(new AddMinedCoinToHashflare(asset.Ticker, 0.1));
+            await bus.Command(new CreateContract("0", asset.AssetId, 100, 1000));
+            await bus.Command(new AddMinedCoinToHashflare(asset.AssetId, 0.1));
 
             await bus.Equal(new AccountStatsQuery("Hashflare", usd), a => a.Balance, new Quantity(23000 * 0.1, usd));
         }

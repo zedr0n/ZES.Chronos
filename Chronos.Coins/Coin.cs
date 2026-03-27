@@ -28,7 +28,7 @@ namespace Chronos.Coins
       get; 
       set;
     }
-    public Asset Asset => new Asset(Name, Ticker, AssetType.Coin);
+    public Asset Asset => new Asset(Name, AssetType.Coin);
     private void ApplyEvent (Chronos.Coins.Events.CoinCreated e)
     {
       Id = e.Name;

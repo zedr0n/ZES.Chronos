@@ -6,6 +6,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using Chronos.Core.Events;
 using NodaTime;
 
 namespace Chronos.Core.Queries
@@ -19,13 +20,20 @@ namespace Chronos.Core.Queries
     public AssetPairInfo Handle (Chronos.Core.Events.AssetPairRegistered e, AssetPairInfo state)
     {
       state.ForAsset = e.ForAsset; 
-      state.DomAsset = e.DomAsset; 
+      state.DomAsset = e.DomAsset;
       return state;
-    }  
+    }
+
+    public AssetPairInfo Handle(QuoteTickerAdded e, AssetPairInfo state)
+    {
+      state.Ticker = e.Ticker;
+      return state;
+    }
+    
     public AssetPairInfo Handle (Chronos.Core.Events.QuoteAdded e, AssetPairInfo state)
     {
       var dates = new HashSet<Instant>(state.QuoteDates) {e.Date};
-      var newState = new AssetPairInfo(state.ForAsset, state.DomAsset, dates.ToArray());
+      var newState = new AssetPairInfo(state.ForAsset, state.DomAsset, dates.ToArray(), state.Ticker);
       return newState;
     }
   }

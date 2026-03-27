@@ -15,16 +15,17 @@ namespace Chronos.Core
         /// </summary>
         /// <returns>Date format string</returns>
         static abstract string GetDateFormat();
-        
+
         /// <summary>
-        /// Get the url for asset pair quote value
+        /// Gets the URL for retrieving JSON data based on the specified ticker.
         /// </summary>
-        /// <param name="forAsset">Foreign asset</param>
-        /// <param name="domAsset">Domestic asset</param>
-        /// <returns>JSON data url</returns>
-        static abstract string GetUrl(Asset forAsset, Asset domAsset);
-        
+        /// <param name="ticker">The ticker for which the URL is requested.</param>
+        /// <returns>The JSON data URL associated with the given ticker.</returns>
+        static abstract string GetUrl(string ticker);
+
         static abstract double GetValue(IJsonResult result, Asset domAsset);
+
+        static abstract string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset);
     }
 
     /// <summary>
@@ -62,6 +63,13 @@ namespace Chronos.Core
                     return r?.Select(x => x.Exchange);
                 }
 
+                public static string GetTicker(IJsonResult result)
+                {
+                    var r = result as JsonResult;
+                    var data = r?.FirstOrDefault();
+                    return $"{data?.Code}.{data?.Exchange}";
+                }
+
                 public class ExchangeData
                 {
                     public string Code { get; set; }
@@ -92,10 +100,12 @@ namespace Chronos.Core
 
                 public static string GetDateFormat() => "yyyy-MM-dd";
                 
-                public static string GetUrl(Asset forAsset, Asset domAsset)
+                public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}-{domAsset.AssetId}";
+                
+                public static string GetUrl(string ticker)
                 {
                     const string env = "real-time";
-                    return $"https://eodhd.com/api/{env}/{forAsset.Ticker}-{domAsset.Ticker}.CC?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
                 }
                 
                 public static double GetValue(IJsonResult result, Asset domAsset)
@@ -110,12 +120,14 @@ namespace Chronos.Core
                 public string RequestorId { get; set; }
                 public static string GetDateFormat() => "yyyy-MM-dd";
 
-                public static string GetUrl(Asset forAsset, Asset domAsset)
+                public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}-{domAsset.AssetId}";
+                
+                public static string GetUrl(string ticker)
                 {
                     const string env = "eod";
-                    return $"https://eodhd.com/api/{env}/{forAsset.Ticker}-{domAsset.Ticker}.CC?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
                 }
-
+                
                 public static double GetValue(IJsonResult result, Asset domAsset)
                 {
                     var r = result as JsonResult;
@@ -152,11 +164,13 @@ namespace Chronos.Core
                 public double Change { get; set; }
 
                 public static string GetDateFormat() => "yyyy-MM-dd";
+               
+                public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}";
                 
-                public static string GetUrl(Asset forAsset, Asset domAsset)
+                public static string GetUrl(string ticker)
                 {
                     const string env = "real-time";
-                    return $"https://eodhd.com/api/{env}/{forAsset.Ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
                 }
                 
                 public static double GetValue(IJsonResult result, Asset domAsset)
@@ -171,10 +185,12 @@ namespace Chronos.Core
                 public string RequestorId { get; set; }
                 public static string GetDateFormat() => "yyyy-MM-dd";
 
-                public static string GetUrl(Asset forAsset, Asset domAsset)
+                public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}";
+                
+                public static string GetUrl(string ticker)
                 {
                     const string env = "eod";
-                    return $"https://eodhd.com/api/{env}/{forAsset.Ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
                 }
 
                 public static double GetValue(IJsonResult result, Asset domAsset)
@@ -215,10 +231,12 @@ namespace Chronos.Core
 
                 public static string GetDateFormat() => "yyyy-MM-dd";
                 
-                public static string GetUrl(Asset forAsset, Asset domAsset)
+                public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}{domAsset.AssetId}";
+                
+                public static string GetUrl(string ticker)
                 {
                     const string env = "real-time";
-                    return $"https://eodhd.com/api/{env}/{forAsset.Ticker}{domAsset.Ticker}.FOREX?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
                 }
                 
                 public static double GetValue(IJsonResult result, Asset domAsset)
@@ -233,10 +251,12 @@ namespace Chronos.Core
                 public string RequestorId { get; set; }
                 public static string GetDateFormat() => "yyyy-MM-dd";
 
-                public static string GetUrl(Asset forAsset, Asset domAsset)
+                public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}{domAsset.AssetId}";
+                
+                public static string GetUrl(string ticker)
                 {
                     const string env = "eod";
-                    return $"https://eodhd.com/api/{env}/{forAsset.Ticker}{domAsset.Ticker}.FOREX?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
                 }
 
                 public static double GetValue(IJsonResult result, Asset domAsset)
@@ -253,79 +273,6 @@ namespace Chronos.Core
                     public double Low { get; set; }
                     public double Close { get; set; }
                 }
-            }
-        }
-        
-        /// <summary>
-        /// FX JSON Api 
-        /// </summary>
-        public static class FxApiLayer
-        {
-            private static string ApiKey => Environment.GetEnvironmentVariable("FX_APIKEY");
-
-            public class JsonResult : IJsonQuoteResult
-            {
-                public Rates Rates { get; set; }
-                public string RequestorId { get; set; }
-                public bool Success { get; set; }
-                public static string GetDateFormat() => "yyyy-MM-dd";
-
-                public static string GetUrl(Asset forAsset, Asset domAsset)
-                {
-                    return $"https://api.apilayer.com/exchangerates_data/$date?symbols={domAsset.Ticker}&base={forAsset.Ticker}" + (ApiKey != null ? $";{ApiKey}" : string.Empty);
-                }
-
-                public static double GetValue(IJsonResult result, Asset domAsset)
-                {
-                    var r = result as JsonResult;
-                    return r?.Rates.GetType().GetProperty(domAsset.Ticker)?.GetValue(r.Rates) as double? ?? 0;
-                }
-            }
-
-            public class Rates
-            {
-                public double USD { get; set; }
-                public double GBP { get; set; }
-            }
-        }
-
-        /// <summary>
-        /// Crypto coin JSON Api
-        /// </summary>
-        public static class CoinGecko
-        {
-            public class JsonResult : IJsonQuoteResult
-            {
-                public string Id { get; set; }
-                public string Symbol { get; set; } 
-                public string Name { get; set; } 
-                public MarketData Market_Data { get; set; } 
-                public string RequestorId { get; set; }
-                
-                public static string GetDateFormat() => "dd-MM-yyyy";
-                
-                public static string GetUrl(Asset forAsset, Asset domAsset)
-                {
-                    if (domAsset.Ticker != "USD")
-                        throw new InvalidOperationException("Only USD is supported as domestic currency");
-                    var url = $"https://api.coingecko.com/api/v3/coins/{forAsset.AssetId.ToLower()}/history?date=$date&localization=false";
-                    return url;
-                }
-
-                public static double GetValue(IJsonResult result, Asset domAsset)
-                {
-                    return (result as JsonResult)?.Market_Data?.Current_price?.Usd ?? 0;    
-                }
-            }
-            
-            public class MarketData
-            {
-                public CurrentPrice Current_price { get; set; } 
-            }
-            
-            public class CurrentPrice
-            {
-                public double Usd { get; set; }
             }
         }
     }

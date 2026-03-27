@@ -32,7 +32,6 @@ namespace Chronos.Core
     /// Asset value object
     /// </summary>
     /// <param name="AssetId">Asset identifier</param>
-    /// <param name="Ticker">Asset ticker</param>
     /// <param name="AssetType">Asset type</param>
-    public record Asset(string AssetId, string Ticker, AssetType AssetType);
+    public record Asset(string AssetId, AssetType AssetType);
 }

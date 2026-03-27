@@ -64,7 +64,7 @@ namespace Chronos.Core
             if (!_graph.ContainsVertex(forAsset) || !_graph.ContainsVertex(domAsset))
                 return null;
 
-            return _graph.RankedShortestPathHoffmanPavley(e => 1.0, forAsset, domAsset, 1).FirstOrDefault()?.Select(e => (e.Source.Ticker, e.Target.Ticker));
+            return _graph.RankedShortestPathHoffmanPavley(e => 1.0, forAsset, domAsset, 1).FirstOrDefault()?.Select(e => (e.Source.AssetId, e.Target.AssetId));
         }
 
         private class RateEdge : Edge<Asset>

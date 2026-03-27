@@ -23,10 +23,6 @@
       </PackageReference>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Sagas" />
-    </ItemGroup>
-
     <Choose>
         <When Condition="'$(Configuration)' == 'DebugLocal'">
             <ItemGroup>
@@ -41,6 +37,7 @@
                 </Reference>
                 <PackageReference Include="NodaTime" Version="3.0.3" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
+                <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
             </ItemGroup>
@@ -58,15 +55,14 @@
                 </Reference>
                 <PackageReference Include="NodaTime" Version="3.0.3" />
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
-                <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+                <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
-                <PackageReference Include="System.Threading.Channels" Version="5.0.0" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.876" />
+                <PackageReference Include="ZES" Version="1.0.879" />
             </ItemGroup>
         </Otherwise>
     </Choose>

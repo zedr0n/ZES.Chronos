@@ -26,11 +26,13 @@
        get; 
        set;
     }  
-    public AssetPairInfo(Core.Asset forAsset, Core.Asset domAsset, NodaTime.Instant[] quoteDates) 
+    public string Ticker {get; set;}
+    public AssetPairInfo(Core.Asset forAsset, Core.Asset domAsset, NodaTime.Instant[] quoteDates, string ticker) 
     {
       ForAsset = forAsset; 
       DomAsset = domAsset; 
       QuoteDates = quoteDates;
+      Ticker = ticker;
     }
   }
 }

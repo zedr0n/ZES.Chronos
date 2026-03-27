@@ -15,9 +15,12 @@ using ZES.Infrastructure.Net;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Clocks;
+using ZES.Interfaces.Domain;
+using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Infrastructure;
 using ZES.Interfaces.Net;
 using ZES.TestBase;
+using IClock = ZES.Interfaces.Clocks.IClock;
 
 namespace Chronos.Tests
 {
@@ -82,6 +85,30 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public async Task CanGetTicker()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+
+            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
+
+            var forAsset = new Currency("GBP");
+            var domAsset = new Currency("USD");
+
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("GBPUSD"),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair("GBPUSD", forAsset, domAsset), date));
+            await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker("GBPUSD", "GBPUSD.FOREX"), date));
+            
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), date));
+            var ticker = assetPairInfo.Ticker;
+            
+            Assert.Equal("GBPUSD.FOREX", ticker);
+        }
+        
+        [Fact]
         public async Task CanGetAssetPairRateFromUrl()
         {
             var container = CreateContainer();
@@ -92,12 +119,20 @@ namespace Chronos.Tests
 
             var forAsset = new Currency("GBP");
             var domAsset = new Currency("USD");
-            
-            await connector.SetAsync(Api.Fx.JsonResult.GetUrl(forAsset, domAsset).Replace("$date", date.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
-                "[{\"date\":\"2020-12-01\",\"open\":1.3337,\"high\":1.3439,\"low\":1.3319,\"close\":1.3337,\"adjusted_close\":1.3337,\"volume\":908}]");
+
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("GBPUSD"),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
             
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair("GBPUSD", forAsset, domAsset), date));
-            await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl("GBPUSD", Api.Fx.JsonResult.GetUrl(forAsset, domAsset)), date));
+            await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker("GBPUSD", "GBPUSD.FOREX"), date));
+            
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), date));
+            var ticker = assetPairInfo.Ticker;
+            
+            await connector.SetAsync(Api.Fx.JsonResult.GetUrl(ticker).Replace("$date", date.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+                "[{\"date\":\"2020-12-01\",\"open\":1.3337,\"high\":1.3439,\"low\":1.3319,\"close\":1.3337,\"adjusted_close\":1.3337,\"volume\":908}]");
+            
+            await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl("GBPUSD", Api.Fx.JsonResult.GetUrl(ticker)), date));
             
             await bus.Command(new RetroactiveCommand<UpdateQuote<Api.Fx.JsonResult>>(new UpdateQuote<Api.Fx.JsonResult>("GBPUSD"), date));
             await bus.Equal(new HistoricalQuery<SingleAssetQuoteQuery, SingleAssetQuote>(new SingleAssetQuoteQuery("GBPUSD"), date), s => s.Price, 1.3337);
@@ -138,15 +173,22 @@ namespace Chronos.Tests
             var connector = container.GetInstance<IJSonConnector>();
 
             var domAsset = new Currency("GBP");
-            var forAsset = new Asset("IUKD", "IUKD.LSE", AssetType.Equity);
-           
+            var forAsset = new Asset("IUKD", AssetType.Equity);
+            
             var date = new LocalDateTime(2026, 3, 17, 12, 30).InUtc().ToInstant().ToTime();
-           
-            await connector.SetAsync(Api.Equity.JsonResult.GetUrl(forAsset, domAsset).Replace("$date", date.ToString(Api.Equity.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
-                "[{\"date\":\"2026-03-17\",\"open\":979.5,\"high\":988.8,\"low\":975.2,\"close\":985,\"adjusted_close\":980.9421,\"volume\":419265}]");
+          
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("IUKD"),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":932.3,\"previousCloseDate\":\"2026-03-27\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.988,\"previousCloseDate\":\"2026-03-27\"}]");
             
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(forAsset, domAsset), forAsset,
                 domAsset), Time.MinValue));
+            await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker(AssetPair.Fordom(forAsset, domAsset), "IUKD.LSE"), date));
+           
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), date));
+            var ticker = assetPairInfo.Ticker;
+            
+            await connector.SetAsync(Api.Equity.JsonResult.GetUrl(ticker).Replace("$date", date.ToString(Api.Equity.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+                "[{\"date\":\"2026-03-17\",\"open\":979.5,\"high\":988.8,\"low\":975.2,\"close\":985,\"adjusted_close\":980.9421,\"volume\":419265}]");
             
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(forAsset, domAsset)), date));
             
@@ -161,11 +203,24 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var log = container.GetInstance<ILog>();
-            
+            var connector = container.GetInstance<IJSonConnector>();
+            var clock = container.GetInstance<IClock>();
+
             var forAsset = new Currency("GBP");
             var domAsset = new Currency("USD");
             
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("GBPUSD"),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
+           
             await bus.Command(new RegisterAssetPair("GBPUSD", forAsset, domAsset));
+            
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)));
+            var ticker = assetPairInfo.Ticker;
+            Assert.Equal("GBPUSD.FOREX", ticker);
+
+            await connector.SetAsync(Api.Fx.LiveJsonResult.GetUrl(ticker).Replace("$date", clock.GetCurrentInstant().ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+                "{\"code\":\"GBPUSD.FOREX\",\"timestamp\":1774639320,\"gmtoffset\":0,\"open\":1.3334,\"high\":1.3347,\"low\":1.3261,\"close\":1.3265,\"volume\":0,\"previousClose\":1.3335,\"change\":-0.007,\"change_p\":-0.5249}");
+            
             await bus.Command(new UpdateQuote(AssetPair.Fordom(forAsset, domAsset)));
             
             await bus.Command(new UpdateQuote(AssetPair.Fordom(forAsset, domAsset)));
@@ -182,13 +237,27 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var retroactive = container.GetInstance<IRetroactive>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var clock = container.GetInstance<IClock>();
             
             var forAsset = new Currency("GBP");
             var domAsset = new Currency("USD");
+            var date = clock.GetCurrentInstant();
 
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("GBPUSD"),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
+            
             var command = new UpdateQuote(AssetPair.Fordom(forAsset, domAsset));
             
             await bus.Command(new RegisterAssetPair("GBPUSD", forAsset, domAsset));
+            
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)));
+            var ticker = assetPairInfo.Ticker;
+            Assert.Equal("GBPUSD.FOREX", ticker);
+            
+            await connector.SetAsync(Api.Fx.LiveJsonResult.GetUrl(ticker).Replace("$date", date.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+                "{\"code\":\"GBPUSD.FOREX\",\"timestamp\":1774639320,\"gmtoffset\":0,\"open\":1.3334,\"high\":1.3347,\"low\":1.3261,\"close\":1.3265,\"volume\":0,\"previousClose\":1.3335,\"change\":-0.007,\"change_p\":-0.5249}");
+            
             await bus.Command(command);
 
             await retroactive.RollbackCommands(new[] { command });
@@ -205,7 +274,12 @@ namespace Chronos.Tests
             
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
-            var btc = new Asset("Bitcoin", "BTC", AssetType.Coin);
+            var btc = new Asset("Bitcoin", AssetType.Coin);
+            
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("GBPUSD"),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("Bitcoin-USD"),
+                "[]");
             
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
@@ -213,15 +287,24 @@ namespace Chronos.Tests
             var midDate = new LocalDateTime(2020, 12, 10, 12, 30).InUtc().ToInstant().ToTime();
             var lastdate = new LocalDateTime(2020, 12, 15, 12, 30).InUtc().ToInstant().ToTime(); 
             
-            await connector.SetAsync(Api.Fx.JsonResult.GetUrl(gbp, usd).Replace("$date", midDate.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+            await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker(AssetPair.Fordom(gbp, usd), "GBPUSD.FOREX"), date));
+            
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            var ticker = assetPairInfo.Ticker;
+            
+            await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker(AssetPair.Fordom(btc, usd), "BTC-USD.CC"), date));
+            var btcAssetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var btcTicker = btcAssetPairInfo.Ticker;
+            
+            await connector.SetAsync(Api.Fx.JsonResult.GetUrl(ticker).Replace("$date", midDate.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
                 "[{\"date\":\"2020-12-10\",\"open\":1.3367,\"high\":1.339,\"low\":1.325,\"close\":1.3367,\"adjusted_close\":1.3367,\"volume\":1063}]");
-            await connector.SetAsync(Api.Fx.JsonResult.GetUrl(gbp, usd).Replace("$date", lastdate.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+            await connector.SetAsync(Api.Fx.JsonResult.GetUrl(ticker).Replace("$date", lastdate.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
                 "[{\"date\":\"2020-12-15\",\"open\":1.3325,\"high\":1.3449,\"low\":1.3285,\"close\":1.3331,\"adjusted_close\":1.3331,\"volume\":1234}]");
             
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), midDate));
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), lastdate));
             
-            await connector.SetAsync(Api.Coin.JsonResult.GetUrl(btc, usd).Replace("$date", midDate.ToString(Api.Coin.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+            await connector.SetAsync(Api.Coin.JsonResult.GetUrl(btcTicker).Replace("$date", midDate.ToString(Api.Coin.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
                 "[{\"date\":\"2020-12-10\",\"open\":18553.29972814,\"high\":18553.29972814,\"low\":17957.06521319,\"close\":18264.99210672,\"adjusted_close\":18264.99210672,\"volume\":25547132265}]");
             
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(btc, usd)), midDate));
@@ -245,18 +328,32 @@ namespace Chronos.Tests
 
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
-            var btc = new Asset("Bitcoin", "BTC", AssetType.Coin);
+            var btc = new Asset("Bitcoin",  AssetType.Coin);
+         
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("GBPUSD"),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
+            await connector.SetAsync(Api.TickerSearch.JsonResult.GetUrl("Bitcoin-USD"),
+                "[]");
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
+ 
+            await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker(AssetPair.Fordom(gbp, usd), "GBPUSD.FOREX"), date));
+            
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            var ticker = assetPairInfo.Ticker;
 
-            await connector.SetAsync(Api.Fx.JsonResult.GetUrl(gbp, usd).Replace("$date", date.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+            await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker(AssetPair.Fordom(btc, usd), "BTC-USD.CC"), date));
+            var btcAssetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var btcTicker = btcAssetPairInfo.Ticker;
+            
+            await connector.SetAsync(Api.Fx.JsonResult.GetUrl(ticker).Replace("$date", date.ToString(Api.Fx.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
                 "[{\"date\":\"2020-12-01\",\"open\":1.3337,\"high\":1.3439,\"low\":1.3319,\"close\":1.3337,\"adjusted_close\":1.3337,\"volume\":908}]");
-            await connector.SetAsync(Api.Coin.JsonResult.GetUrl(btc, usd).Replace("$date", date.ToString(Api.Coin.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
+            await connector.SetAsync(Api.Coin.JsonResult.GetUrl(btcTicker).Replace("$date", date.ToString(Api.Coin.JsonResult.GetDateFormat(), new DateTimeFormatInfo())),
                 "[{\"date\":\"2020-12-01\",\"open\":19633.77044727,\"high\":19845.97548328,\"low\":18321.92093045,\"close\":18802.99829969,\"adjusted_close\":18802.99829969,\"volume\":49633658712}]");
 
-            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
-            await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl(AssetPair.Fordom(btc, usd), Api.Coin.JsonResult.GetUrl(btc, usd)), date));
-            
-            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
-            await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl(AssetPair.Fordom(gbp, usd), Api.Fx.JsonResult.GetUrl(gbp, usd)), date));
+            await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl(AssetPair.Fordom(btc, usd), Api.Coin.JsonResult.GetUrl(btcTicker)), date));
+            await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl(AssetPair.Fordom(gbp, usd), Api.Fx.JsonResult.GetUrl(ticker)), date));
             
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(gbp, usd)), date));
             await bus.Equal(new HistoricalQuery<SingleAssetQuoteQuery, SingleAssetQuote>(new SingleAssetQuoteQuery(AssetPair.Fordom(gbp, usd)), date), s => s.Price, 1.3337);
