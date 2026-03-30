@@ -19,7 +19,7 @@ namespace Chronos.Core.Commands
   public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote, AssetPair>
   {
     private readonly IEsRepository<IAggregate> _repository;
-    private readonly IUpdateQuoteCommandFactory _factory;
+    private readonly IUpdateCommandFactory _factory;
     private readonly IClock _clock;
 
     /// <summary>
@@ -34,7 +34,7 @@ namespace Chronos.Core.Commands
     /// Ensures proper validation and processing of quote updates, including checks to prevent duplicate updates
     /// for the same date and determining whether the update is intraday or not.
     /// </remarks>
-    public UpdateQuoteHandler(IEsRepository<IAggregate> repository, IUpdateQuoteCommandFactory factory, IClock clock)
+    public UpdateQuoteHandler(IEsRepository<IAggregate> repository, IUpdateCommandFactory factory, IClock clock)
       : base(repository)
     {
       _repository = repository;
@@ -61,7 +61,7 @@ namespace Chronos.Core.Commands
       var now = _clock.GetCurrentInstant();
       var intraday = command.Timestamp.ToInstant().Minus(now.ToInstant()).Days >= 0;
 
-      var (commandT, handler) = _factory.Create(command.Target, root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
+      var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
       await handler.Handle(commandT);
     }
 
@@ -140,11 +140,8 @@ namespace Chronos.Core.Commands
       }
       
       var dateFormat = T.GetDateFormat();
-      var url = T.GetUrl(ticker);
 
-      if (root.Url != null)
-        url = root.Url;
-      
+      var url = root.Url ?? T.GetUrl(ticker);
       url = url.Replace("$date", command.Timestamp.ToString(dateFormat, new DateTimeFormatInfo())); 
 
       var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();

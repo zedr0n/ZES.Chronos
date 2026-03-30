@@ -14,18 +14,17 @@ public class UpdateTicker(string fordom) : Command
     public override string Target => fordom;
 }
 
-/// <summary>
-/// Represents a command used to update the ticker associated with a specific domain.
-/// </summary>
-/// <typeparam name="T">The type of the quote result.</typeparam>
-/// <remarks>
-/// Provides mechanisms to target a specific domain and update its ticker accordingly.
-/// </remarks>
+/// <inheritdoc />
 public class UpdateTicker<T>(string fordom) : UpdateTicker(fordom)
     where T : class, IJsonQuoteResult
 {
-    private readonly string _fordom = fordom;
-
-    /// <inheritdoc/>
-    public override string Target => _fordom;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UpdateTicker{T}"/> class.
+    /// </summary>
+    /// <param name="command"><see cref="UpdateQuote"/> command</param>
+    public UpdateTicker(UpdateTicker command)
+        : this(command.Target)
+    {
+        CorrelationId = command.CorrelationId;
+    }
 }

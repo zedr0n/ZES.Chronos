@@ -41,8 +41,7 @@ namespace Chronos.Core
         public static void RegisterAll(Container c)
         {
             c.RegisterAll(Assembly.GetExecutingAssembly());
-            c.RegisterSingleton<IUpdateQuoteCommandFactory, UpdateQuoteCommandFactory>();
-            c.RegisterSingleton<IUpdateTickerCommandFactory, UpdateTickerCommandFactory>();
+            c.RegisterSingleton<IUpdateCommandFactory, UpdateCommandFactory>();
         }
 
         /// <inheritdoc />

@@ -16,7 +16,7 @@ namespace Chronos.Core.Commands;
 /// <summary>
 /// Handles the <see cref="UpdateTicker"/> command to update the ticker for a specific <see cref="AssetPair"/>.
 /// </summary>
-public class UpdateTickerHandler(IEsRepository<IAggregate> repository, IUpdateTickerCommandFactory commandFactory) 
+public class UpdateTickerHandler(IEsRepository<IAggregate> repository, IUpdateCommandFactory commandFactory) 
     : CommandHandlerBase<UpdateTicker, AssetPair>(repository)
 {
     private readonly IEsRepository<IAggregate> _repository = repository;
@@ -28,7 +28,7 @@ public class UpdateTickerHandler(IEsRepository<IAggregate> repository, IUpdateTi
         if (root == null)
             throw new ArgumentNullException(nameof(AssetPair));
         
-        var (commandT, handler) = commandFactory.Create(command.Target, root.ForAsset.AssetType, root.DomAsset.AssetType);
+        var (commandT, handler) = commandFactory.CreateUpdateTicker(command, root.ForAsset.AssetType, root.DomAsset.AssetType);
         await handler.Handle(commandT);
     }
 
@@ -72,7 +72,7 @@ public class UpdateTickerHandler<T>(
         var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
           
         var ticker = Api.TickerSearch.JsonResult.GetTicker(resTicker.Data);
-        var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker);
+        var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker) { CorrelationId = command.CorrelationId };
         await addQuoteTickerHandler.Handle(addQuoteTickerCommand);
     }
 
