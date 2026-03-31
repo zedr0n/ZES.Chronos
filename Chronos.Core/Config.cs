@@ -115,13 +115,21 @@ namespace Chronos.Core
                 _bus = bus;
             }
 
-            public bool RegisterCurrencyPair(string forCcy, string domCcy)
+            public bool RegisterCurrencyPair(string forCcy, string domCcy, string guid)
             {
                 var forAsset = new Currency(forCcy);
                 var domAsset = new Currency(domCcy);
                 var fordom = AssetPair.Fordom(forAsset, domAsset);
-                var command = new RegisterAssetPair(fordom, forAsset, domAsset);
+                var command = new RegisterAssetPair(fordom, forAsset, domAsset) { Guid = guid };
                 var result = Resolve(new RetroactiveCommand<RegisterAssetPair>(command, Time.MinValue));
+                return result;
+            }
+
+            public bool RegisterAssetPair(Asset forAsset, Asset domAsset, string guid)
+            {
+                var fordom = AssetPair.Fordom(forAsset, domAsset);
+                var command = new RegisterAssetPair(fordom, forAsset, domAsset);
+                var result = Resolve(new RetroactiveCommand<RegisterAssetPair>(command, Time.MinValue) { Guid = guid });
                 return result;
             }
 

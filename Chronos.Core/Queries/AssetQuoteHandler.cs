@@ -41,7 +41,7 @@ namespace Chronos.Core.Queries
         timestamp = _branchManager.GetTime(query.Timeline);
       else if (timestamp == default)
         timestamp = _branchManager.GetTime(_branchManager.ActiveBranch);
-      
+     
       if (info.Pairs.ToList().Contains(fordom))
       {
         var result = await _handler.Handle(new SingleAssetQuoteQuery(fordom)
@@ -63,10 +63,10 @@ namespace Chronos.Core.Queries
 
         foreach (var (forAsset, domAsset) in path)
         {
-          var pathForDom = forAsset + domAsset;
-          var isInverse = info.Pairs.Contains(domAsset + forAsset);
+          var pathForDom = AssetPair.Fordom(forAsset, domAsset);
+          var isInverse = info.Pairs.Contains(AssetPair.Fordom(domAsset, forAsset));
           if (isInverse)
-            pathForDom = domAsset + forAsset;
+            pathForDom = AssetPair.Fordom(domAsset,forAsset);
 
           var pathResult = await _handler.Handle(new SingleAssetQuoteQuery(pathForDom)
           {

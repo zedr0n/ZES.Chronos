@@ -7,6 +7,13 @@ namespace Chronos.Core.Commands
     {
         /// <inheritdoc/>
         public override string Target => fordom;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the cache should be enforced during the execution of the update quote command.
+        /// When set to true, cached data will be prioritised and utilized if available; otherwise, the update
+        /// operation may fetch fresh data regardless of any existing cached entries.
+        /// </summary>
+        public bool EnforceCache { get; set; }
     }
 
     /// <inheritdoc />
@@ -21,6 +28,7 @@ namespace Chronos.Core.Commands
             : this(command.Target)
         {
             CorrelationId = command.CorrelationId;
+            EnforceCache = command.EnforceCache;
         }
     }
 }

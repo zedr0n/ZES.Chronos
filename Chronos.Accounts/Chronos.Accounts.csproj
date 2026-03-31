@@ -46,13 +46,12 @@
                 </Reference>
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
-                <PackageReference Include="System.Threading.Channels" Version="5.0.0" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
             </ItemGroup>
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES" Version="1.0.882" />
+                <PackageReference Include="ZES" Version="1.0.883" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.0" />
             </ItemGroup>

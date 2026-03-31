@@ -49,7 +49,10 @@ namespace Chronos.Core.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
 
-      if (root.QuoteDates.Any(d =>
+      var now = _clock.GetCurrentInstant();
+      var intraday = command.Timestamp.ToInstant().Minus(now.ToInstant()).Days >= 0;
+      
+      if (!intraday && root.QuoteDates.Any(d =>
             d.InUtc().Year == command.Timestamp.ToInstant().InUtc().Year &&
             d.InUtc().Month == command.Timestamp.ToInstant().InUtc().Month &&
             d.InUtc().Day == command.Timestamp.ToInstant().InUtc().Day))
@@ -58,9 +61,6 @@ namespace Chronos.Core.Commands
           $"Quote already added for {command.Timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
       }
       
-      var now = _clock.GetCurrentInstant();
-      var intraday = command.Timestamp.ToInstant().Minus(now.ToInstant()).Days >= 0;
-
       var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
       await handler.Handle(commandT);
     }
@@ -141,7 +141,7 @@ namespace Chronos.Core.Commands
       
       var dateFormat = T.GetDateFormat();
 
-      var url = root.Url ?? T.GetUrl(ticker);
+      var url = root.Url ?? T.GetUrl(ticker, command.EnforceCache);
       url = url.Replace("$date", command.Timestamp.ToString(dateFormat, new DateTimeFormatInfo())); 
 
       var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();

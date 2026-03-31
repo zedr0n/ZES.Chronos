@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Chronos.Accounts.Commands;
 using Chronos.Accounts.Queries;
 using Chronos.Core;
@@ -118,39 +119,57 @@ namespace Chronos.Accounts
             /// <param name="name">Account name</param>
             /// <param name="type">Account type</param>
             /// <param name="guid">Command guid</param>
+            /// <param name="date">Command date</param>
             /// <returns>True if successful</returns>
-            public bool CreateAccount(string name, string type, string guid)
+            public bool CreateAccount(string name, string type, string date, string guid)
             {
+                var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
+                var time = date?.ToTime() ?? _timeline.Now;
+
                 if (!Enum.TryParse<AccountType>(type, out var accountType))
                     return false;
-                
-                return Resolve(new CreateAccount(name, accountType) { Guid = guid });
+
+                return isRetroactive ? Resolve(new RetroactiveCommand<CreateAccount>(new CreateAccount(name, accountType), time) { Guid = guid }) 
+                    : Resolve(new CreateAccount(name, accountType) { Guid = guid }); 
             }
 
-            public bool DepositAsset(string name, Asset asset, Currency currency, double amount)
+            public bool DepositAsset(string name, Asset asset, Currency currency, double amount, string date, string guid)
             {
+                var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
+                var time = date?.ToTime() ?? _timeline.Now;
+                
                 if(currency != null)
                     asset = currency;
-                return Resolve(new DepositAsset(name, new Quantity(amount, asset)));
+                return isRetroactive ? Resolve(new RetroactiveCommand<DepositAsset>(new DepositAsset(name, new Quantity(amount, asset)), time) {Guid = guid}) 
+                    : Resolve(new DepositAsset(name, new Quantity(amount, asset)) {Guid = guid});
             }
 
             public bool AddTransaction(string name, string txId) => Resolve(new AddTransaction(name, txId));
 
-            public bool UpdateQuotes(string account, string denominator)
+            public bool UpdateQuotes(string account, string denominator, string date = null)
             {
-                var time = _timeline.Now;
+                var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
+                var time = date?.ToTime() ?? _timeline.Now;
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var denominatorAsset = assetsList.Assets.SingleOrDefault(a => a.AssetId == denominator);
 
                 if (denominatorAsset == null)
                     throw new InvalidOperationException($"Asset {denominator} not registered");
-
+                
+                var tasks = new List<Task<bool>>{};
                 foreach (var asset in assetsList.Assets.Where(a => a.AssetId != denominator))
                 {
-                    var fordom = AssetPair.Fordom(asset, denominatorAsset);
-                    var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
-                    if (assetPairInfo.QuoteDates.All(d => d != time.ToInstant()))
-                        _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), time)).Wait();
+                    var precedents = assetsList.GetPrecedents(asset, denominatorAsset);
+                    if(precedents == null)
+                        continue;
+
+                    foreach (var (forAsset, domAsset) in precedents)
+                    {
+                        var fordom = AssetPair.Fordom(forAsset, domAsset);
+                        var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
+                        if (assetPairInfo.QuoteDates.All(d => d != time.ToInstant()))
+                            _bus.Command(isRetroactive ? new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), time) : new UpdateQuote(fordom)).Wait();
+                    }
                 }
                     
                 var txList = _queries.TransactionInfos(account); 

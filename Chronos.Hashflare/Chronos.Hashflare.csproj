@@ -50,13 +50,12 @@
           <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
           <PackageReference Include="Stateless" Version="3.0.0" />
           <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
-          <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
           <PackageReference Include="NodaTime" Version="3.0.3" />
         </ItemGroup>
       </When>
       <Otherwise>
         <ItemGroup>
-          <PackageReference Include="ZES" Version="1.0.882" />
+          <PackageReference Include="ZES" Version="1.0.883" />
         </ItemGroup>
       </Otherwise> 
     </Choose>

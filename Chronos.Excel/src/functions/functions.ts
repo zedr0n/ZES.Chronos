@@ -39,11 +39,12 @@ function JSDateToExcelDate(date : Date) : number {
  * @customfunction
  * @param account Account name
  * @param denominator Denominator asset
+ * @param date Date to update
  */
-export async function updateQuotes(account: string, denominator: string)
+export async function updateQuotes(account: string, denominator: string, date: number)
 {
   const mutation = `mutation {
-    updateQuotes( account : "${account}", denominator : "${denominator}" )
+    updateQuotes( account : "${account}", denominator : "${denominator}", date : "${ExcelDateToJSDate(date).toISOString()}" )
   }`
   
   let result = await MutationWithId(account, mutation)
@@ -67,16 +68,37 @@ export async function registerCurrencyPair(forCcy: string, domCcy: string)
 
 /**
  * @customfunction
+ * @param forAssetId Foreign asset id
+ * @param forAssetType Foreign asset type
+ * @param domAssetId Domestic asset id
+ * @param domAssetType Domestic asset type
+ * @param guid Command guid
+ */
+export async function registerAssetPair(forAssetId : string, forAssetType : string, domAssetId : string, domAssetType : string, guid: string) : Promise<any>
+{
+  const mutation = `mutation {
+    registerAssetPair( forAsset : {assetId : "${forAssetId}", assetType : ${forAssetType.toUpperCase()}}, domAsset : {assetId : "${domAssetId}", assetType : ${domAssetType.toUpperCase()}}, guid : "${guid}" )
+  }`
+ 
+  const fordom = forAssetId + domAssetId;
+  
+  let result = await SingleQuery(mutation, getIdOrError(fordom, data => data.registerAssetPair.toString()))
+  return result;
+}
+
+/**
+ * @customfunction
  * @param name Account name
  * @param amount Amount to deposit
  * @param assetId Asset id
- * @param ticker Ticker
  * @param assetType Asset type
+ * @param date Date to deposit
+ * @param guid Command guid
  */
-export async function depositAsset(name : string, amount : number, assetId : string, ticker : string,  assetType : string)
+export async function depositAsset(name : string, amount : number, assetId : string, assetType : string, date : number, guid : string)
 {
   const mutation = `mutation {
-    depositAsset( name : "${name}", amount : ${amount}, asset: {assetId : "${assetId}", ticker : "${ticker}", assetType : ${assetType.toUpperCase()}} )
+    depositAsset( name : "${name}", amount : ${amount}, asset: {assetId : "${assetId}", assetType : ${assetType.toUpperCase()}}, date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
   }`
   
   let result = await MutationWithId(name, mutation)
@@ -254,12 +276,13 @@ export async function addMinedAmount(type : string[][], amount : number[][], tim
  * @customfunction
  * @param name Account name
  * @param type Account type
+ * @param date Date to create
  * @param guid Command guid
  */
-export async function createAccount(name : string, type : string, guid : string) : Promise<any>
+export async function createAccount(name : string, type : string, date : number, guid : string) : Promise<any>
 {
   const mutation = `mutation {
-    createAccount( name : "${name}", type : "${type}", guid : "${guid}" )
+    createAccount( name : "${name}", type : "${type}", date: "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
   }`
   
   let result = await MutationWithId(name, mutation)
@@ -374,7 +397,7 @@ export async function accountStats(account : string, asOfDate : number, assetId?
     }
     else {
         query = `{
-        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", ticker : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } }  
+        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } }  
       }`;
     }
   }

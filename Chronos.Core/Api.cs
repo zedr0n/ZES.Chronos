@@ -17,11 +17,12 @@ namespace Chronos.Core
         static abstract string GetDateFormat();
 
         /// <summary>
-        /// Gets the URL for retrieving JSON data based on the specified ticker.
+        /// Retrieves the URL for accessing JSON data associated with a specific ticker.
         /// </summary>
-        /// <param name="ticker">The ticker for which the URL is requested.</param>
-        /// <returns>The JSON data URL associated with the given ticker.</returns>
-        static abstract string GetUrl(string ticker);
+        /// <param name="ticker">The ticker for which the URL is being requested.</param>
+        /// <param name="enforceCache">A boolean flag indicating whether caching should be enforced for the result.</param>
+        /// <returns>The URL as a string for accessing the JSON data for the specified ticker.</returns>
+        static abstract string GetUrl(string ticker, bool enforceCache = false);
 
         static abstract double GetValue(IJsonResult result, Asset domAsset);
 
@@ -54,7 +55,7 @@ namespace Chronos.Core
             {
                 public string RequestorId { get; set; }
 
-                public static string GetUrl(string ticker) =>
+                public static string GetUrl(string ticker, bool enforceCache = false) =>
                     $"https://eodhd.com/api/search/{ticker}?api_token={ApiKey ?? string.Empty}&fmt=json";
 
                 public static IEnumerable<string> GetExchanges(IJsonResult result)
@@ -102,10 +103,11 @@ namespace Chronos.Core
                 
                 public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}-{domAsset.AssetId}";
                 
-                public static string GetUrl(string ticker)
+                public static string GetUrl(string ticker, bool enforceCache = false)
                 {
                     const string env = "real-time";
-                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return
+                        $"https://eodhd.com/api/{env}/{ticker}?&fmt=json&api_token={ApiKey ?? string.Empty}{(enforceCache ? string.Empty : ";nocache")}";
                 }
                 
                 public static double GetValue(IJsonResult result, Asset domAsset)
@@ -122,7 +124,7 @@ namespace Chronos.Core
 
                 public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}-{domAsset.AssetId}";
                 
-                public static string GetUrl(string ticker)
+                public static string GetUrl(string ticker, bool enforceCache = false)
                 {
                     const string env = "eod";
                     return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
@@ -167,10 +169,10 @@ namespace Chronos.Core
                
                 public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}";
                 
-                public static string GetUrl(string ticker)
+                public static string GetUrl(string ticker, bool enforceCache = false)
                 {
                     const string env = "real-time";
-                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return $"https://eodhd.com/api/{env}/{ticker}?&fmt=json&api_token={ApiKey ?? string.Empty}{(enforceCache ? string.Empty : ";nocache")}";
                 }
                 
                 public static double GetValue(IJsonResult result, Asset domAsset)
@@ -187,7 +189,7 @@ namespace Chronos.Core
 
                 public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}";
                 
-                public static string GetUrl(string ticker)
+                public static string GetUrl(string ticker, bool enforceCache = false)
                 {
                     const string env = "eod";
                     return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
@@ -233,10 +235,10 @@ namespace Chronos.Core
                 
                 public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}{domAsset.AssetId}";
                 
-                public static string GetUrl(string ticker)
+                public static string GetUrl(string ticker, bool enforceCache = false)
                 {
                     const string env = "real-time";
-                    return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
+                    return $"https://eodhd.com/api/{env}/{ticker}?&fmt=json&api_token={ApiKey ?? string.Empty}{(enforceCache ? string.Empty : ";nocache")}";
                 }
                 
                 public static double GetValue(IJsonResult result, Asset domAsset)
@@ -253,7 +255,7 @@ namespace Chronos.Core
 
                 public static string GetSearchTicker(string fordom, Asset domAsset, Asset forAsset) => $"{forAsset.AssetId}{domAsset.AssetId}";
                 
-                public static string GetUrl(string ticker)
+                public static string GetUrl(string ticker, bool enforceCache = false)
                 {
                     const string env = "eod";
                     return $"https://eodhd.com/api/{env}/{ticker}?from=$date&to=$date&fmt=json&api_token={ApiKey ?? string.Empty}";
