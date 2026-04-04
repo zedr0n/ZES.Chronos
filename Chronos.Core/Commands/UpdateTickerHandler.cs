@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Chronos.Core.Net;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Domain;
@@ -10,6 +11,7 @@ using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Infrastructure;
+using ZES.Interfaces.Net;
 
 namespace Chronos.Core.Commands;
 
@@ -40,16 +42,17 @@ public class UpdateTickerHandler(IEsRepository<IAggregate> repository, IUpdateCo
 }
 
 /// <summary>
-/// Handles the <see cref="UpdateTicker{T}"/> command to update the ticker for an <see cref="AssetPair"/>.
+/// Handles the <see cref="UpdateTicker{T}"/> command to update ticker information for the specified <see cref="AssetPair"/>.
 /// </summary>
-/// <typeparam name="T">The type of quote result that implements <see cref="IJsonQuoteResult"/>.</typeparam>
+/// <typeparam name="T">The type of quote result implementing <see cref="IJsonResult"/>.</typeparam>
 public class UpdateTickerHandler<T>(
     IEsRepository<IAggregate> repository,
-    ICommandHandler<RequestJson<Api.TickerSearch.JsonResult>> tickerSearchHandler,
+    IWebApiProvider webApiProvider,
+    ICommandHandler<RequestJson<WebSearchApi.JsonResult>> tickerSearchHandler,
     ICommandHandler<AddQuoteTicker> addQuoteTickerHandler,
     IMessageQueue messageQueue)
     : CommandHandlerBase<UpdateTicker<T>, AssetPair>(repository), ICommandHandler<UpdateTicker>
-    where T : class, IJsonQuoteResult
+    where T : class, IJsonResult
 {
     private readonly IEsRepository<IAggregate> _repository = repository;
 
@@ -62,16 +65,19 @@ public class UpdateTickerHandler<T>(
 
         if (root.Ticker != null)
             return;
+
+        var webSearchApi = webApiProvider.GetSearchApi();
+        var webQuoteApi = webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, false);
         
-        var obsTicker = messageQueue.Alerts.OfType<JsonRequestCompleted<Api.TickerSearch.JsonResult>>().Replay();
+        var obsTicker = messageQueue.Alerts.OfType<JsonRequestCompleted<WebSearchApi.JsonResult>>().Replay();
         obsTicker.Connect();
 
-        var searchTicker = T.GetSearchTicker(command.Target, root.DomAsset, root.ForAsset);
+        var searchTicker = webQuoteApi.GetSearchTicker(root.ForAsset, root.DomAsset);
       
-        await tickerSearchHandler.Handle(new RequestJson<Api.TickerSearch.JsonResult>(command.Target, Api.TickerSearch.JsonResult.GetUrl(searchTicker))).Timeout();
+        await tickerSearchHandler.Handle(new RequestJson<WebSearchApi.JsonResult>(command.Target, webSearchApi.GetUrl(searchTicker))).Timeout();
         var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
           
-        var ticker = Api.TickerSearch.JsonResult.GetTicker(resTicker.Data);
+        var ticker = webSearchApi.GetTicker(resTicker.Data);
         var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker) { CorrelationId = command.CorrelationId };
         await addQuoteTickerHandler.Handle(addQuoteTickerCommand);
     }

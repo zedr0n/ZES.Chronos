@@ -150,7 +150,7 @@ namespace Chronos.Accounts
             {
                 var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
                 var time = date?.ToTime() ?? _timeline.Now;
-                var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
+                var assetsList = Resolve(new AssetPairsInfoQuery()); 
                 var denominatorAsset = assetsList.Assets.SingleOrDefault(a => a.AssetId == denominator);
 
                 if (denominatorAsset == null)
@@ -168,7 +168,7 @@ namespace Chronos.Accounts
                         var fordom = AssetPair.Fordom(forAsset, domAsset);
                         var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
                         if (assetPairInfo.QuoteDates.All(d => d != time.ToInstant()))
-                            _bus.Command(isRetroactive ? new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), time) : new UpdateQuote(fordom)).Wait();
+                            Resolve(isRetroactive ? new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), time) : new UpdateQuote(fordom));
                     }
                 }
                     
@@ -178,7 +178,7 @@ namespace Chronos.Accounts
                     var fordom = AssetPair.Fordom(t.Quantity.Denominator, denominatorAsset);
                     var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
                     if (!assetPairInfo.QuoteDates.Any(d => d.InUtc().Year == t.Date.InUtc().Year && d.InUtc().Month == t.Date.InUtc().Month && d.InUtc().Day == t.Date.InUtc().Day))
-                        _bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant().ToTime())).Wait();
+                         Resolve(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.InUtc().LocalDateTime.Date.AtMidnight().InUtc().ToInstant().ToTime()));
                 }
 
                 return true;

@@ -97,7 +97,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.883" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.885" />
             </ItemGroup>
         </Otherwise>
     </Choose>

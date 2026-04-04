@@ -1,3 +1,5 @@
+using ZES.Interfaces.Net;
+
 namespace Chronos.Core.Commands
 {
     /// <summary>
@@ -18,7 +20,7 @@ namespace Chronos.Core.Commands
 
     /// <inheritdoc />
     public class UpdateQuote<T>(string fordom) : UpdateQuote(fordom)
-        where T : class, IJsonQuoteResult
+        where T : class, IJsonResult
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="UpdateQuote{T}"/> class.

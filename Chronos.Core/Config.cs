@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using Chronos.Core.Commands;
+using Chronos.Core.Net;
 using Chronos.Core.Queries;
 using SimpleInjector;
 using ZES.Infrastructure;
@@ -42,6 +43,16 @@ namespace Chronos.Core
         {
             c.RegisterAll(Assembly.GetExecutingAssembly());
             c.RegisterSingleton<IUpdateCommandFactory, UpdateCommandFactory>();
+            c.RegisterSingleton<IWebApiProvider, WebApiProvider>();
+            c.Collection.Register<IWebQuoteApi>(
+                typeof(CoinEodQuoteApi),
+                typeof(FxEodQuoteApi),
+                typeof(EquityEodQuoteApi),
+                typeof(CoinIntradayQuoteApi),
+                typeof(FxIntradayQuoteApi),
+                typeof(EquityIntradayQuoteApi));
+            c.RegisterSingleton<IWebSearchApi, WebSearchApi>();
+            c.Collection.Register<IWebSearchApi>(typeof(WebSearchApi));
         }
 
         /// <inheritdoc />

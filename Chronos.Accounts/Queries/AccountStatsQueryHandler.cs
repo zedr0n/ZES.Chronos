@@ -46,7 +46,13 @@ namespace Chronos.Accounts.Queries
             {
                 var price = 1.0;
                 if (asset.AssetId != denominator?.AssetId)
-                    price = (await _handler.Handle(new AssetQuoteQuery(asset, denominator) { Timestamp = query.Timestamp })).Quantity.Amount;
+                {
+                    var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator) { Timestamp = query.Timestamp });
+                    if (queryResult != null)
+                        price = queryResult.Quantity.Amount;
+                    else
+                        return null;
+                }
 
                 total += amount * price;
             }

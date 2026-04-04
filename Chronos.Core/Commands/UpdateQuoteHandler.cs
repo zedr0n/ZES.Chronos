@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Chronos.Core.Net;
 using NodaTime.Extensions;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Alerts;
@@ -12,6 +13,7 @@ using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Infrastructure;
+using ZES.Interfaces.Net;
 
 namespace Chronos.Core.Commands
 {
@@ -74,43 +76,47 @@ namespace Chronos.Core.Commands
 
   /// <inheritdoc cref="ZES.Interfaces.Domain.ICommandHandler" />
   public class UpdateQuoteHandler<T> : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote<T>, AssetPair>, ICommandHandler<UpdateQuote>
-    where T : class, IJsonQuoteResult
+    where T : class, IJsonResult
   {
     private readonly ICommandHandler<AddQuote> _handler;
+    private readonly IWebApiProvider _webApiProvider;
     private readonly ICommandHandler<RequestJson<T>> _jsonRequestHandler;
-    private readonly ICommandHandler<RequestJson<Api.TickerSearch.JsonResult>> _tickerSearchHandler;
+    private readonly ICommandHandler<RequestJson<WebSearchApi.JsonResult>> _tickerSearchHandler;
     private readonly IEsRepository<IAggregate> _repository;
     private readonly ICommandHandler<AddQuoteTicker> _addQuoteTickerHandler;
     private readonly IMessageQueue _messageQueue;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateQuoteHandler{T}"/> class.
-    /// Handles the `UpdateQuote` command, orchestrating the process of updating quotes for asset pairs using
-    /// various sub-commands such as adding quotes, processing JSON responses, and searching for tickers.
+    /// Facilitates handling the `UpdateQuote` command by coordinating the update process
+    /// for quotes of asset pairs, leveraging multiple sub-command handlers and services.
     /// </summary>
-    /// <param name="repository">The aggregate repository for managing and retrieving domain aggregates.</param>
-    /// <param name="addQuoteTickerHandler">The handler responsible for processing `AddQuoteTicker` commands.</param>
-    /// <param name="handler">The handler responsible for processing `AddQuote` commands.</param>
-    /// <param name="jsonRequestHandler">The handler responsible for requesting and processing JSON data of type <typeparamref name="T"/>.</param>
-    /// <param name="tickerSearchHandler">The handler responsible for managing JSON requests related to ticker searches.</param>
-    /// <param name="messageQueue">The messaging service for publishing and managing inter-process messages.</param>
+    /// <param name="repository">The repository used for managing and retrieving domain aggregates in the event store.</param>
+    /// <param name="addQuoteTickerHandler">Handler responsible for managing `AddQuoteTicker` commands.</param>
+    /// <param name="handler">Handler responsible for managing `AddQuote` commands to apply quote updates.</param>
+    /// <param name="webApiProvider">Service provider for interfacing with external Web API endpoints.</param>
+    /// <param name="jsonRequestHandler">Handler for processing JSON data retrieval for objects of type <typeparamref name="T"/>.</param>
+    /// <param name="tickerSearchHandler">Handler for managing JSON requests specific to ticker searches.</param>
+    /// <param name="messageQueue">Service for communicating across processes using a message queuing system.</param>
     /// <remarks>
-    /// This handler ensures that updates are executed efficiently by invoking necessary handlers in a coordinated manner and leverages
-    /// repository and messaging services to maintain the state and communication. The command structure requires proper validation
-    /// and processing logic to avoid duplicates and inaccuracies during quote updates.
+    /// This handler is designed to ensure robust and efficient handling of quote updates by coordinating
+    /// relevant sub-command handlers and external Web APIs. It enforces validation, processes data integrity
+    /// checks, and coordinates messaging to avoid inconsistencies during updates.
     /// </remarks>
     public UpdateQuoteHandler(
       IEsRepository<IAggregate> repository,
       ICommandHandler<AddQuoteTicker> addQuoteTickerHandler,
       ICommandHandler<AddQuote> handler,
+      IWebApiProvider webApiProvider,
       ICommandHandler<RequestJson<T>> jsonRequestHandler,
-      ICommandHandler<RequestJson<Api.TickerSearch.JsonResult>> tickerSearchHandler,
+      ICommandHandler<RequestJson<WebSearchApi.JsonResult>> tickerSearchHandler,
       IMessageQueue messageQueue)
       : base(repository)
     {
       _repository = repository;
       _addQuoteTickerHandler = addQuoteTickerHandler;
       _handler = handler;
+      _webApiProvider = webApiProvider;
       _jsonRequestHandler = jsonRequestHandler;
       _tickerSearchHandler = tickerSearchHandler;
       _messageQueue = messageQueue;
@@ -123,26 +129,26 @@ namespace Chronos.Core.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
 
+      var webQuoteApi = _webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, command.EnforceCache);
+      var webSearchApi = _webApiProvider.GetSearchApi();
       var ticker = root.Ticker;
       if (ticker == null)
       {
-          var obsTicker = _messageQueue.Alerts.OfType<JsonRequestCompleted<Api.TickerSearch.JsonResult>>().Replay();
-          obsTicker.Connect();
+        var obsTicker = _messageQueue.Alerts.OfType<JsonRequestCompleted<WebSearchApi.JsonResult>>().Replay();
+        obsTicker.Connect();
 
-          var searchTicker = T.GetSearchTicker(command.Target, root.DomAsset, root.ForAsset);
-      
-          await _tickerSearchHandler.Handle(new RequestJson<Api.TickerSearch.JsonResult>(command.Target, Api.TickerSearch.JsonResult.GetUrl(searchTicker))).Timeout();
-          var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
+        var searchTicker = webQuoteApi.GetSearchTicker(root.ForAsset, root.DomAsset);
+
+        await _tickerSearchHandler
+          .Handle(new RequestJson<WebSearchApi.JsonResult>(command.Target, webSearchApi.GetUrl(searchTicker))).Timeout();
+        var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
           
-          ticker = Api.TickerSearch.JsonResult.GetTicker(resTicker.Data);
-          var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker);
-          await _addQuoteTickerHandler.Handle(addQuoteTickerCommand);
+        ticker = webSearchApi.GetTicker(resTicker.Data);
+        var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker);
+        await _addQuoteTickerHandler.Handle(addQuoteTickerCommand);
       }
       
-      var dateFormat = T.GetDateFormat();
-
-      var url = root.Url ?? T.GetUrl(ticker, command.EnforceCache);
-      url = url.Replace("$date", command.Timestamp.ToString(dateFormat, new DateTimeFormatInfo())); 
+      var url = root.Url ?? webQuoteApi.GetUrl(ticker, command.Timestamp, command.EnforceCache);
 
       var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
       obs.Connect();
@@ -150,7 +156,7 @@ namespace Chronos.Core.Commands
       await _jsonRequestHandler.Handle(new RequestJson<T>(command.Target, url)).Timeout();
 
       var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
-      var addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), T.GetValue(res.Data, root.DomAsset))
+      var addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), webQuoteApi.GetValue(res.Data))
         {
           StoreInLog = false,
         };

@@ -41,7 +41,7 @@ function JSDateToExcelDate(date : Date) : number {
  * @param denominator Denominator asset
  * @param date Date to update
  */
-export async function updateQuotes(account: string, denominator: string, date: number)
+export async function updateQuotes(account: string, denominator: string, date?: number)
 {
   const mutation = `mutation {
     updateQuotes( account : "${account}", denominator : "${denominator}", date : "${ExcelDateToJSDate(date).toISOString()}" )
