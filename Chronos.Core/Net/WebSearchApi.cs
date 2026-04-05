@@ -43,7 +43,7 @@ public class WebSearchApi : IWebSearchApi
     /// <summary>
     /// JSON result class for ticker search API responses.
     /// </summary>
-    public class JsonResult : List<JsonResult.ExchangeData>, IJsonResult
+    public class JsonResult : List<JsonResult.ExchangeData>, IWebSearchJsonResult
     {
         /// <inheritdoc/>
         public string RequestorId { get; set; }

@@ -42,22 +42,24 @@ public class UpdateTickerHandler(IEsRepository<IAggregate> repository, IUpdateCo
 }
 
 /// <summary>
-/// Handles the <see cref="UpdateTicker{T}"/> command to update ticker information for the specified <see cref="AssetPair"/>.
+/// Handles the <see cref="UpdateTicker{T, TSearch}"/> command to update ticker information for the specified <see cref="AssetPair"/>.
 /// </summary>
 /// <typeparam name="T">The type of quote result implementing <see cref="IJsonResult"/>.</typeparam>
-public class UpdateTickerHandler<T>(
+/// <typeparam name="TSearch">The type of quote search result implementing <see cref="IJsonResult"/></typeparam>
+public class UpdateTickerHandler<T, TSearch>(
     IEsRepository<IAggregate> repository,
     IWebApiProvider webApiProvider,
-    ICommandHandler<RequestJson<WebSearchApi.JsonResult>> tickerSearchHandler,
+    ICommandHandler<RequestJson<TSearch>> tickerSearchHandler,
     ICommandHandler<AddQuoteTicker> addQuoteTickerHandler,
     IMessageQueue messageQueue)
-    : CommandHandlerBase<UpdateTicker<T>, AssetPair>(repository), ICommandHandler<UpdateTicker>
-    where T : class, IJsonResult
+    : CommandHandlerBase<UpdateTicker<T, TSearch>, AssetPair>(repository), ICommandHandler<UpdateTicker>
+    where T : class, IWebQuoteJsonResult
+    where TSearch : class, IWebSearchJsonResult
 {
     private readonly IEsRepository<IAggregate> _repository = repository;
 
     /// <inheritdoc/>
-    public override async Task Handle(UpdateTicker<T> command)
+    public override async Task Handle(UpdateTicker<T, TSearch> command)
     {
         var root = await _repository.Find<AssetPair>(command.Target);
         if (root == null)
@@ -69,12 +71,12 @@ public class UpdateTickerHandler<T>(
         var webSearchApi = webApiProvider.GetSearchApi();
         var webQuoteApi = webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, false);
         
-        var obsTicker = messageQueue.Alerts.OfType<JsonRequestCompleted<WebSearchApi.JsonResult>>().Replay();
+        var obsTicker = messageQueue.Alerts.OfType<JsonRequestCompleted<TSearch>>().Replay();
         obsTicker.Connect();
 
         var searchTicker = webQuoteApi.GetSearchTicker(root.ForAsset, root.DomAsset);
       
-        await tickerSearchHandler.Handle(new RequestJson<WebSearchApi.JsonResult>(command.Target, webSearchApi.GetUrl(searchTicker))).Timeout();
+        await tickerSearchHandler.Handle(new RequestJson<TSearch>(command.Target, webSearchApi.GetUrl(searchTicker))).Timeout();
         var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
           
         var ticker = webSearchApi.GetTicker(resTicker.Data);
@@ -83,10 +85,10 @@ public class UpdateTickerHandler<T>(
     }
 
     /// <inheritdoc/>
-    Task ICommandHandler<UpdateTicker>.Handle(UpdateTicker iCommand) => Handle(iCommand as UpdateTicker<T>); 
+    Task ICommandHandler<UpdateTicker>.Handle(UpdateTicker iCommand) => Handle(iCommand as UpdateTicker<T, TSearch>); 
     
     /// <inheritdoc/>
-    protected override void Act(AssetPair root, UpdateTicker<T> command)
+    protected override void Act(AssetPair root, UpdateTicker<T, TSearch> command)
     {
         throw new System.NotImplementedException();
     }

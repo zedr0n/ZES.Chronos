@@ -30,7 +30,7 @@ public abstract class EodhdIntradayQuoteApiBase : EodhdQuoteApiBase
     /// <summary>
     /// Represents the JSON result of an intraday (real-time) data query, containing current market data.
     /// </summary>
-    public class JsonResult : IJsonResult
+    public class JsonResult : IWebQuoteJsonResult
     {
         /// <summary>
         /// Gets or sets the identifier of the requestor associated with the API response

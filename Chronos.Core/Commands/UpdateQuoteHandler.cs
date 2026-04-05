@@ -75,19 +75,20 @@ namespace Chronos.Core.Commands
   }
 
   /// <inheritdoc cref="ZES.Interfaces.Domain.ICommandHandler" />
-  public class UpdateQuoteHandler<T> : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote<T>, AssetPair>, ICommandHandler<UpdateQuote>
-    where T : class, IJsonResult
+  public class UpdateQuoteHandler<T, TSearch> : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote<T, TSearch>, AssetPair>, ICommandHandler<UpdateQuote>
+    where T : class, IWebQuoteJsonResult
+    where TSearch : class, IWebSearchJsonResult
   {
     private readonly ICommandHandler<AddQuote> _handler;
     private readonly IWebApiProvider _webApiProvider;
     private readonly ICommandHandler<RequestJson<T>> _jsonRequestHandler;
-    private readonly ICommandHandler<RequestJson<WebSearchApi.JsonResult>> _tickerSearchHandler;
+    private readonly ICommandHandler<RequestJson<TSearch>> _tickerSearchHandler;
     private readonly IEsRepository<IAggregate> _repository;
     private readonly ICommandHandler<AddQuoteTicker> _addQuoteTickerHandler;
     private readonly IMessageQueue _messageQueue;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UpdateQuoteHandler{T}"/> class.
+    /// Initializes a new instance of the <see cref="UpdateQuoteHandler{T, TSearch}"/> class.
     /// Facilitates handling the `UpdateQuote` command by coordinating the update process
     /// for quotes of asset pairs, leveraging multiple sub-command handlers and services.
     /// </summary>
@@ -109,7 +110,7 @@ namespace Chronos.Core.Commands
       ICommandHandler<AddQuote> handler,
       IWebApiProvider webApiProvider,
       ICommandHandler<RequestJson<T>> jsonRequestHandler,
-      ICommandHandler<RequestJson<WebSearchApi.JsonResult>> tickerSearchHandler,
+      ICommandHandler<RequestJson<TSearch>> tickerSearchHandler,
       IMessageQueue messageQueue)
       : base(repository)
     {
@@ -123,7 +124,7 @@ namespace Chronos.Core.Commands
     }
 
     /// <inheritdoc/>
-    public override async Task Handle(UpdateQuote<T> command)
+    public override async Task Handle(UpdateQuote<T, TSearch> command)
     {
       var root = await _repository.Find<AssetPair>(command.Target);
       if (root == null)
@@ -134,13 +135,13 @@ namespace Chronos.Core.Commands
       var ticker = root.Ticker;
       if (ticker == null)
       {
-        var obsTicker = _messageQueue.Alerts.OfType<JsonRequestCompleted<WebSearchApi.JsonResult>>().Replay();
+        var obsTicker = _messageQueue.Alerts.OfType<JsonRequestCompleted<TSearch>>().Replay();
         obsTicker.Connect();
 
         var searchTicker = webQuoteApi.GetSearchTicker(root.ForAsset, root.DomAsset);
 
         await _tickerSearchHandler
-          .Handle(new RequestJson<WebSearchApi.JsonResult>(command.Target, webSearchApi.GetUrl(searchTicker))).Timeout();
+          .Handle(new RequestJson<TSearch>(command.Target, webSearchApi.GetUrl(searchTicker))).Timeout();
         var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
           
         ticker = webSearchApi.GetTicker(resTicker.Data);
@@ -165,10 +166,10 @@ namespace Chronos.Core.Commands
     }
 
     /// <inheritdoc/>
-    Task ICommandHandler<UpdateQuote>.Handle(UpdateQuote iCommand) => Handle(iCommand as UpdateQuote<T>); 
+    Task ICommandHandler<UpdateQuote>.Handle(UpdateQuote iCommand) => Handle(iCommand as UpdateQuote<T, TSearch>); 
     
     /// <inheritdoc/>
-    protected override void Act(AssetPair root, UpdateQuote<T> command)
+    protected override void Act(AssetPair root, UpdateQuote<T, TSearch> command)
     {
       throw new System.NotImplementedException();
     }

@@ -1,3 +1,4 @@
+using Chronos.Core.Net;
 using ZES.Interfaces.Net;
 
 namespace Chronos.Core.Commands
@@ -19,11 +20,12 @@ namespace Chronos.Core.Commands
     }
 
     /// <inheritdoc />
-    public class UpdateQuote<T>(string fordom) : UpdateQuote(fordom)
-        where T : class, IJsonResult
+    public class UpdateQuote<T, TSearch>(string fordom) : UpdateQuote(fordom)
+        where T : class, IWebQuoteJsonResult
+        where TSearch : class, IWebSearchJsonResult
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="UpdateQuote{T}"/> class.
+        /// Initializes a new instance of the <see cref="UpdateQuote{T, TSearch}"/> class.
         /// </summary>
         /// <param name="command">Base class command</param>
         public UpdateQuote(UpdateQuote command)

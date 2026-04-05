@@ -1,4 +1,5 @@
-﻿using ZES.Infrastructure.Domain;
+﻿using Chronos.Core.Net;
+using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Net;
 
 namespace Chronos.Core.Commands;
@@ -16,11 +17,12 @@ public class UpdateTicker(string fordom) : Command
 }
 
 /// <inheritdoc />
-public class UpdateTicker<T>(string fordom) : UpdateTicker(fordom)
-    where T : class, IJsonResult
+public class UpdateTicker<T, TSearch>(string fordom) : UpdateTicker(fordom)
+    where T : class, IWebQuoteJsonResult
+    where TSearch : class, IWebSearchJsonResult
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="UpdateTicker{T}"/> class.
+    /// Initializes a new instance of the <see cref="UpdateTicker{T, TSearch}"/> class.
     /// </summary>
     /// <param name="command"><see cref="UpdateQuote"/> command</param>
     public UpdateTicker(UpdateTicker command)

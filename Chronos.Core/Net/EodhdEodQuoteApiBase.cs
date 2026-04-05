@@ -36,7 +36,7 @@ public abstract class EodhdEodQuoteApiBase : EodhdQuoteApiBase
     /// <summary>
     /// Standard JSON result class for EODHD API responses.
     /// </summary>
-    public class JsonResult : List<JsonResult.PriceData>, IJsonResult
+    public class JsonResult : List<JsonResult.PriceData>, IWebQuoteJsonResult
     {
         /// <inheritdoc/>
         public string RequestorId { get; set; }

@@ -240,7 +240,7 @@ namespace Chronos.Tests
             
             await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl("GBPUSD", fxQuoteApi.GetUrl(ticker, date)), date));
             
-            await bus.Command(new RetroactiveCommand<UpdateQuote<EodhdEodQuoteApiBase.JsonResult>>(new UpdateQuote<EodhdEodQuoteApiBase.JsonResult>("GBPUSD"), date));
+            await bus.Command(new RetroactiveCommand<UpdateQuote<EodhdEodQuoteApiBase.JsonResult, WebSearchApi.JsonResult>>(new UpdateQuote<EodhdEodQuoteApiBase.JsonResult, WebSearchApi.JsonResult>("GBPUSD"), date));
             await bus.Equal(new HistoricalQuery<SingleAssetQuoteQuery, SingleAssetQuote>(new SingleAssetQuoteQuery("GBPUSD"), date), s => s.Price, 1.3337);
         }
 
