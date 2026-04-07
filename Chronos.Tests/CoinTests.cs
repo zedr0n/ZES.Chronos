@@ -6,6 +6,7 @@ using Chronos.Coins;
 using Chronos.Coins.Commands;
 using Chronos.Coins.Queries;
 using Chronos.Core;
+using Chronos.Core.Net;
 using Chronos.Core.Queries;
 using NodaTime.Extensions;
 using Xunit;
@@ -36,7 +37,13 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
-            
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
+ 
             var command = new CreateCoin("Bitcoin", "BTC");
             await await bus.CommandAsync(command);
 
@@ -86,6 +93,12 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
 
             var btc = new Asset("Bitcoin", AssetType.Coin);
             await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
@@ -102,6 +115,12 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
             
             var btc = new Asset("Bitcoin",  AssetType.Coin);
             await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
@@ -121,6 +140,11 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
 
             var address = "H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ";
             var server = Environment.GetEnvironmentVariable("REMOTESERVER");
@@ -155,13 +179,20 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
+            
             var manager = container.GetInstance<IBranchManager>();
             var server = Environment.GetEnvironmentVariable("REMOTESERVER");
             if (server == null)
                 return;
             
             var address = "H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ";
-            var connector = container.GetInstance<IJSonConnector>();
             var url = $"http://{server}/api/v1/address/{address}";
             await connector.SetAsync(
                 url,

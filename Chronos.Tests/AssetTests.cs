@@ -378,7 +378,7 @@ namespace Chronos.Tests
             var webApiProvider = container.GetInstance<IWebApiProvider>();
             var webSearchApi = webApiProvider.GetSearchApi();
 
-            var domAsset = new Currency("GBP");
+            var domAsset = new Currency("GBX");
             var forAsset = new Asset("IUKD", AssetType.Equity);
             var eqQuoteApi = webApiProvider.GetQuoteApi(forAsset.AssetType, domAsset.AssetType, false);
             
@@ -491,8 +491,8 @@ namespace Chronos.Tests
             
             await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"),
                 "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
-            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"),
-                "[]");
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
             
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
@@ -549,8 +549,9 @@ namespace Chronos.Tests
             
             await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"),
                 "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
-            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"),
-                "[]");
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
             
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));

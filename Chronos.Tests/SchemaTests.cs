@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Chronos.Core.Net;
 using Chronos.Hashflare.Commands;
 using HotChocolate.Execution;
 using NodaTime;
@@ -12,6 +13,7 @@ using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Infrastructure;
+using ZES.Interfaces.Net;
 
 namespace Chronos.Tests
 {
@@ -38,6 +40,12 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var log = container.GetInstance<ILog>(); 
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
             
             var schemaProvider = container.GetInstance<ISchemaProvider>();
 
