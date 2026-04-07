@@ -47,7 +47,11 @@ namespace Chronos.Accounts.Queries
                 var price = 1.0;
                 if (asset.AssetId != denominator?.AssetId)
                 {
-                    var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator) { Timestamp = query.Timestamp });
+                    var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
+                    {
+                        Timestamp = query.Timestamp,
+                        QueryNet = query.QueryNet
+                    });
                     if (queryResult != null)
                         price = queryResult.Quantity.Amount;
                     else

@@ -52,7 +52,7 @@ namespace Chronos.Core.Commands
         throw new ArgumentNullException(nameof(AssetPair));
 
       var now = _clock.GetCurrentInstant();
-      var intraday = command.Timestamp.ToInstant().Minus(now.ToInstant()).Days >= 0;
+      var intraday = command.Timestamp.ToInstant().InUtc().Date == now.ToInstant().InUtc().Date;
       
       if (!intraday && root.QuoteDates.Any(d =>
             d.InUtc().Year == command.Timestamp.ToInstant().InUtc().Year &&
@@ -86,6 +86,7 @@ namespace Chronos.Core.Commands
     private readonly IEsRepository<IAggregate> _repository;
     private readonly ICommandHandler<AddQuoteTicker> _addQuoteTickerHandler;
     private readonly IMessageQueue _messageQueue;
+    private readonly IClock _clock;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateQuoteHandler{T, TSearch}"/> class.
@@ -99,6 +100,7 @@ namespace Chronos.Core.Commands
     /// <param name="jsonRequestHandler">Handler for processing JSON data retrieval for objects of type <typeparamref name="T"/>.</param>
     /// <param name="tickerSearchHandler">Handler for managing JSON requests specific to ticker searches.</param>
     /// <param name="messageQueue">Service for communicating across processes using a message queuing system.</param>
+    /// <param name="clock">Clock used for time-related operations during quote updates.</param>
     /// <remarks>
     /// This handler is designed to ensure robust and efficient handling of quote updates by coordinating
     /// relevant sub-command handlers and external Web APIs. It enforces validation, processes data integrity
@@ -111,7 +113,8 @@ namespace Chronos.Core.Commands
       IWebApiProvider webApiProvider,
       ICommandHandler<RequestJson<T>> jsonRequestHandler,
       ICommandHandler<RequestJson<TSearch>> tickerSearchHandler,
-      IMessageQueue messageQueue)
+      IMessageQueue messageQueue,
+      IClock clock)
       : base(repository)
     {
       _repository = repository;
@@ -121,6 +124,7 @@ namespace Chronos.Core.Commands
       _jsonRequestHandler = jsonRequestHandler;
       _tickerSearchHandler = tickerSearchHandler;
       _messageQueue = messageQueue;
+      _clock = clock;
     }
 
     /// <inheritdoc/>
@@ -130,7 +134,10 @@ namespace Chronos.Core.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
 
-      var webQuoteApi = _webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, command.EnforceCache);
+      var now = _clock.GetCurrentInstant();
+      var intraday = command.Timestamp.ToInstant().InUtc().Date == now.ToInstant().InUtc().Date;
+      
+      var webQuoteApi = _webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
       var webSearchApi = _webApiProvider.GetSearchApi();
       var ticker = root.Ticker;
       if (ticker == null)
@@ -148,19 +155,41 @@ namespace Chronos.Core.Commands
         var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker);
         await _addQuoteTickerHandler.Handle(addQuoteTickerCommand);
       }
-      
-      var url = root.Url ?? webQuoteApi.GetUrl(ticker, command.Timestamp, command.EnforceCache);
 
-      var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
-      obs.Connect();
-      
-      await _jsonRequestHandler.Handle(new RequestJson<T>(command.Target, url)).Timeout();
-
-      var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
-      var addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), webQuoteApi.GetValue(res.Data))
+      var value = 0.0;
+      switch (root.DomAsset.AssetId)
+      {
+        case "GBX" when root.ForAsset.AssetId == "GBP":
+          value = 100.0;
+          break;
+        case "GBP" when root.ForAsset.AssetId == "GBX":
+          value = 0.01;
+          break;
+        default:
         {
-          StoreInLog = false,
-        };
+          var url = root.Url ?? webQuoteApi.GetUrl(ticker, command.Timestamp, command.EnforceCache);
+
+          var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
+          obs.Connect();
+      
+          await _jsonRequestHandler.Handle(new RequestJson<T>(command.Target, url)).Timeout();
+
+          var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
+          value = webQuoteApi.GetValue(res.Data);
+          break;
+        }
+      }
+
+      var addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), value)
+      {
+        StoreInLog = false,
+      };
+      
+      if (command.Ephemeral)
+      {
+        addQuoteCommand.Ephemeral = true;
+        addQuoteCommand.Timestamp = command.Timestamp;
+      }
 
       await _handler.Handle(addQuoteCommand);
     }

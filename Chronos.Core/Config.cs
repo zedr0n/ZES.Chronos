@@ -72,6 +72,12 @@ namespace Chronos.Core
 
             public AssetPairInfo AssetPairInfo(string fordom) => Resolve(new AssetPairInfoQuery(fordom));
 
+            public AssetQuote AssetQuote(Asset forAsset, Asset domAsset, string date = null)
+            {
+                var nDate = date?.ToTime() ?? _timeline.Now;
+                return Resolve(new HistoricalQuery<AssetQuoteQuery, AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, nDate));
+            }
+            
             /// <summary>
             /// Gets the transaction info
             /// </summary>

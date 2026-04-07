@@ -290,6 +290,25 @@ export async function createAccount(name : string, type : string, date : number,
 }
 
 /**
+ * Fetches the asset quote based on the provided input parameters.
+ * @customfunction
+ * @param {string} forAssetId - The ID of the foreign asset.
+ * @param {string} forAssetType - The type of the foreign asset.
+ * @param {string} domAssetId - The ID of the domestic asset.
+ * @param {string} domAssetType - The type of the domestic asset.
+ * @param {number} date - The date (in numeric format) for which the asset quote is requested.
+ */
+export async function assetQuote(forAssetId : string, forAssetType : string, domAssetId : string, domAssetType: string, date: number) : Promise<any>
+{
+  let query = `query { assetQuote( forAsset : {assetId : "${forAssetId}", assetType : ${forAssetType.toUpperCase()}}, domAsset : {assetId : "${domAssetId}", assetType : ${domAssetType.toUpperCase()}}, date : "${ExcelDateToJSDate(date).toISOString()}" ) { quantity { amount } } }`
+
+  let result = await SingleQuery(query, data => data.assetQuote.quantity.amount)
+  window.console.log(result)
+
+  return result
+}
+
+/**
  * @customfunction
  * @param contractId Contract Id
  */

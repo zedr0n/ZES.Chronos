@@ -19,6 +19,7 @@
     }
 
     public bool ConvertToDenominatorAtTxDate { get; set; } = false;
+    public bool QueryNet { get; set; }
     
     public AccountStatsQuery() 
     {

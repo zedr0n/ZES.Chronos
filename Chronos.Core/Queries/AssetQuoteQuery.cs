@@ -20,6 +20,9 @@
     public AssetQuoteQuery() 
     {
     }  
+    
+    public bool QueryNet { get; set; }
+    
     public AssetQuoteQuery(Chronos.Core.Asset forAsset, Chronos.Core.Asset domAsset) 
     {
       ForAsset = forAsset; 

@@ -161,6 +161,100 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public async Task CanGetEphemeralQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false);
+            
+            var forAsset = new Asset("GBP", AssetType.Currency);
+            var domAsset = new Asset("USD", AssetType.Currency);
+           
+            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
+            var laterDate = new LocalDateTime(2021, 12, 2, 12, 30).InUtc().ToInstant().ToTime();
+            var endDate = new LocalDateTime(2022, 12, 2, 12, 30).InUtc().ToInstant().ToTime();
+            
+            await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair("GBPUSD", forAsset, domAsset), date));
+            
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), date));
+            var ticker = assetPairInfo.Ticker;
+            
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2020-12-01\",\"open\":1.3337,\"high\":1.3439,\"low\":1.3319,\"close\":1.3337,\"adjusted_close\":1.3337,\"volume\":908}]");
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker, laterDate),
+                "[{\"date\":\"2021-12-02\",\"open\":1.3279,\"high\":1.3333,\"low\":1.3273,\"close\":1.328,\"adjusted_close\":1.328,\"volume\":470}]");
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker, endDate),
+                "[{\"date\":\"2022-12-02\",\"open\":1.2259,\"high\":1.23,\"low\":1.2135,\"close\":1.2293,\"adjusted_close\":1.2293,\"volume\":1033}]");
+            
+            var updateQuote = new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(forAsset, domAsset)) { Ephemeral = true }, date ) ;
+            await bus.Command(updateQuote);
+            
+            var updateQuoteLater = new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(forAsset, domAsset)) { Ephemeral = true }, laterDate ) ;
+            await bus.Command(updateQuoteLater);
+            
+            var updateQuoteEnd = new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(forAsset, domAsset)), endDate ) ;
+            await bus.Command(updateQuoteEnd);
+ 
+            var res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset), date));
+            Assert.Equal(1.3337, res.Quantity.Amount);
+            
+            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset), laterDate));
+            Assert.Equal(1.328, res.Quantity.Amount);
+            
+            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset), endDate));
+            Assert.Equal(1.2293, res.Quantity.Amount);
+        }
+
+        [Fact]
+        public async Task CanUpdateQuoteDuringQuery()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false);
+
+            var forAsset = new Asset("GBP", AssetType.Currency);
+            var domAsset = new Asset("USD", AssetType.Currency);
+            
+            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
+            var laterDate = new LocalDateTime(2021, 12, 2, 12, 30).InUtc().ToInstant().ToTime();
+
+            await connector.SetAsync(webSearchApi.GetUrl(AssetPair.Fordom(forAsset, domAsset)),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair("GBPUSD", forAsset, domAsset), date));
+            
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), date));
+            var ticker = assetPairInfo.Ticker;
+            
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2020-12-01\",\"open\":1.3337,\"high\":1.3439,\"low\":1.3319,\"close\":1.3337,\"adjusted_close\":1.3337,\"volume\":908}]");
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker, laterDate),
+                "[{\"date\":\"2021-12-02\",\"open\":1.3279,\"high\":1.3333,\"low\":1.3273,\"close\":1.328,\"adjusted_close\":1.328,\"volume\":470}]");
+
+            var res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, date));
+            Assert.Equal(1.3337, res.Quantity.Amount);
+            
+            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, date));
+            Assert.Equal(1.3337, res.Quantity.Amount);
+            
+            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, laterDate));
+            Assert.Equal(1.328, res.Quantity.Amount);
+           
+            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), laterDate));
+            Assert.Equal(2, assetPairInfo.QuoteDates.Length);
+        }
+        
+        [Fact]
         public async Task CanGetDerivedAssetPairQuote()
         {
             var container = CreateContainer();
@@ -175,18 +269,20 @@ namespace Chronos.Tests
             
             var forAsset = new Asset("USD", AssetType.Currency);
             var domAsset = new Asset("GBP", AssetType.Currency);
+            var quoteAsset = new Currency("GBX");
             var iukdAsset = new Asset("IUKD", AssetType.Equity);
             
             var fxQuoteApi = webApiProvider.GetQuoteApi(forAsset.AssetType, domAsset.AssetType, true);
-            var eqQuoteApi = webApiProvider.GetQuoteApi(iukdAsset.AssetType, domAsset.AssetType, true);
+            var eqQuoteApi = webApiProvider.GetQuoteApi(iukdAsset.AssetType, quoteAsset.AssetType, true);
             
             await connector.SetAsync(webSearchApi.GetUrl("USDGBP"),
                 "[{\"Code\":\"USDGBP\",\"Exchange\":\"FOREX\",\"Name\":\"US Dollar\\/UK Pound Sterling FX Cross Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"GBP\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":0.7546,\"previousCloseDate\":\"2026-03-31\"}]");
             await connector.SetAsync(webSearchApi.GetUrl("IUKD"),
                 "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
             
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(domAsset, quoteAsset), domAsset, quoteAsset));
             await bus.Command(new RegisterAssetPair(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset));
-            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(iukdAsset, domAsset), iukdAsset, domAsset));
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(iukdAsset, quoteAsset), iukdAsset, quoteAsset));
 
             var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)));
             var ticker = assetPairInfo.Ticker;
@@ -194,7 +290,7 @@ namespace Chronos.Tests
             await connector.SetAsync(fxQuoteApi.GetUrl(ticker, date),
                 "{\"code\":\"USDGBP.FOREX\",\"timestamp\":1774967040,\"gmtoffset\":0,\"open\":0.7584,\"high\":0.7598,\"low\":0.754,\"close\":0.7546,\"volume\":0,\"previousClose\":0.7583,\"change\":-0.0037,\"change_p\":-0.4879}");
 
-            assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukdAsset, domAsset)));
+            assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukdAsset, quoteAsset)));
             ticker = assetPairInfo.Ticker;
             
             await connector.SetAsync(eqQuoteApi.GetUrl(ticker, date),
@@ -203,11 +299,11 @@ namespace Chronos.Tests
             await bus.Command(new CreateAccount("Main", AccountType.Trading));
             await bus.Command(new DepositAsset("Main", new Quantity(1, iukdAsset)));
            
-            await bus.Command(new UpdateQuote(AssetPair.Fordom(iukdAsset, domAsset)) { EnforceCache = true });
+            await bus.Command(new UpdateQuote(AssetPair.Fordom(iukdAsset, quoteAsset)) { EnforceCache = true });
             await bus.Command(new UpdateQuote(AssetPair.Fordom(forAsset, domAsset)) { EnforceCache = true });
 
             var res = await bus.QueryAsync(new AssetQuoteQuery(iukdAsset, forAsset));
-            Assert.Equal(1260.9793267956532, res.Quantity.Amount);
+            Assert.Equal(12.609793267956533, res.Quantity.Amount);
             log.Info($"{iukdAsset} is {res.Quantity} for {res.Timestamp}");
         }
         
@@ -224,7 +320,7 @@ namespace Chronos.Tests
 
             var forAsset = new Currency("GBP");
             var domAsset = new Currency("USD");
-            var fxQuoteApi = webApiProvider.GetQuoteApi(forAsset.AssetType, domAsset.AssetType, true);
+            var fxQuoteApi = webApiProvider.GetQuoteApi(forAsset.AssetType, domAsset.AssetType, false);
             
             await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"),
                 "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");

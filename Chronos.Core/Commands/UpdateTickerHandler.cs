@@ -68,18 +68,33 @@ public class UpdateTickerHandler<T, TSearch>(
         if (root.Ticker != null)
             return;
 
-        var webSearchApi = webApiProvider.GetSearchApi();
-        var webQuoteApi = webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, false);
+        var ticker = string.Empty;
+        switch (root.ForAsset.AssetId)
+        {
+            case "GBX" when root.DomAsset.AssetId == "GBP":
+            case "GBP" when root.DomAsset.AssetId == "GBX":
+                break;
+            default:
+            {
+                var webSearchApi = webApiProvider.GetSearchApi();
+                var webQuoteApi = webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, false);
         
-        var obsTicker = messageQueue.Alerts.OfType<JsonRequestCompleted<TSearch>>().Replay();
-        obsTicker.Connect();
+                var obsTicker = messageQueue.Alerts.OfType<JsonRequestCompleted<TSearch>>().Replay();
+                obsTicker.Connect();
 
-        var searchTicker = webQuoteApi.GetSearchTicker(root.ForAsset, root.DomAsset);
-      
-        await tickerSearchHandler.Handle(new RequestJson<TSearch>(command.Target, webSearchApi.GetUrl(searchTicker))).Timeout();
-        var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
+                var searchTicker = webQuoteApi.GetSearchTicker(root.ForAsset, root.DomAsset);
+     
+                await tickerSearchHandler.Handle(new RequestJson<TSearch>(command.Target, webSearchApi.GetUrl(searchTicker))).Timeout();
+                var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
           
-        var ticker = webSearchApi.GetTicker(resTicker.Data);
+                ticker = webSearchApi.GetTicker(resTicker.Data);
+                var ccy = webSearchApi.GetCurrency(resTicker.Data);
+                if (root.DomAsset.AssetId != ccy)
+                    throw new InvalidOperationException($"Currency of the ticker is not matching the domestic asset: {ccy} != {root.DomAsset.AssetId}");
+                break;
+            }
+        }
+        
         var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker) { CorrelationId = command.CorrelationId };
         await addQuoteTickerHandler.Handle(addQuoteTickerCommand);
     }

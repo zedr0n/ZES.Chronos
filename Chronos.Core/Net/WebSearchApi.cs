@@ -12,6 +12,14 @@ public class WebSearchApi : IWebSearchApi
 {
     private static string ApiKey => Environment.GetEnvironmentVariable("EQUITY_APIKEY");
 
+    /// <inheritdoc/>
+    public string GetCurrency(IJsonResult result)
+    {
+        var r = result as JsonResult;
+        var data = r?.FirstOrDefault();
+        return data != null ? $"{data.Currency}" : string.Empty;    
+    }
+
     /// <summary>
     /// Constructs a URL for searching tickers by symbol.
     /// </summary>

@@ -24,6 +24,13 @@ public interface IWebSearchApi
     public string GetTicker(IJsonResult result);
 
     /// <summary>
+    /// Retrieves the currency information from the given JSON result.
+    /// </summary>
+    /// <param name="result">The JSON result containing data from which the currency information is extracted.</param>
+    /// <returns>The currency information extracted from the JSON result.</returns>
+    public string GetCurrency(IJsonResult result);
+    
+    /// <summary>
     /// Constructs a URL for the specified ticker symbol.
     /// </summary>
     /// <param name="ticker">The ticker symbol for which to generate the URL.</param>

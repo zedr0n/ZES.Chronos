@@ -14,7 +14,7 @@ public abstract class EodhdIntradayQuoteApiBase : EodhdQuoteApiBase
     /// <inheritdoc/>
     public override string GetUrl(string ticker, Time date = null, bool enforceCache = false)
     {
-        return $"{BaseUrl}/{Endpoint}/{ticker}?&fmt=json&api_token={ApiKey ?? string.Empty}";
+        return $"{BaseUrl}/{Endpoint}/{ticker}?&fmt=json&api_token={ApiKey ?? string.Empty}{(enforceCache ? string.Empty : ";nocache")}";
     }
 
     /// <inheritdoc/>

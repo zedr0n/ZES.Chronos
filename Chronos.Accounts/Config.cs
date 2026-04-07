@@ -75,6 +75,7 @@ namespace Chronos.Accounts
                 {
                     ConvertToDenominatorAtTxDate = immediate ?? false,
                     Timestamp = nDate,
+                    QueryNet = true
                 });  
             } 
             

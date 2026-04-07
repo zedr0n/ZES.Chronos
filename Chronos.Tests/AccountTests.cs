@@ -7,6 +7,7 @@ using Chronos.Coins.Commands;
 using Chronos.Coins.Queries;
 using Chronos.Core;
 using Chronos.Core.Commands;
+using Chronos.Core.Net;
 using Chronos.Core.Queries;
 using Chronos.Hashflare.Commands;
 using NodaTime;
@@ -73,6 +74,12 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
 
             await bus.Command(new CreateCoin("Bitcoin", "BTC"));
             var btc = (await bus.QueryAsync(new CoinInfoQuery("Bitcoin"))).Asset;
@@ -93,7 +100,14 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
             var timeline = container.GetInstance<ITimeline>();
-           
+          
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
+            
             var ccy = new Currency("USD");
             var asset = new Asset("Bitcoin", AssetType.Coin);
             await await bus.CommandAsync(new RegisterAssetPair(AssetPair.Fordom(asset, ccy), asset, ccy));
@@ -108,6 +122,38 @@ namespace Chronos.Tests
             await bus.Equal(new AccountStatsQuery("Account", asset), s => s.Balance, new Quantity(1.0, asset));
             await bus.Equal(new AccountStatsQuery("Account", ccy), s => s.Balance, new Quantity(23000, ccy));
         }
+
+        [Fact]
+        public async Task CanPurchaseAsset()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var timeline = container.GetInstance<ITimeline>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            
+            var webSearchApi = webApiProvider.GetSearchApi();
+            
+            await bus.Command(new CreateAccount("Account", AccountType.Trading));
+            
+            var asset = new Asset("IUKD", AssetType.Equity);
+            var ccy = new Currency("GBP");
+            var quoteCcy = new Currency("GBX");
+            const double price = 10.0;
+            var count = 100.0;
+            
+            await connector.SetAsync(webSearchApi.GetUrl(asset.AssetId),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+           
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(ccy, quoteCcy), ccy, quoteCcy));
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, quoteCcy), asset, quoteCcy));
+            await bus.Command(new AddQuote(AssetPair.Fordom(asset, quoteCcy), timeline.Now.ToInstant(), price*100));
+            
+            await bus.Command(new TransactAsset("Account",new Quantity(100, asset), new Quantity(count*price, ccy)));
+            
+            await bus.Equal(new AccountStatsQuery("Account", asset), s => s.Balance, new Quantity(0, asset));
+            await bus.Equal(new AccountStatsQuery("Account", ccy), s => s.Balance, new Quantity(0, ccy));
+        }
         
         [Fact]
         public async Task CanAddTransaction()
@@ -115,7 +161,13 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var timeline = container.GetInstance<ITimeline>();
-           
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"), 
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3234,\"previousCloseDate\":\"2026-04-06\"}]");
+
             await await bus.CommandAsync(new CreateAccount("Account", AccountType.Saving));
 
             var gbp = new Currency("GBP");
@@ -159,12 +211,18 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var connector = container.GetInstance<IJSonConnector>();
-
-            var date = new LocalDateTime(2023, 10, 7, 12, 30).InUtc().ToInstant().ToTime();
             
-            var url = "https://api.apilayer.com/exchangerates_data/2023-10-07?symbols=USD&base=GBP";
-            await connector.SetAsync(url,
-                " {\n    \"success\": true,\n    \"timestamp\": 1696687263,\n    \"historical\": true,\n    \"base\": \"GBP\",\n    \"date\": \"2023-10-07\",\n    \"rates\": {\n        \"USD\": 1.224\n    }\n}");
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var webQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false);
+
+            await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"), 
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3234,\"previousCloseDate\":\"2026-04-06\"}]");
+
+            var date = new LocalDateTime(2023, 10, 9, 12, 30).InUtc().ToInstant().ToTime();
+
+            await connector.SetAsync(webQuoteApi.GetUrl("GBPUSD.FOREX", date),
+                "[{\"date\":\"2023-10-09\",\"open\":1.222,\"high\":1.2252,\"low\":1.2163,\"close\":1.225,\"adjusted_close\":1.225,\"volume\":483}]");
 
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
@@ -207,7 +265,16 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
             var timeline = container.GetInstance<ITimeline>();
-           
+          
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"), 
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3234,\"previousCloseDate\":\"2026-04-06\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
+            
             var usd = new Currency("USD");
             var gbp = new Currency("GBP"); 
             var asset = new Asset("Bitcoin", AssetType.Coin);
@@ -234,6 +301,13 @@ namespace Chronos.Tests
             var timeline = container.GetInstance<ITimeline>();
             var manager = container.GetInstance<IBranchManager>();
 
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
+            
             var asset = new Asset("Bitcoin", AssetType.Coin);
             var usd = new Currency("USD");
             await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, usd), asset, usd));

@@ -7,44 +7,50 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Chronos.Core.Commands;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Core.Queries
 {
   [Transient]
-  public class AssetQuoteHandler : QueryHandlerBase<AssetQuoteQuery, AssetQuote, AssetPairsInfo>
+  public class AssetQuoteHandler(
+    IProjectionManager manager,
+    ITimeline activeTimeline,
+    ILog log,
+    IBranchManager branchManager,
+    IClock clock,
+    IQueryHandler<AssetPairInfoQuery, AssetPairInfo> pairInfoHandler,
+    IQueryHandler<SingleAssetQuoteQuery, SingleAssetQuote> handler,
+    ICommandHandler<RetroactiveCommand<UpdateQuote>> updateQuoteHandler)
+    : QueryHandlerBase<AssetQuoteQuery, AssetQuote, AssetPairsInfo>(manager, activeTimeline)
   {
-    private readonly IQueryHandler<SingleAssetQuoteQuery, SingleAssetQuote> _handler;
-    private readonly ILog _log;
-    private readonly IBranchManager _branchManager;
-
-    public AssetQuoteHandler(IProjectionManager manager, ITimeline activeTimeline, ILog log, IBranchManager branchManager, IQueryHandler<SingleAssetQuoteQuery, SingleAssetQuote> handler) 
-      : base(manager, activeTimeline)
-    {
-      _log = log;
-      _branchManager = branchManager;
-      _handler = handler;
-    }
-
     protected override async Task<AssetQuote> Handle(IProjection<AssetPairsInfo> projection, AssetQuoteQuery query)
     {
       var price = 1.0;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
       var info = projection.State;
-      info.Tree.Log = _log;
+      info.Tree.Log = log;
       var timestamp = query.Timestamp;
       if (query.Timeline != "")
-        timestamp = _branchManager.GetTime(query.Timeline);
+        timestamp = branchManager.GetTime(query.Timeline);
       else if (timestamp == default)
-        timestamp = _branchManager.GetTime(_branchManager.ActiveBranch);
-     
+        timestamp = branchManager.GetTime(branchManager.ActiveBranch);
+      
       if (info.Pairs.ToList().Contains(fordom))
       {
-        var result = await _handler.Handle(new SingleAssetQuoteQuery(fordom)
+        if (query.QueryNet)
+        {
+          var quoteDates = await pairInfoHandler.Handle(new AssetPairInfoQuery(fordom));
+          if (quoteDates.QuoteDates.All(d => d.Minus(timestamp.ToInstant()).Days != 0))
+            await updateQuoteHandler.Handle(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom) { Ephemeral = true }, query.Timestamp));
+        }
+        
+        var result = await handler.Handle(new SingleAssetQuoteQuery(fordom)
         {
           Timeline = query.Timeline,
           Timestamp = query.Timestamp,
@@ -68,19 +74,29 @@ namespace Chronos.Core.Queries
           if (isInverse)
             pathForDom = AssetPair.Fordom(domAsset,forAsset);
 
-          var pathResult = await _handler.Handle(new SingleAssetQuoteQuery(pathForDom)
+          if (query.QueryNet)
+          {
+            var quoteDates = await pairInfoHandler.Handle(new AssetPairInfoQuery(pathForDom));
+            var now = clock.GetCurrentInstant();
+            var intraday = query.Timestamp.ToInstant().InUtc().Date == now.ToInstant().InUtc().Date;
+            if (intraday || quoteDates.QuoteDates.All(d => d.Minus(timestamp.ToInstant()).Days != 0))
+              await updateQuoteHandler.Handle(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(pathForDom) { Ephemeral = true }, query.Timestamp));
+          }
+          
+          var pathResult = await handler.Handle(new SingleAssetQuoteQuery(pathForDom)
           {
             Timeline = query.Timeline,
             Timestamp = query.Timestamp,
           });
+          var pathPrice = pathResult?.Price ?? 1.0;
 
           if (pathResult == null || pathResult.Timestamp.Minus(timestamp.ToInstant()).Days > 0 || timestamp.ToInstant().Minus(pathResult.Timestamp).Days > 0)
             throw new InvalidOperationException($"Stale pricing date for {pathForDom}");
 
           if (isInverse)
-            pathResult.Price = 1.0 / pathResult.Price;
+            pathPrice = 1.0 / pathPrice;
           
-          price *= pathResult.Price;
+          price *= pathPrice;
         }
       }
       

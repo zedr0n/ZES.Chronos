@@ -16,9 +16,9 @@ public abstract class EodhdEodQuoteApiBase : EodhdQuoteApiBase
     private const string Endpoint = "eod";
 
     /// <inheritdoc/>
-    public override string GetUrl(string ticker, Time date, bool enforceCache = false)
+    public override string GetUrl(string ticker, Time date = null, bool enforceCache = false)
     {
-        var dateString = date.ToString(DateFormat, new DateTimeFormatInfo());
+        var dateString = date?.ToString(DateFormat, new DateTimeFormatInfo());
         return $"{BaseUrl}/{Endpoint}/{ticker}?from={dateString}&to={dateString}&fmt=json&api_token={ApiKey ?? string.Empty}";
     }
 

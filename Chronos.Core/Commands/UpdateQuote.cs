@@ -33,6 +33,8 @@ namespace Chronos.Core.Commands
         {
             CorrelationId = command.CorrelationId;
             EnforceCache = command.EnforceCache;
+            Ephemeral = command.Ephemeral;
+            Timestamp = command.Timestamp;
         }
     }
 }
