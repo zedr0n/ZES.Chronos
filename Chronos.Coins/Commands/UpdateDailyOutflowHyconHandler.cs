@@ -31,20 +31,28 @@ namespace Chronos.Coins.Commands
         private string _remoteFirstTx;
 
         private string _server;
-        
+
         /// <summary>
-        /// Initializes a new instance of the <see cref="UpdateDailyOutflowHyconHandler"/> class.
+        /// Handles the updating of daily outflows for Hycon wallets by processing related JSON data,
+        /// managing wallet balances, and interacting with the messaging service.
         /// </summary>
-        /// <param name="repository">Aggregate repository</param>
-        /// <param name="handler">Tx list JSON handler</param>
-        /// <param name="messageQueue">Messaging service</param>
-        /// <param name="balanceHandler">Wallet balance change handler</param>
-        /// <param name="addressHandler">Address JSON handler</param>
-        /// <param name="blockListV2Handler">Block list JSON handler</param>
-        /// <param name="blockInfoV2Handler">Block info JSON handler</param>
-        /// <param name="log">Logging service</param>
-        public UpdateDailyOutflowHyconHandler(IEsRepository<IAggregate> repository, ICommandHandler<RequestJson<TxResults>> handler, IMessageQueue messageQueue, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler, ICommandHandler<RequestJson<AddressInfo>> addressHandler, ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler, ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log) 
-          : base(repository, balanceHandler)
+        /// <param name="repository">Aggregate repository for handling domain aggregates</param>
+        /// <param name="handler">Command handler for processing transactions JSON</param>
+        /// <param name="messageQueue">Service for publishing and subscribing to messages</param>
+        /// <param name="balanceHandler">Handler for processing changes to wallet balances</param>
+        /// <param name="addressHandler">Command handler for processing address JSON</param>
+        /// <param name="blockListV2Handler">Command handler for processing block list information</param>
+        /// <param name="blockInfoV2Handler">Command handler for processing block information</param>
+        /// <param name="log">Service for logging operations and errors</param>
+        /// <param name="flowCompletionService">Service for tracking and completing workflow operations</param>
+        public UpdateDailyOutflowHyconHandler(IEsRepository<IAggregate> repository,
+          ICommandHandler<RequestJson<TxResults>> handler, IMessageQueue messageQueue,
+          ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler,
+          ICommandHandler<RequestJson<AddressInfo>> addressHandler,
+          ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler,
+          ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log,
+          IFlowCompletionService flowCompletionService)
+          : base(repository, balanceHandler, flowCompletionService)
         {
           _handler = handler;
           _messageQueue = messageQueue;

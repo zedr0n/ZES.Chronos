@@ -32,18 +32,25 @@ namespace Chronos.Coins.Commands
         private string _server;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UpdateDailyMiningHyconHandler"/> class.
+        /// Handles the process of updating daily mining data for Hycon.
         /// </summary>
         /// <param name="repository">Aggregate repository</param>
-        /// <param name="addressHandler">Address info handler</param>
-        /// <param name="messageQueue">Messaging service</param>
-        /// <param name="handler">JSON handler</param>
-        /// <param name="mineHandler">Modify balance handler</param>
-        /// <param name="blockListV2Handler">JSON block list handler</param>
-        /// <param name="blockInfoV2Handler">JSON block info handler</param>
-        /// <param name="log">Log service</param>
-        public UpdateDailyMiningHyconHandler(IEsRepository<IAggregate> repository, ICommandHandler<RequestJson<AddressInfo>> addressHandler, IMessageQueue messageQueue, ICommandHandler<RequestJson<MinedResults>> handler, ICommandHandler<RetroactiveCommand<MineCoin>> mineHandler, ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler, ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log) 
-            : base(repository, mineHandler)
+        /// <param name="addressHandler">Handler for processing JSON requests related to address information</param>
+        /// <param name="messageQueue">Service for managing message queues</param>
+        /// <param name="handler">Handler for processing mined results as JSON</param>
+        /// <param name="mineHandler">Handler for executing commands to modify balance based on mining</param>
+        /// <param name="blockListV2Handler">Handler for processing JSON requests related to block lists</param>
+        /// <param name="blockInfoV2Handler">Handler for processing JSON requests related to block information</param>
+        /// <param name="log">Logging service</param>
+        /// <param name="flowCompletionService">Service to manage flow completions</param>
+        public UpdateDailyMiningHyconHandler(IEsRepository<IAggregate> repository,
+            ICommandHandler<RequestJson<AddressInfo>> addressHandler, IMessageQueue messageQueue,
+            ICommandHandler<RequestJson<MinedResults>> handler,
+            ICommandHandler<RetroactiveCommand<MineCoin>> mineHandler,
+            ICommandHandler<RequestJson<BlockListV2>> blockListV2Handler,
+            ICommandHandler<RequestJson<BlockInfoV2>> blockInfoV2Handler, ILog log,
+            IFlowCompletionService flowCompletionService)
+            : base(repository, mineHandler, flowCompletionService)
         {
             _addressHandler = addressHandler;
             _messageQueue = messageQueue;

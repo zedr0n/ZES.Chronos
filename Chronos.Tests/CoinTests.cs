@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Chronos.Accounts.Queries;
@@ -72,7 +74,16 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var timeline = container.GetInstance<ITimeline>();
-           
+            
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+
+            await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl("Ethereum-USD"),
+                "[{\"Code\":\"ETH-USD\",\"Exchange\":\"CC\",\"Name\":\"Ethereum\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":2106.7214355469,\"previousCloseDate\":\"2026-04-07\"}]");
+            
             await await bus.CommandAsync(new CreateCoin("Bitcoin", "BTC"));
             var now = timeline.Now;
             Thread.Sleep(50);
@@ -145,7 +156,9 @@ namespace Chronos.Tests
 
             await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
                 "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
-
+            await connector.SetAsync(webSearchApi.GetUrl("Hycon-USD"), 
+                "[{\"Code\":\"HYC-USD\",\"Exchange\":\"CC\",\"Name\":\"Hycon\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":0.0,\"previousCloseDate\":\"2026-04-07\"}]");
+            
             var address = "H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ";
             var server = Environment.GetEnvironmentVariable("REMOTESERVER");
             if (server == null)
@@ -179,6 +192,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
+            var log = container.GetInstance<ILog>();
             
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
@@ -186,6 +200,10 @@ namespace Chronos.Tests
 
             await connector.SetAsync(webSearchApi.GetUrl("Bitcoin-USD"), 
                 "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":68686.0390625,\"previousCloseDate\":\"2026-04-07\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl("Hycon-USD"), 
+                "[{\"Code\":\"HYC-USD\",\"Exchange\":\"CC\",\"Name\":\"Hycon\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":0.0,\"previousCloseDate\":\"2026-04-07\"}]");
+           
+            var stopWatch = Stopwatch.StartNew();
             
             var manager = container.GetInstance<IBranchManager>();
             var server = Environment.GetEnvironmentVariable("REMOTESERVER");
@@ -214,6 +232,8 @@ namespace Chronos.Tests
             Assert.NotNull(txList.TxId);
             Assert.Equal("H2E7xSfMrPt2P96WWHQKR37Qpgfd6HskJ[Mining0_0]", txList.TxId[0]);
             await bus.Equal(new TransactionInfoQuery(txList.TxId[0]), t => t.Quantity.Amount, 120);
+            
+            log.Info(log.StopWatch.Totals.ToImmutableSortedDictionary());
         }
     }
 }

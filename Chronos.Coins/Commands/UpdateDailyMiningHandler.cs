@@ -8,6 +8,7 @@ using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
+using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Coins.Commands
 {
@@ -16,17 +17,26 @@ namespace Chronos.Coins.Commands
   {
     private readonly IEsRepository<IAggregate> _repository;
     private readonly ICommandHandler<RetroactiveCommand<MineCoin>> _mineHandler;
+    private readonly IFlowCompletionService _flowCompletionService;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UpdateDailyMiningHandler"/> class.
+    /// Abstract base class for handling the "Update Daily Mining" command.
     /// </summary>
-    /// <param name="repository">ES repository</param>
-    /// <param name="mineHandler">Wallet balance handler</param>
-    protected UpdateDailyMiningHandler(IEsRepository<IAggregate> repository, ICommandHandler<RetroactiveCommand<MineCoin>> mineHandler) 
+    /// <remarks>
+    /// This handler processes daily mining updates, interacts with the wallet aggregate,
+    /// and executes retroactive commands to mine coins.
+    /// Specific implementations of this class define platform-specific behavior related to fetching mined blocks.
+    /// </remarks>
+    /// <param name="repository">Event store repository for aggregate management.</param>
+    /// <param name="mineHandler">Handler to execute retroactive mining commands.</param>
+    /// <param name="flowCompletionService">Service to manage the completion of workflows.</param>
+    protected UpdateDailyMiningHandler(IEsRepository<IAggregate> repository,
+        ICommandHandler<RetroactiveCommand<MineCoin>> mineHandler, IFlowCompletionService flowCompletionService)
         : base(repository)
     {
         _repository = repository;
         _mineHandler = mineHandler;
+        _flowCompletionService = flowCompletionService;
     }
 
     /// <inheritdoc/>
@@ -58,12 +68,14 @@ namespace Chronos.Coins.Commands
         
         ICommand mineCommand = null;
         var idx = 0;
+        _flowCompletionService.SetIgnore(command, true);
         foreach (var v in blocks)
         {
             mineCommand = new RetroactiveCommand<MineCoin>(new MineCoin(command.Address, new Quantity(v.Value.amount, coin.Asset), $"Mining{command.Index}_{idx}"), v.Value.time.ToTime());
             await _mineHandler.Handle(mineCommand);
             ++idx;
         }
+        _flowCompletionService.SetIgnore(command, false);
     }
 
     /// <inheritdoc/>

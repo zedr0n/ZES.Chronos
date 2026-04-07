@@ -8,6 +8,7 @@ using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
+using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Coins.Commands
 {
@@ -18,17 +19,22 @@ namespace Chronos.Coins.Commands
     {
         private readonly ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> _balanceHandler;
         private readonly IEsRepository<IAggregate> _repository;
+        private readonly IFlowCompletionService _flowCompletionService;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="UpdateDailyOutflowHandler"/> class.
+        /// Handler for updating the daily outflow transactions for a wallet.
         /// </summary>
-        /// <param name="repository">Aggregate repository</param>
-        /// <param name="balanceHandler">Change balance handler</param>
-        public UpdateDailyOutflowHandler(IEsRepository<IAggregate> repository, ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler)
+        /// <remarks>
+        /// This abstract handler processes commands to extract and update daily transactions, allowing for retroactive adjustments and flow completion handling.
+        /// </remarks>
+        public UpdateDailyOutflowHandler(IEsRepository<IAggregate> repository,
+          ICommandHandler<RetroactiveCommand<ChangeWalletBalance>> balanceHandler,
+          IFlowCompletionService flowCompletionService)
           : base(repository)
         {
           _repository = repository;
           _balanceHandler = balanceHandler;
+          _flowCompletionService = flowCompletionService;
         }
 
         /// <inheritdoc/>
@@ -63,12 +69,14 @@ namespace Chronos.Coins.Commands
 
           ICommand changeBalanceCommand = null;
           var idx = 0;
+          _flowCompletionService.SetIgnore(command, true);
           foreach (var v in outflows)
           {
             changeBalanceCommand = new RetroactiveCommand<ChangeWalletBalance>(new ChangeWalletBalance(command.Address, new Quantity(-v.Value.amount, coin.Asset), $"Out{command.Index}_{idx}"), v.Value.time.ToTime());
             await _balanceHandler.Handle(changeBalanceCommand);
             ++idx;
           }
+          _flowCompletionService.SetIgnore(command, false);
         }
 
         /// <summary>
