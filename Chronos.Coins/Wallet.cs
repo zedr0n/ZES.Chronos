@@ -10,8 +10,8 @@
     public Wallet() 
     {
       Register<Chronos.Coins.Events.WalletCreated>(ApplyEvent); 
-      Register<Chronos.Coins.Events.WalletBalanceChanged>(ApplyEvent); 
-      Register<Chronos.Coins.Events.CoinMined>(ApplyEvent); 
+      Register<Chronos.Coins.Events.WalletBalanceChanged>(); 
+      Register<Chronos.Coins.Events.CoinMined>(); 
     }  
     
     public string Coin { get; set; }
@@ -32,12 +32,6 @@
     {
       Id = e.Address;
       Coin = e.Coin;
-    }  
-    private void ApplyEvent (Chronos.Coins.Events.WalletBalanceChanged e)
-    {
-    }  
-    private void ApplyEvent (Chronos.Coins.Events.CoinMined e)
-    {
     }  
   }
 }

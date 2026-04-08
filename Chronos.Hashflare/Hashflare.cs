@@ -10,7 +10,7 @@
     public Hashflare() 
     {
       Register<Chronos.Hashflare.Events.HashflareRegistered>(ApplyEvent); 
-      Register<Chronos.Hashflare.Events.CoinMined>(ApplyEvent);
+      Register<Chronos.Hashflare.Events.CoinMined>();
     }  
     public Hashflare(string id, string username) : this() 
     {
@@ -30,9 +30,6 @@
     {
       Username = e.Username;
     }  
-    private void ApplyEvent (Chronos.Hashflare.Events.CoinMined e)
-    {
-    }
   }
 }
 

@@ -10,8 +10,8 @@
     public Transaction() 
     {
       Register<Chronos.Core.Events.TransactionRecorded>(ApplyEvent); 
-      Register<Chronos.Core.Events.TransactionDetailsUpdated>(ApplyEvent);
-      Register<Chronos.Core.Events.TransactionQuoteAdded>(ApplyEvent);
+      Register<Chronos.Core.Events.TransactionDetailsUpdated>();
+      Register<Chronos.Core.Events.TransactionQuoteAdded>();
     }  
     public Transaction(string txId, Quantity quantity, Transaction.TransactionType transactionType, string comment) : this() 
     {
@@ -42,12 +42,6 @@
     {
       Id = e.TxId;
     }  
-    private void ApplyEvent (Chronos.Core.Events.TransactionDetailsUpdated e)
-    {
-    }
-    private void ApplyEvent (Chronos.Core.Events.TransactionQuoteAdded e)
-    {
-    }
   }
 }
 

@@ -7,15 +7,14 @@ namespace Chronos.Accounts
 {
     public sealed class Account : ZES.Infrastructure.Domain.AggregateRoot
     {
-        private readonly ConcurrentDictionary<Core.Asset, double> _assets =
-            new ConcurrentDictionary<Core.Asset, double>();
+        private readonly ConcurrentDictionary<Core.Asset, double> _assets = new();
 
         public Account()
         {
             Register<Events.AccountCreated>(ApplyEvent);
             Register<Events.AssetDeposited>(ApplyEvent);
-            Register<Events.TransactionAdded>(ApplyEvent);
-            Register<Events.AssetTransactionStarted>(ApplyEvent);
+            Register<Events.TransactionAdded>();
+            Register<Events.AssetTransactionStarted>();
         }
 
         public Account(string name, AccountType type) : this()
@@ -58,12 +57,6 @@ namespace Chronos.Accounts
         private void ApplyEvent(Events.AssetDeposited e)
         {
             _assets.AddOrUpdate(e.Quantity.Denominator, e.Quantity.Amount, (a, d) => d + e.Quantity.Amount);
-        }
-        private void ApplyEvent (Events.TransactionAdded e)
-        {
-        }
-        private void ApplyEvent(Events.AssetTransactionStarted e)
-        {
         }
     }
 }

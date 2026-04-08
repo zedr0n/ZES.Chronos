@@ -10,8 +10,8 @@
     public Contract() 
     {
       Register<Chronos.Hashflare.Events.ContractCreated>(ApplyEvent); 
-      Register<Chronos.Hashflare.Events.ContractExpired>(ApplyEvent); 
-      Register<Chronos.Hashflare.Events.CoinMinedByContract>(ApplyEvent);
+      Register<Chronos.Hashflare.Events.ContractExpired>(); 
+      Register<Chronos.Hashflare.Events.CoinMinedByContract>();
     }  
     public Contract(string contractId, string type, int quantity, double total) : this() 
     {
@@ -29,12 +29,6 @@
     {
       Id = e.ContractId;
     }  
-    private void ApplyEvent (Chronos.Hashflare.Events.ContractExpired e)
-    {
-    }  
-    private void ApplyEvent (Chronos.Hashflare.Events.CoinMinedByContract e)
-    {
-    }
   }
 }
 
