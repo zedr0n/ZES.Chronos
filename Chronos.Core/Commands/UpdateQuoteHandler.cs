@@ -183,6 +183,8 @@ namespace Chronos.Core.Commands
       var addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), value)
       {
         StoreInLog = false,
+        CorrelationId = command.CorrelationId,
+        AncestorId = command.AncestorId ?? command.MessageId,
       };
       
       if (command.Ephemeral)

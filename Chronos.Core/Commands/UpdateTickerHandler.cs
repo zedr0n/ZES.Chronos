@@ -95,7 +95,11 @@ public class UpdateTickerHandler<T, TSearch>(
             }
         }
         
-        var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker) { CorrelationId = command.CorrelationId };
+        var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker)
+        {
+            CorrelationId = command.CorrelationId,
+            AncestorId = command.AncestorId ?? command.MessageId,
+        };
         await addQuoteTickerHandler.Handle(addQuoteTickerCommand);
     }
 

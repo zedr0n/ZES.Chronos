@@ -29,5 +29,7 @@ public class UpdateTicker<T, TSearch>(string fordom) : UpdateTicker(fordom)
         : this(command.Target)
     {
         CorrelationId = command.CorrelationId;
+        AncestorId = command.AncestorId;
+        Timestamp = command.Timestamp;
     }
 }

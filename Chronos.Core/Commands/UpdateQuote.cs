@@ -32,6 +32,7 @@ namespace Chronos.Core.Commands
             : this(command.Target)
         {
             CorrelationId = command.CorrelationId;
+            AncestorId = command.AncestorId;
             EnforceCache = command.EnforceCache;
             Ephemeral = command.Ephemeral;
             Timestamp = command.Timestamp;
