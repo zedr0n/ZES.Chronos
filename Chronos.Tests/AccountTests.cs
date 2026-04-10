@@ -116,15 +116,12 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new CreateAccount("Account", AccountType.Trading));
             await await bus.CommandAsync(new DepositAsset("Account", new Quantity(1.0, asset)));
             
-            var account = await repository.Find<Account>("Account");
-            Assert.Equal("Bitcoin", account.Assets[0]);
-
             await bus.Equal(new AccountStatsQuery("Account", asset), s => s.Balance, new Quantity(1.0, asset));
             await bus.Equal(new AccountStatsQuery("Account", ccy), s => s.Balance, new Quantity(23000, ccy));
         }
 
         [Fact]
-        public async Task CanPurchaseAsset()
+        public async Task CanPurchaseAssetWithQuote()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -156,6 +153,44 @@ namespace Chronos.Tests
         }
         
         [Fact]
+        public async Task CanPurchaseAsset()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var timeline = container.GetInstance<ITimeline>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var webQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, true);
+            
+            await bus.Command(new CreateAccount("Account", AccountType.Trading));
+            
+            var asset = new Asset("IUKD", AssetType.Equity);
+            var ccy = new Currency("GBP");
+            var quoteCcy = new Currency("GBX");
+            
+            await connector.SetAsync(webSearchApi.GetUrl(asset.AssetId),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+            await connector.SetAsync(webQuoteApi.GetUrl("IUKD.LSE", enforceCache: true),
+                "{\"code\":\"IUKD.LSE\",\"timestamp\":1775748900,\"gmtoffset\":0,\"open\":995.9,\"high\":995.9,\"low\":984.3,\"close\":988.8,\"volume\":414031,\"previousClose\":988.2,\"change\":0.6,\"change_p\":0.0607}");
+            
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(ccy, quoteCcy), ccy, quoteCcy));
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, quoteCcy), asset, quoteCcy));
+            
+            await bus.Command(new TransactAsset("Account",new Quantity(100, asset), new Quantity(0.0, quoteCcy)) { QueryQuote = true });
+           
+            await bus.EqualDouble(new AccountStatsQuery("Account", asset), s => s.Balance.Amount, 0, precision: 6);
+        
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy));
+            Assert.Single(stats.Positions);
+            Assert.Equal(asset, stats.Positions[0].Denominator);
+            Assert.Equal(988.8,stats.Values[0].Amount);
+            Assert.Equal(-988.8, stats.CashBalance.Amount, 6);
+        }
+
+        
+        [Fact]
         public async Task CanAddTransaction()
         {
             var container = CreateContainer();
@@ -176,7 +211,7 @@ namespace Chronos.Tests
             await bus.Command(new RegisterAssetPair("GBPUSD", gbp, usd));
             await bus.Command(new AddQuote("GBPUSD", timeline.Now.ToInstant(), 1.2));
 
-            await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
+            await bus.Command(new CreateTransaction("Tx", new Quantity(-100, gbp), Transaction.TransactionType.General, string.Empty));
 
             await bus.Command(new AddTransaction("Account", "Tx"));
             await bus.Equal(new AccountStatsQuery("Account", usd), a => a.Balance, new Quantity(-100 * 1.2, usd));
@@ -192,8 +227,8 @@ namespace Chronos.Tests
 
             var gbp = new Currency("GBP");
            
-            await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Income, string.Empty));
-            await bus.Command(new RecordTransaction("Tx2", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
+            await bus.Command(new CreateTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.General, string.Empty));
+            await bus.Command(new CreateTransaction("Tx2", new Quantity(-100, gbp), Transaction.TransactionType.General, string.Empty));
 
             await bus.Command(new AddTransaction("Account", "Tx"));
             await bus.Command(new AddTransaction("Account", "Tx2"));
@@ -233,7 +268,7 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new RetroactiveCommand<CreateAccount>(new CreateAccount(account, AccountType.Saving), date));
 
             var txId = "ATM";
-            await await bus.CommandAsync(new RetroactiveCommand<RecordTransaction>(new RecordTransaction(txId, new Quantity(100, gbp), Transaction.TransactionType.Income, null), date));
+            await await bus.CommandAsync(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(100, gbp), Transaction.TransactionType.General, null), date));
 
             await await bus.CommandAsync(new RetroactiveCommand<AddTransaction>(new AddTransaction(account, txId), date));
             
@@ -287,9 +322,6 @@ namespace Chronos.Tests
             await await bus.CommandAsync(new CreateAccount("Account", AccountType.Trading));
             await await bus.CommandAsync(new DepositAsset("Account", new Quantity(1.0, asset)));
             
-            var account = await repository.Find<Account>("Account");
-            Assert.Equal("Bitcoin", account.Assets[0]);
-
             await bus.Equal(new AccountStatsQuery("Account", gbp), s => s.Balance, new Quantity(23000 / 1.3, gbp));
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Chronos.Core;
@@ -41,6 +42,9 @@ namespace Chronos.Accounts.Queries
             var denominator = query.Denominator;
             if (query.Denominator == null)
                 denominator = state.Assets.SingleOrDefault();
+
+            var positions = new List<Quantity>(); 
+            var values = new List<Quantity>();
             
             foreach (var (asset, amount) in state.Assets.Zip(state.Quantities, (asset, value) => (asset, value)))
             {
@@ -58,6 +62,8 @@ namespace Chronos.Accounts.Queries
                         return null;
                 }
 
+                positions.Add(new Quantity(amount, asset));
+                values.Add(new Quantity(amount * price, denominator));
                 total += amount * price;
             }
 
@@ -71,21 +77,15 @@ namespace Chronos.Accounts.Queries
                 if (tx == default)
                     return default;
                 
-                var amount = tx.Quantity.Amount;
-                switch (tx.TransactionType)
-                {
-                   case Transaction.TransactionType.Sell:
-                   case Transaction.TransactionType.Spend:
-                       amount *= -1.0;
-                       break;
-                   default:
-                       break;
-                }
-                
-                total += amount;
+                total += tx.Quantity.Amount;
             }
 
-            return new AccountStats(new Quantity(total, denominator));
+            return new AccountStats(new Quantity(total, denominator))
+            {
+                Positions = positions, 
+                Values = values,
+                CashBalance = new Quantity(total - values.Sum(v => v.Amount), denominator)
+            };
         }
     }
 }

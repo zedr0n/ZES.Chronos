@@ -53,7 +53,7 @@ namespace Chronos.Tests
             await bus.Command(new RegisterAssetPair("GBPUSD", gbp, usd));
             await bus.Command(new AddQuote("GBPUSD", timeline.Now.ToInstant(), 1.2));
 
-            await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
+            await bus.Command(new CreateTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.General, string.Empty));
             await bus.Equal(new TransactionInfoQuery("Tx", usd), t => t.Quantity.Amount, 100 * 1.2);
         }
 
@@ -76,7 +76,7 @@ namespace Chronos.Tests
             await bus.Command(new RegisterAssetPair("GBPUSD", gbp, usd));
             await bus.Command(new AddQuote("GBPUSD", timeline.Now.ToInstant(), 1.2));
 
-            await bus.Command(new RecordTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.Spend, string.Empty));
+            await bus.Command(new CreateTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.General, string.Empty));
             await bus.Command(new AddTransactionQuote("Tx", new Quantity(110, usd)));
             await bus.Equal(new TransactionInfoQuery("Tx", usd), t => t.Quantity.Amount, 110);
         }

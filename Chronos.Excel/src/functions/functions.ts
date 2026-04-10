@@ -1,6 +1,6 @@
 ﻿import {Mutation, Query, SingleQuery, getIdOrError, MutationWithId} from './queries';
 import {v4 as uuidv4} from 'uuid';
-
+import * as webpack from "webpack";
 
 /**
  * @customfunction
@@ -102,6 +102,76 @@ export async function depositAsset(name : string, amount : number, assetId : str
   }`
   
   let result = await MutationWithId(name, mutation)
+  return result
+}
+
+/**
+ * @customfunction
+ * @param {string} account - The account identifier associated with the transaction.
+ * @param {string} assetId - The unique identifier of the asset being transacted.
+ * @param {string} assetType - The type of the asset being transacted.
+ * @param {number} amount - The quantity of the asset being transacted.
+ * @param {string} costAssetId - The unique identifier of the asset used for costing the transaction.
+ * @param {number} costAmount - The quantity of the cost asset for this transaction.
+ * @param {number} date - The transaction date, represented as an Excel serial date number.
+ * @param {string} guid - A unique identifier for the transaction.
+ * @return {Promise<string>} A promise that resolves to the result of the transaction or rejects with an error.
+ */
+export async function transactAsset(account: string, assetId : string, assetType : string, amount : number, costAssetId : string, costAmount?: number, date? : number, guid? : string)
+{
+  let mutation = ""
+  if(costAmount != undefined)
+  {
+    mutation = `mutation {
+      transactAsset( account : "${account}", asset : { amount: ${amount}, denominator : { assetId : "${assetId}", assetType : ${assetType.toUpperCase()} } }, costAssetId : "${costAssetId}", costAmount : ${costAmount}, date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
+    }`
+  }
+  else
+    mutation = `mutation {
+      transactAsset( account : "${account}", asset : { amount: ${amount}, denominator : { assetId : "${assetId}", assetType : ${assetType.toUpperCase()} } }, costAssetId : "${costAssetId}", date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
+    }`
+
+
+  let result = await SingleQuery(mutation, getIdOrError(account, data => data.transactAsset.toString()))
+  return result
+}
+
+/**
+ * @customfunction
+ * @param {string} account - The identifier of the account to which the transaction is added.
+ * @param {string} txId - The transaction ID to be added.
+ * @param {number} date - The date of the transaction.
+ * @param {string} guid - A unique identifier associated with the transaction.
+ * @return {Promise<any>} A promise resolving to the result of the mutation.
+ */
+export async function addTransaction(account: string, txId: string, date : number, guid : string)
+{
+  const mutation = `mutation {
+    addTransaction( account : "${account}", txId : "${txId}", date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
+  }`
+
+  let result = await SingleQuery(mutation, getIdOrError(txId, data => data.addTransaction.toString()))
+  return result
+}
+
+/**
+ * @customfunction
+ * @param {string} txId - The unique identifier for the transaction.
+ * @param {string} transactionType Transaction type
+ * @param {string} assetId - The identifier for the asset involved in the transaction.
+ * @param {number} amount - The amount associated with the transaction.
+ * @param {number} date - The timestamp representing the date of the transaction.
+ * @param {string} [comment] - An optional comment or description for the transaction.
+ * @param {string} guid - A globally unique identifier for the transaction.
+ * @return {Promise<any>} A promise that resolves with the result of the transaction creation.
+ */
+export async function createTransaction(txId : string, transactionType : string, assetId : string, amount : number, date : number, comment? : string, guid? : string) : Promise<any>
+{
+  const mutation = `mutation {
+    createTransaction( txId : "${txId}", assetId : "${assetId}", amount : ${amount}, date : "${ExcelDateToJSDate(date).toISOString()}", transactionType : "${transactionType}", comment : "${comment}", guid : "${guid}" )
+  }`
+  
+  let result = await SingleQuery(mutation, getIdOrError(txId, data => data.createTransaction.toString()))
   return result
 }
 
@@ -405,18 +475,18 @@ export async function hashflareStats() : Promise<any>
  */
 export async function accountStats(account : string, asOfDate : number, assetId? : string, immediate? : boolean) : Promise<any> {
   let query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}" ) { balance { amount denominator { assetId } } } 
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}" ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId }} } 
   }`;
   if (assetId != undefined && assetId != "")
   {
     if (immediate != undefined && immediate) {
       query = `{
-        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount denominator { assetId } } } 
+        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId }} } 
       }`;
     }
     else {
         query = `{
-        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } }  
+        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } }  
       }`;
     }
   }
@@ -424,7 +494,7 @@ export async function accountStats(account : string, asOfDate : number, assetId?
   window.console.log(query)
 
   // amount = Number(await SingleQuery(query, data => data.accountStats.balance.amount.toString()))
-  let result = await SingleQuery(query, data => ({ amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator }))
+  let result = await SingleQuery(query, data => ({ amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator, cashAmount: data.accountStats.cashBalance.amount, cashAsset: data.accountStats.cashBalance.denominator }))
   if(typeof(result)  === "string")
     return result
   
@@ -443,6 +513,20 @@ export async function accountStats(account : string, asOfDate : number, assetId?
           "Asset" : {
             type : Excel.CellValueType.string,
             basicValue : result.asset ? result.asset.assetId ?? "" : ""
+          }  
+        },
+      },
+      "CashBalance" : {
+        type: Excel.CellValueType.entity,
+        text: "Cash Balance",
+        properties : {
+          "Amount" : {
+            type : Excel.CellValueType.double,
+            basicValue : result.cashAmount,
+          },
+          "Asset" : {
+            type : Excel.CellValueType.string,
+            basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
           }  
         },
       }

@@ -20,10 +20,11 @@
 
     public enum TransactionType
     {
-      Buy,
-      Sell,
-      Income,
-      Spend,
+      General, 
+      Asset,
+      Fee,
+      Dividend,
+      Interest,
       Transfer,
       Unknown,
     }

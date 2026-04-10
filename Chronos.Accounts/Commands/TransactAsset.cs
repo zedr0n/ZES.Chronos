@@ -30,6 +30,15 @@ public class TransactAsset(string account, Quantity asset, Quantity cost) : Comm
     /// This property is determined at the creation of the command and works in tandem with the asset amount.
     /// </remarks>
     public Quantity Cost => cost;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to query the quote for the transaction.
+    /// </summary>
+    /// <remarks>
+    /// This property determines if a pricing quote should be retrieved before executing the asset transaction.
+    /// It serves as a toggle to enable or disable the quote query process, depending on the requirements of the operation.
+    /// </remarks>
+    public bool QueryQuote { get; set; }
     
     public override string Target => account;
 }

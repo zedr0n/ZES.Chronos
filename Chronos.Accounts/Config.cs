@@ -134,6 +134,19 @@ namespace Chronos.Accounts
                     : Resolve(new CreateAccount(name, accountType) { Guid = guid }); 
             }
 
+            public bool TransactAsset(string account, Quantity asset, string costAssetId, double? cost, string date, string guid)
+            {
+                var queryQuote = cost == null;
+                var isRetroactive = date.ToTime() != null &&
+                                    _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
+                var time = date?.ToTime() ?? _timeline.Now;
+
+                return isRetroactive
+                    ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, asset, new Quantity(cost ?? 0, new Asset(costAssetId, AssetType.Currency)))
+                        { QueryQuote = queryQuote }, time) { Guid = guid }) 
+                    : Resolve(new TransactAsset(account, asset, new Quantity(cost ?? 0, new Asset(costAssetId, AssetType.Currency))) { Guid = guid, QueryQuote = queryQuote});
+            }
+            
             public bool DepositAsset(string name, Asset asset, Currency currency, double amount, string date, string guid)
             {
                 var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
@@ -145,7 +158,26 @@ namespace Chronos.Accounts
                     : Resolve(new DepositAsset(name, new Quantity(amount, asset)) {Guid = guid});
             }
 
-            public bool AddTransaction(string name, string txId) => Resolve(new AddTransaction(name, txId));
+            public bool CreateTransaction(string txId, string assetId, double amount, string transactionType, string date,string comment, string guid)
+            {
+                var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
+                var time = date?.ToTime() ?? _timeline.Now;
+                var assetsList = Resolve(new AssetPairsInfoQuery()); 
+                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
+                if (asset == null)
+                    throw new InvalidOperationException($"Asset {assetId} not registered");
+                
+                return isRetroactive ? Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment), time) {Guid = guid}) :
+                    Resolve(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment) {Guid = guid});
+            }
+
+            public bool AddTransaction(string account, string txId, string date, string guid)
+            {
+                var isRetroactive = date?.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
+                var time = date?.ToTime() ?? _timeline.Now;
+                return isRetroactive ? Resolve(new RetroactiveCommand<AddTransaction>(new AddTransaction(account, txId), time) { Guid = guid }) :
+                    Resolve(new AddTransaction(account, txId) { Guid = guid });
+            }
 
             public bool UpdateQuotes(string account, string denominator, string date = null)
             {

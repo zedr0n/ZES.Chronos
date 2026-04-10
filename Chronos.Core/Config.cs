@@ -160,7 +160,7 @@ namespace Chronos.Core
                 if (!Enum.TryParse<Transaction.TransactionType>(type, out var eType))
                     throw new ArgumentException("Not a valid transaction type", nameof(type));
                 
-                return Resolve(new RetroactiveCommand<RecordTransaction>(new RecordTransaction(txId, new Quantity(amount, asset), eType, comment), nDate));
+                return Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), eType, comment), nDate));
             }
             
             public bool UpdateQuote(string forAsset, string domAsset, string date = null)

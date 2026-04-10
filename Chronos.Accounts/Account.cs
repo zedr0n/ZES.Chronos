@@ -44,9 +44,9 @@ namespace Chronos.Accounts
         {
             When(new Events.TransactionAdded(txId));
         }
-        public void TransactAsset(Quantity asset, Quantity cost)
+        public void TransactAsset(Quantity asset, Quantity cost, bool queryQuote)
         {
-            When(new Events.AssetTransactionStarted(asset, cost));
+            When(new Events.AssetTransactionStarted(asset, cost, queryQuote));
         }
         private void ApplyEvent(Events.AccountCreated e)
         {

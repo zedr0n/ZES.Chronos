@@ -9,6 +9,6 @@ public class TransactAssetHandler(IEsRepository<IAggregate> repository)
 {
     protected override void Act(Account root, TransactAsset command)
     {
-        root.TransactAsset(command.Asset, command.Cost);
+        root.TransactAsset(command.Asset, command.Cost, command.QueryQuote);
     }
 }

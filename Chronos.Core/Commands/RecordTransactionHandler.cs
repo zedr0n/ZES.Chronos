@@ -8,12 +8,12 @@ using ZES.Interfaces.EventStore;
 
 namespace Chronos.Core.Commands
 {
-  public class RecordTransactionHandler : ZES.Infrastructure.Domain.CreateCommandHandlerBase<RecordTransaction, Transaction>
+  public class RecordTransactionHandler : ZES.Infrastructure.Domain.CreateCommandHandlerBase<CreateTransaction, Transaction>
   {
     public RecordTransactionHandler(IEsRepository<ZES.Interfaces.Domain.IAggregate> repository) : base(repository) 
     {
     }  
-    protected override Transaction Create (RecordTransaction command)
+    protected override Transaction Create (CreateTransaction command)
     {
       return new Transaction(command.TxId, command.Amount, command.TransactionType, command.Comment);
     }

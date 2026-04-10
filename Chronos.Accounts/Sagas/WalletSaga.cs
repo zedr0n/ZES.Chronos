@@ -70,7 +70,7 @@ namespace Chronos.Accounts.Sagas
                 .Permit(Trigger.TransactionRecorded, State.UpdatingAccount)
                 .OnEntryFrom(
                     GetTrigger<WalletBalanceChanged>(),
-                    e => SendCommand(new RecordTransaction($"{Id}[{e.TxId}]", e.Delta, Transaction.TransactionType.Unknown, string.Empty)));
+                    e => SendCommand(new CreateTransaction($"{Id}[{e.TxId}]", e.Delta, Transaction.TransactionType.Unknown, string.Empty)));
 
             StateMachine.Configure(State.UpdatingAccount)
                 .Permit(Trigger.AccountUpdated, State.Listening)
