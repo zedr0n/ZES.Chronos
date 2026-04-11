@@ -134,11 +134,17 @@ namespace Chronos.Accounts
                     : Resolve(new CreateAccount(name, accountType) { Guid = guid }); 
             }
 
-            public bool TransactAsset(string account, Quantity asset, string costAssetId, double? cost, string date, string guid)
+            public bool TransactAsset(string account, double amount, string assetId, string costAssetId, double? cost, string date, string guid)
             {
                 var isRetroactive = date.ToTime() != null &&
                                     _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
                 var time = date?.ToTime() ?? _timeline.Now;
+                
+                var assetsList = Resolve(new AssetPairsInfoQuery()); 
+                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
+                if(asset == null)
+                    throw new InvalidOperationException($"Asset {assetId} not registered");
+                
                 var costAsset = new Asset(costAssetId, AssetType.Currency);
                 if (costAssetId == null)
                 {
@@ -147,24 +153,28 @@ namespace Chronos.Accounts
                     
                     var assetPairs = Resolve(new AssetPairsInfoQuery());
                     var pair = assetPairs.GetPairs()
-                        .FirstOrDefault(x => x.forAsset.AssetId == asset.Denominator.AssetId);
+                        .FirstOrDefault(x => x.forAsset.AssetId == asset.AssetId);
                     if (pair != default)
                         costAsset = pair.domAsset;
                 }
+                var quantity = new Quantity(amount, asset);
                 var costQuantity = new Quantity(cost ?? double.NaN, costAsset); 
 
                 return isRetroactive
-                    ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, asset, costQuantity), time) { Guid = guid }) 
-                    : Resolve(new TransactAsset(account, asset, costQuantity) { Guid = guid});
+                    ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, quantity, costQuantity), time) { Guid = guid }) 
+                    : Resolve(new TransactAsset(account, quantity, costQuantity) { Guid = guid});
             }
             
-            public bool DepositAsset(string name, Asset asset, Currency currency, double amount, string date, string guid)
+            public bool DepositAsset(string name, double amount, string assetId, string date, string guid)
             {
                 var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
                 var time = date?.ToTime() ?? _timeline.Now;
+
+                var assetsList = Resolve(new AssetPairsInfoQuery()); 
+                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
+                if(asset == null)
+                    throw new InvalidOperationException($"Asset {assetId} not registered");
                 
-                if(currency != null)
-                    asset = currency;
                 return isRetroactive ? Resolve(new RetroactiveCommand<DepositAsset>(new DepositAsset(name, new Quantity(amount, asset)), time) {Guid = guid}) 
                     : Resolve(new DepositAsset(name, new Quantity(amount, asset)) {Guid = guid});
             }

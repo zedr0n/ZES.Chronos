@@ -95,10 +95,10 @@ export async function registerAssetPair(forAssetId : string, forAssetType : stri
  * @param date Date to deposit
  * @param guid Command guid
  */
-export async function depositAsset(name : string, amount : number, assetId : string, assetType : string, date : number, guid : string)
+export async function depositAsset(name : string, amount : number, assetId : string, date : number, guid : string)
 {
   const mutation = `mutation {
-    depositAsset( name : "${name}", amount : ${amount}, asset: {assetId : "${assetId}", assetType : ${assetType.toUpperCase()}}, date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
+    depositAsset( name : "${name}", amount : ${amount}, assetId : "${assetId}", date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
   }`
   
   let result = await MutationWithId(name, mutation)
@@ -117,20 +117,11 @@ export async function depositAsset(name : string, amount : number, assetId : str
  * @param {string} guid - A unique identifier for the transaction.
  * @return {Promise<string>} A promise that resolves to the result of the transaction or rejects with an error.
  */
-export async function transactAsset(account: string, assetId : string, assetType : string, amount : number, costAssetId? : string, costAmount?: number, date? : number, guid? : string)
+export async function transactAsset(account: string, assetId : string, amount : number, costAssetId? : string, costAmount?: number, date? : number, guid? : string)
 {
-  let mutation = ""
-  if(costAmount != undefined)
-  {
-    mutation = `mutation {
-      transactAsset( account : "${account}", asset : { amount: ${amount}, denominator : { assetId : "${assetId}", assetType : ${assetType.toUpperCase()} } }, costAssetId : "${costAssetId}", costAmount : ${costAmount}, date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
+  let mutation = `mutation {
+      transactAsset( account : "${account}", assetId: "${assetId}", amount : ${amount}, ${costAssetId != undefined ? `costAssetId : "${costAssetId}, "` : ``} ${costAmount != undefined ? `costAmount : ${costAmount},` : ""} date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
     }`
-  }
-  else
-    mutation = `mutation {
-      transactAsset( account : "${account}", asset : { amount: ${amount}, denominator : { assetId : "${assetId}", assetType : ${assetType.toUpperCase()} } }, ${costAssetId != undefined ? `costAssetId : "${costAssetId}"` : ``}, date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
-    }`
-
 
   let result = await SingleQuery(mutation, getIdOrError(account, data => data.transactAsset.toString()))
   return result
