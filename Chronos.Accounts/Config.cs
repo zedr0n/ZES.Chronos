@@ -136,15 +136,26 @@ namespace Chronos.Accounts
 
             public bool TransactAsset(string account, Quantity asset, string costAssetId, double? cost, string date, string guid)
             {
-                var queryQuote = cost == null;
                 var isRetroactive = date.ToTime() != null &&
                                     _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
                 var time = date?.ToTime() ?? _timeline.Now;
+                var costAsset = new Asset(costAssetId, AssetType.Currency);
+                if (costAssetId == null)
+                {
+                    if(cost != null)
+                        throw new InvalidOperationException("Cost asset id is required");
+                    
+                    var assetPairs = Resolve(new AssetPairsInfoQuery());
+                    var pair = assetPairs.GetPairs()
+                        .FirstOrDefault(x => x.forAsset.AssetId == asset.Denominator.AssetId);
+                    if (pair != default)
+                        costAsset = pair.domAsset;
+                }
+                var costQuantity = new Quantity(cost ?? double.NaN, costAsset); 
 
                 return isRetroactive
-                    ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, asset, new Quantity(cost ?? 0, new Asset(costAssetId, AssetType.Currency)))
-                        { QueryQuote = queryQuote }, time) { Guid = guid }) 
-                    : Resolve(new TransactAsset(account, asset, new Quantity(cost ?? 0, new Asset(costAssetId, AssetType.Currency))) { Guid = guid, QueryQuote = queryQuote});
+                    ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, asset, costQuantity), time) { Guid = guid }) 
+                    : Resolve(new TransactAsset(account, asset, costQuantity) { Guid = guid});
             }
             
             public bool DepositAsset(string name, Asset asset, Currency currency, double amount, string date, string guid)

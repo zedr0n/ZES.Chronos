@@ -45,5 +45,10 @@ namespace Chronos.Core.Queries
         var precedents = path?.Select(p => Pairs.Contains(AssetPair.Fordom(p.DomAsset, p.ForAsset)) ? (p.DomAsset, p.ForAsset) : (p.ForAsset, p.DomAsset));
         return precedents;
     }
+
+    public IEnumerable<(Asset forAsset, Asset domAsset)> GetPairs()
+    {
+        return Assets.SelectMany(a => Assets.Where(b => Pairs.Contains(AssetPair.Fordom(a, b))), (a, b) => (a, b));
+    }
   }
 }

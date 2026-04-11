@@ -33,8 +33,14 @@ namespace Chronos.Core
     /// </summary>
     /// <param name="AssetId">Asset identifier</param>
     /// <param name="AssetType">Asset type</param>
-    public record Asset(string AssetId, AssetType AssetType)
+    public record Asset(string? AssetId, AssetType AssetType)
     {
+        /// <summary>
+        /// Validates whether the current Asset instance has a non-null and non-empty AssetId.
+        /// </summary>
+        /// <returns>True if the AssetId is valid; otherwise, false.</returns>
+        public bool IsValid() => AssetId != null && AssetId.Length > 0;
+        
         /// <summary>
         /// Converts any Asset (including derived types such as Currency) into its base Asset instance representation
         /// </summary>
@@ -64,7 +70,7 @@ namespace Chronos.Core
             /// <inheritdoc/>
             public int GetHashCode(Asset obj)
             {
-                return HashCode.Combine(obj.AssetId, obj.AssetType);
+                return HashCode.Combine(obj.AssetId ?? string.Empty, obj.AssetType);
             }
         }
     }

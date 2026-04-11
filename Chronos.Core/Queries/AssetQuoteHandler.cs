@@ -6,6 +6,7 @@
 
 using System;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Core.Commands;
 using ZES.Infrastructure;
@@ -26,7 +27,8 @@ namespace Chronos.Core.Queries
     IClock clock,
     IQueryHandler<AssetPairInfoQuery, AssetPairInfo> pairInfoHandler,
     IQueryHandler<SingleAssetQuoteQuery, SingleAssetQuote> handler,
-    ICommandHandler<RetroactiveCommand<UpdateQuote>> updateQuoteHandler)
+    ICommandHandler<RetroactiveCommand<UpdateQuote>> updateQuoteHandler,
+    IFlowCompletionService completionService)
     : QueryHandlerBase<AssetQuoteQuery, AssetQuote, AssetPairsInfo>(manager, activeTimeline)
   {
     protected override async Task<AssetQuote> Handle(IProjection<AssetPairsInfo> projection, AssetQuoteQuery query)
@@ -47,7 +49,11 @@ namespace Chronos.Core.Queries
         {
           var quoteDates = await pairInfoHandler.Handle(new AssetPairInfoQuery(fordom));
           if (quoteDates.QuoteDates.All(d => d.Minus(timestamp.ToInstant()).Days != 0))
-            await updateQuoteHandler.Handle(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom) { Ephemeral = true }, query.Timestamp));
+          {
+            await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
+            await updateQuoteHandler.Handle(
+              new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom) { Ephemeral = true }, query.Timestamp));
+          }
         }
         
         var result = await handler.Handle(new SingleAssetQuoteQuery(fordom)
@@ -80,7 +86,11 @@ namespace Chronos.Core.Queries
             var now = clock.GetCurrentInstant();
             var intraday = query.Timestamp.ToInstant().InUtc().Date == now.ToInstant().InUtc().Date;
             if (intraday || quoteDates.QuoteDates.All(d => d.Minus(timestamp.ToInstant()).Days != 0))
-              await updateQuoteHandler.Handle(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(pathForDom) { Ephemeral = true }, query.Timestamp));
+            {
+              await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
+              await updateQuoteHandler.Handle(
+                new RetroactiveCommand<UpdateQuote>(new UpdateQuote(pathForDom) { Ephemeral = true }, query.Timestamp));
+            }
           }
           
           var pathResult = await handler.Handle(new SingleAssetQuoteQuery(pathForDom)

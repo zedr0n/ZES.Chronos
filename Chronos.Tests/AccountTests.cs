@@ -178,7 +178,7 @@ namespace Chronos.Tests
             await bus.Command(new RegisterAssetPair(AssetPair.Fordom(ccy, quoteCcy), ccy, quoteCcy));
             await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, quoteCcy), asset, quoteCcy));
             
-            await bus.Command(new TransactAsset("Account",new Quantity(100, asset), new Quantity(0.0, quoteCcy)) { QueryQuote = true });
+            await bus.Command(new TransactAsset("Account",new Quantity(100, asset), new Quantity(double.NaN, quoteCcy)));
            
             await bus.EqualDouble(new AccountStatsQuery("Account", asset), s => s.Balance.Amount, 0, precision: 6);
         

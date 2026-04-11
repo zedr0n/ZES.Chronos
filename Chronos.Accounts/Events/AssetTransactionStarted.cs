@@ -10,10 +10,9 @@ namespace Chronos.Accounts.Events;
 /// </summary>
 /// <param name="asset">The amount and type of the asset being transacted.</param>
 /// <param name="cost">The monetary or asset value corresponding to the transaction cost.</param>
-/// <param name="queryQuote">A flag indicating whether a quote is required for the transaction.</param>
-public class AssetTransactionStarted(Quantity asset, Quantity cost, bool queryQuote) : Event
+public class AssetTransactionStarted(Quantity asset, Quantity cost) : Event
 {
-    public AssetTransactionStarted() : this(null, null, false)
+    public AssetTransactionStarted() : this(null, null)
     {
     }
 
@@ -35,13 +34,13 @@ public class AssetTransactionStarted(Quantity asset, Quantity cost, bool queryQu
     /// This property is determined at the creation of the command and works in tandem with the asset amount.
     /// </remarks>
     public Quantity Cost => cost;
-    
+
     /// <summary>
-    /// Gets or sets a value indicating whether to query the quote for the transaction.
+    /// Gets or sets the fee associated with the asset transaction.
     /// </summary>
     /// <remarks>
-    /// This property determines if a pricing quote should be retrieved before executing the asset transaction.
-    /// It serves as a toggle to enable or disable the quote query process, depending on the requirements of the operation.
+    /// Represents the additional cost or surcharge applied to the transaction.
+    /// This value encapsulates the monetary or asset-based fee required to process the transaction.
     /// </remarks>
-    public bool QueryQuote => queryQuote; 
+    public Quantity Fee { get; set; }
 }

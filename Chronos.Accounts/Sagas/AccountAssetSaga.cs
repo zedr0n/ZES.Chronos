@@ -12,6 +12,7 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
 {
     private Quantity _quantity;
     private Quantity _cost;
+    private Quantity _fee;
     private string _account;
     
     public AccountAssetSaga()
@@ -64,9 +65,19 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
     {
         _quantity = e.Asset;
         _cost = e.Cost;
+        _fee = e.Fee;
         _account = e.AggregateRootId();
-        if (e.QueryQuote)
-            SendCommand(new UpdateQuote(AssetPair.Fordom(e.Asset.Denominator, e.Cost.Denominator)) { EnforceCache = true });
+        var queryQuote = !_cost.IsValid();
+
+        if (queryQuote)
+        {
+            var domAsset = e.Cost.Denominator;
+            if (domAsset.IsValid())
+            {
+                SendCommand(new UpdateQuote(AssetPair.Fordom(e.Asset.Denominator, domAsset))
+                    { EnforceCache = true });
+            }
+        }
         else
             DoTransaction();
     }
@@ -81,6 +92,8 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
     private void DoTransaction()
     {
         SendCommand(new CreateTransaction(Id, _cost with { Amount = -_cost.Amount }, Transaction.TransactionType.Asset, $"{_quantity.Denominator.AssetId} asset transaction"));
+        if(_fee != null && _fee.IsValid())
+            SendCommand(new CreateTransaction(Id, _fee with { Amount = -_fee.Amount }, Transaction.TransactionType.Fee, $"{_quantity.Denominator.AssetId} asset transaction fee"));
         SendCommand(new AddTransaction(_account, Id));
         SendCommand(new DepositAsset(_account, _quantity));
     }

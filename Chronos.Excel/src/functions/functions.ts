@@ -117,7 +117,7 @@ export async function depositAsset(name : string, amount : number, assetId : str
  * @param {string} guid - A unique identifier for the transaction.
  * @return {Promise<string>} A promise that resolves to the result of the transaction or rejects with an error.
  */
-export async function transactAsset(account: string, assetId : string, assetType : string, amount : number, costAssetId : string, costAmount?: number, date? : number, guid? : string)
+export async function transactAsset(account: string, assetId : string, assetType : string, amount : number, costAssetId? : string, costAmount?: number, date? : number, guid? : string)
 {
   let mutation = ""
   if(costAmount != undefined)
@@ -128,7 +128,7 @@ export async function transactAsset(account: string, assetId : string, assetType
   }
   else
     mutation = `mutation {
-      transactAsset( account : "${account}", asset : { amount: ${amount}, denominator : { assetId : "${assetId}", assetType : ${assetType.toUpperCase()} } }, costAssetId : "${costAssetId}", date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
+      transactAsset( account : "${account}", asset : { amount: ${amount}, denominator : { assetId : "${assetId}", assetType : ${assetType.toUpperCase()} } }, ${costAssetId != undefined ? `costAssetId : "${costAssetId}"` : ``}, date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
     }`
 
 
@@ -474,27 +474,27 @@ export async function hashflareStats() : Promise<any>
  * @param {boolean} immediate convert to asset at tx date
  */
 export async function accountStats(account : string, asOfDate : number, assetId? : string, immediate? : boolean) : Promise<any> {
-  let query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}" ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId }} } 
-  }`;
-  if (assetId != undefined && assetId != "")
-  {
-    if (immediate != undefined && immediate) {
-      query = `{
-        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId }} } 
-      }`;
-    }
-    else {
-        query = `{
-        accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } }  
-      }`;
-    }
+  if(assetId == undefined || assetId == "")
+    assetId = "GBP"
+  let query = ''
+  if (immediate != undefined && immediate) {
+    query = `{
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId }} positions { amount denominator { assetId } } } 
+    }`;
+  }
+  else {
+    query = `{
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } positions { amount denominator { assetId } } }  
+    }`;
   }
   
   window.console.log(query)
 
   // amount = Number(await SingleQuery(query, data => data.accountStats.balance.amount.toString()))
-  let result = await SingleQuery(query, data => ({ amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator, cashAmount: data.accountStats.cashBalance.amount, cashAsset: data.accountStats.cashBalance.denominator }))
+  let result = await SingleQuery(query, data => ({ 
+    amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator,
+    cashAmount: data.accountStats.cashBalance.amount, cashAsset: data.accountStats.cashBalance.denominator,
+    positions: data.accountStats.positions, values: data.accountStats.values}))
   if(typeof(result)  === "string")
     return result
   
@@ -529,7 +529,21 @@ export async function accountStats(account : string, asOfDate : number, assetId?
             basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
           }  
         },
-      }
+      },
+      "Positions" : {
+        type : Excel.CellValueType.entity,
+        text : "Positions",
+        properties : {
+          "Amount" : {
+            type : Excel.CellValueType.string,
+            basicValue : result.positions.map(x => x.amount).join(", "),
+          },
+          "Asset" : {
+            type : Excel.CellValueType.string,
+            basicValue : result.positions.map(x => x.denominator.assetId ?? "").join(", ")
+          } 
+        },
+      },
     }
   }
   return myEntity

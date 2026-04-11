@@ -32,13 +32,14 @@ public class TransactAsset(string account, Quantity asset, Quantity cost) : Comm
     public Quantity Cost => cost;
 
     /// <summary>
-    /// Gets or sets a value indicating whether to query the quote for the transaction.
+    /// Gets or sets the fee associated with the asset transaction.
     /// </summary>
     /// <remarks>
-    /// This property determines if a pricing quote should be retrieved before executing the asset transaction.
-    /// It serves as a toggle to enable or disable the quote query process, depending on the requirements of the operation.
+    /// Represents the cost or charge incurred as part of processing the transaction.
+    /// This value is expressed as a <see cref="Quantity"/> object, which includes the fee amount
+    /// and its corresponding asset denominator, such as a currency or other value unit.
     /// </remarks>
-    public bool QueryQuote { get; set; }
+    public Quantity Fee { get; set; }
     
     public override string Target => account;
 }
