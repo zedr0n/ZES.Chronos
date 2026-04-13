@@ -8,28 +8,38 @@ using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
+using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Accounts.Queries
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Handles the <see cref="AccountStatsQuery"/> by processing the account data and computing statistics such as positions, values, and cash balance.
+    /// </summary>
+    /// <remarks>
+    /// This handler retrieves and transforms account-related data based on the query's specifications and projection state.
+    /// </remarks>
     [Transient]
     public class AccountStatsQueryHandler : DefaultSingleQueryHandler<AccountStatsQuery, AccountStats, AccountStatsState>
     {
         private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
+        private readonly ILog _log;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AccountStatsQueryHandler"/> class.
+        /// Handles the <see cref="AccountStatsQuery"/> by retrieving account-related data
+        /// and computing statistics such as positions, account values, and cash balances.
         /// </summary>
-        /// <param name="manager">Projection manager</param>
-        /// <param name="activeTimeline">Active timeline</param>
-        /// <param name="handler">Asset price handler</param>
-        /// <param name="transactionInfoHandler">Transaction info handler</param>
-        public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AssetQuoteQuery, AssetQuote> handler, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler) 
+        /// <remarks>
+        /// This implementation processes the query by interacting with projection states and related handlers.
+        /// </remarks>
+        public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
+            IQueryHandler<AssetQuoteQuery, AssetQuote> handler,
+            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log)
             : base(manager, activeTimeline)
         {
             _handler = handler;
             _transactionInfoHandler = transactionInfoHandler;
+            _log = log;
         }
 
         /// <inheritdoc/>
@@ -74,9 +84,12 @@ namespace Chronos.Accounts.Queries
                     ConvertToDenominatorAtTxDate = query.ConvertToDenominatorAtTxDate,
                     Timestamp = query.Timestamp,
                 });
-                if (tx == default)
-                    return default;
-                
+                if (tx == null)
+                {
+                    _log.Error($"Transaction {txId} not found");
+                    return null;
+                }
+
                 total += tx.Quantity.Amount;
             }
 

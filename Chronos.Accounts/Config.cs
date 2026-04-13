@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -10,6 +11,7 @@ using Chronos.Core.Commands;
 using Chronos.Core.Queries;
 using SimpleInjector;
 using ZES.Infrastructure;
+using ZES.Infrastructure.Branching;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
 using ZES.Infrastructure.Utils;
@@ -42,19 +44,16 @@ namespace Chronos.Accounts
         public class Query : GraphQlQuery
         {
             private readonly IBus _bus;
-            private readonly ITimeline _timeline;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Query"/> class.
             /// </summary>
             /// <param name="bus">ZES Bus</param>
             /// <param name="log">Log service</param>
-            /// <param name="timeline"></param>
-            public Query(IBus bus, ILog log, ITimeline timeline) 
+            public Query(IBus bus, ILog log) 
                 : base(bus, log )
             {
                 _bus = bus;
-                _timeline = timeline;
             }
 
             /// <summary>
@@ -65,16 +64,14 @@ namespace Chronos.Accounts
 
             public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, bool? immediate = null)
             {
-                var nDate = date.ToTime();
-                if (nDate == null)
-                    nDate = _timeline.Now;
+                var time = date?.ToTime();
 
                 if (denominator == null && currency != null)
                     denominator = currency;
                 return Resolve(new AccountStatsQuery(accountName, denominator)
                 {
                     ConvertToDenominatorAtTxDate = immediate ?? false,
-                    Timestamp = nDate,
+                    Timestamp = time,
                     QueryNet = true
                 });  
             } 
@@ -94,24 +91,21 @@ namespace Chronos.Accounts
         public class Mutation : GraphQlMutation
         {
             private readonly IBus _bus;
-            private readonly ITimeline _timeline;
             private readonly Query _queries;
             private readonly Core.Config.Query _coreQueries;
 
+            private readonly ConcurrentDictionary<string, Asset> _assets;
+
             /// <summary>
-            /// Initializes a new instance of the <see cref="Mutation"/> class.
+            /// Root GraphQL mutation class for the Accounts domain.
             /// </summary>
-            /// <param name="bus">Bus service</param>
-            /// <param name="log">Log service</param>
-            /// <param name="manager">Branch manager</param>
-            /// <param name="timeline">Timeline</param>
-            public Mutation(IBus bus, ILog log, IBranchManager manager, ITimeline timeline, GraphQlResolver resolver) 
+            public Mutation(IBus bus, ILog log, IBranchManager manager, GraphQlResolver resolver)
                 : base(bus, log, manager, resolver)
             {
                 _bus = bus;
-                _timeline = timeline;
-                _queries = new Query(bus, log, timeline);
-                _coreQueries = new Core.Config.Query(bus, timeline, log);
+                _queries = new Query(bus, log);
+                _coreQueries = new Core.Config.Query(bus, log);
+                _assets = new ConcurrentDictionary<string, Asset>();
             }
 
             /// <summary>
@@ -124,26 +118,25 @@ namespace Chronos.Accounts
             /// <returns>True if successful</returns>
             public bool CreateAccount(string name, string type, string date, string guid)
             {
-                var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
-                var time = date?.ToTime() ?? _timeline.Now;
+                var time = date?.ToTime();
 
                 if (!Enum.TryParse<AccountType>(type, out var accountType))
                     return false;
 
-                return isRetroactive ? Resolve(new RetroactiveCommand<CreateAccount>(new CreateAccount(name, accountType), time) { Guid = guid }) 
+                return time != null ? Resolve(new RetroactiveCommand<CreateAccount>(new CreateAccount(name, accountType), time) { Guid = guid }) 
                     : Resolve(new CreateAccount(name, accountType) { Guid = guid }); 
             }
 
             public bool TransactAsset(string account, double amount, string assetId, string costAssetId, double? cost, string date, string guid, double? fee)
             {
-                var isRetroactive = date.ToTime() != null &&
-                                    _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
-                var time = date?.ToTime() ?? _timeline.Now;
-                
-                var assetsList = Resolve(new AssetPairsInfoQuery()); 
-                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                if(asset == null)
-                    throw new InvalidOperationException($"Asset {assetId} not registered");
+                var time = date?.ToTime();
+
+                var asset = _assets.GetOrAdd(assetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() {Timeline = BranchManager.Master}); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
                 
                 var costAsset = new Asset(costAssetId, AssetType.Currency);
                 if (costAssetId == null)
@@ -151,7 +144,7 @@ namespace Chronos.Accounts
                     if(cost != null)
                         throw new InvalidOperationException("Cost asset id is required");
                     
-                    var assetPairs = Resolve(new AssetPairsInfoQuery());
+                    var assetPairs = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master });
                     var pair = assetPairs.GetPairs()
                         .FirstOrDefault(x => x.forAsset.AssetId == asset.AssetId);
                     if (pair != default)
@@ -160,50 +153,49 @@ namespace Chronos.Accounts
                 var quantity = new Quantity(amount, asset);
                 var costQuantity = new Quantity(cost ?? double.NaN, costAsset); 
 
-                return isRetroactive
-                    ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, quantity, costQuantity) { Fee = fee != null ? new Quantity(fee.Value, costAsset) : null } , time) { Guid = guid }) 
+                return time != null ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, quantity, costQuantity) { Fee = fee != null ? new Quantity(fee.Value, costAsset) : null } , time) { Guid = guid }) 
                     : Resolve(new TransactAsset(account, quantity, costQuantity) { Guid = guid, Fee = fee != null ? new Quantity(fee.Value, costAsset) : null });
             }
             
             public bool DepositAsset(string name, double amount, string assetId, string date, string guid)
             {
-                var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
-                var time = date?.ToTime() ?? _timeline.Now;
+                var time = date?.ToTime();
 
-                var assetsList = Resolve(new AssetPairsInfoQuery()); 
-                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                if(asset == null)
-                    throw new InvalidOperationException($"Asset {assetId} not registered");
+                var asset = _assets.GetOrAdd(assetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
                 
-                return isRetroactive ? Resolve(new RetroactiveCommand<DepositAsset>(new DepositAsset(name, new Quantity(amount, asset)), time) {Guid = guid}) 
+                return time != null ? Resolve(new RetroactiveCommand<DepositAsset>(new DepositAsset(name, new Quantity(amount, asset)), time) {Guid = guid}) 
                     : Resolve(new DepositAsset(name, new Quantity(amount, asset)) {Guid = guid});
             }
 
             public bool CreateTransaction(string txId, string assetId, double amount, string transactionType, string date,string comment, string guid)
             {
-                var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
-                var time = date?.ToTime() ?? _timeline.Now;
-                var assetsList = Resolve(new AssetPairsInfoQuery()); 
-                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                if (asset == null)
-                    throw new InvalidOperationException($"Asset {assetId} not registered");
+                var time = date?.ToTime();
+                var asset = _assets.GetOrAdd(assetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
                 
-                return isRetroactive ? Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment), time) {Guid = guid}) :
+                return time != null ? Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment), time) {Guid = guid}) :
                     Resolve(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment) {Guid = guid});
             }
 
             public bool AddTransaction(string account, string txId, string date, string guid)
             {
-                var isRetroactive = date?.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
-                var time = date?.ToTime() ?? _timeline.Now;
-                return isRetroactive ? Resolve(new RetroactiveCommand<AddTransaction>(new AddTransaction(account, txId), time) { Guid = guid }) :
+                var time = date?.ToTime();
+                return time != null ? Resolve(new RetroactiveCommand<AddTransaction>(new AddTransaction(account, txId), time) { Guid = guid }) :
                     Resolve(new AddTransaction(account, txId) { Guid = guid });
             }
 
             public bool UpdateQuotes(string account, string denominator, string date = null)
             {
-                var isRetroactive = date.ToTime() != null && _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
-                var time = date?.ToTime() ?? _timeline.Now;
+                var time = date?.ToTime();
                 var assetsList = Resolve(new AssetPairsInfoQuery()); 
                 var denominatorAsset = assetsList.Assets.SingleOrDefault(a => a.AssetId == denominator);
 
@@ -221,8 +213,8 @@ namespace Chronos.Accounts
                     {
                         var fordom = AssetPair.Fordom(forAsset, domAsset);
                         var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
-                        if (assetPairInfo.QuoteDates.All(d => d != time.ToInstant()))
-                            Resolve(isRetroactive ? new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), time) : new UpdateQuote(fordom));
+                        if (time == null || assetPairInfo.QuoteDates.All(d => d != time.ToInstant()))
+                            Resolve(time != null ? new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), time) : new UpdateQuote(fordom));
                     }
                 }
                     
@@ -242,12 +234,12 @@ namespace Chronos.Accounts
             {
                 var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
                 var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                var nDate = date.ToTime();
+                var time = date?.ToTime();
                 if (asset == null)
                     throw new InvalidOperationException($"Asset {assetId} not registered");
 
                 var command = new StartTransfer(txId, fromAccount, toAccount, new Quantity(amount, asset));
-                var result = Resolve(new RetroactiveCommand<StartTransfer>(command, nDate));
+                var result = time != null ? Resolve(new RetroactiveCommand<StartTransfer>(command, time)) : Resolve(command);
 
                 return result;
             }

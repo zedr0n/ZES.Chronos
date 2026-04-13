@@ -22,6 +22,7 @@ public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> upda
         var t = webApi.GetJsonResultType();
         var tSearch = webSearchApi.GetJsonResultType();
         var commandT = (ICommand)Activator.CreateInstance(typeof(UpdateQuote<,>).MakeGenericType(t, tSearch), command);
+        commandT?.StoreInLog = false;
         var handler = updateQuoteHandlers.SingleOrDefault(h => h.CanHandle(commandT));
         return (commandT, handler);
     }
@@ -35,6 +36,7 @@ public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> upda
         var t = webApi.GetJsonResultType();
         var tSearch = webSearchApi.GetJsonResultType();
         var commandT = (ICommand)Activator.CreateInstance(typeof(UpdateTicker<,>).MakeGenericType(t, tSearch), command);
+        commandT?.StoreInLog = false;
         var handler = updateTickerHandlers.SingleOrDefault(h => h.CanHandle(commandT));
         return (commandT, handler);
     }

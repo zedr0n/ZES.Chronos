@@ -59,13 +59,11 @@ namespace Chronos.Core
         public class Query : GraphQlQuery
         {
             private readonly IBus _bus;
-            private readonly ITimeline _timeline;
 
-            public Query(IBus bus, ITimeline timeline, ILog log)
+            public Query(IBus bus, ILog log)
                 : base(bus, log)
             {
                 _bus = bus;
-                _timeline = timeline;
             }
             
             public Currency Currency { get; }
@@ -74,7 +72,7 @@ namespace Chronos.Core
 
             public AssetQuote AssetQuote(Asset forAsset, Asset domAsset, string date = null)
             {
-                var nDate = date?.ToTime() ?? _timeline.Now;
+                var nDate = date?.ToTime(); 
                 return Resolve(new HistoricalQuery<AssetQuoteQuery, AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, nDate));
             }
             
@@ -96,28 +94,21 @@ namespace Chronos.Core
                         throw new InvalidOperationException($"Asset {assetId} not registered");
                 }
 
-                var latest = Resolve(new TransactionInfoQuery(txId));
-                var date = latest.Date.ToTime();
-                if (date == default)
+                var txInfo = Resolve(new TransactionInfoQuery(txId));
+                var date = txInfo.Date.ToTime();
+                if (date == null)
                     throw new InvalidOperationException($"No transaction information found for {txId}");
                 
-                var quote = latest.Quotes.SingleOrDefault(q => q.Denominator == asset);
+                var quote = txInfo.Quotes.SingleOrDefault(q => q.Denominator == asset);
                 if (quote != null || assetId == null)
-                    return new TransactionInfo(latest.TxId, date.ToInstant(), quote ?? latest.Quantity, latest.TransactionType, latest.Comment);
+                    return new TransactionInfo(txInfo.TxId, date.ToInstant(), quote ?? txInfo.Quantity, txInfo.TransactionType, txInfo.Comment);
                 
-                var diff = _timeline.Now - date;
-                if (diff.Days > 0 || diff.Hours > 0)
-                {
-                    _bus.Command(new RetroactiveCommand<UpdateQuote>(
-                        new UpdateQuote(AssetPair.Fordom(latest.Quantity.Denominator, asset)), date)).Wait();
+                _bus.Command(new RetroactiveCommand<UpdateQuote>(
+                    new UpdateQuote(AssetPair.Fordom(txInfo.Quantity.Denominator, asset)), date)).Wait();
 
-                    return Resolve(
-                        new HistoricalQuery<TransactionInfoQuery, TransactionInfo>(
-                            new TransactionInfoQuery(txId, asset), date));
-                }
-
-                _bus.Command(new UpdateQuote(AssetPair.Fordom(latest.Quantity.Denominator, asset))).Wait();
-                return Resolve(new TransactionInfoQuery(txId, asset));
+                return Resolve(
+                    new HistoricalQuery<TransactionInfoQuery, TransactionInfo>(
+                        new TransactionInfoQuery(txId, asset), date));
             }
         }
 
@@ -148,19 +139,6 @@ namespace Chronos.Core
                 var command = new RegisterAssetPair(fordom, forAsset, domAsset);
                 var result = Resolve(new RetroactiveCommand<RegisterAssetPair>(command, Time.MinValue) { Guid = guid });
                 return result;
-            }
-
-            public bool RecordTransaction(string txId, double amount, string assetId, string type, string comment, string date = null)
-            {
-                var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
-                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
-                var nDate = date?.ToTime() ?? Time.Default;
-                if (asset == null)
-                    throw new InvalidOperationException($"Asset {assetId} not registered");
-                if (!Enum.TryParse<Transaction.TransactionType>(type, out var eType))
-                    throw new ArgumentException("Not a valid transaction type", nameof(type));
-                
-                return Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), eType, comment), nDate));
             }
             
             public bool UpdateQuote(string forAsset, string domAsset, string date = null)
