@@ -134,7 +134,7 @@ namespace Chronos.Accounts
                     : Resolve(new CreateAccount(name, accountType) { Guid = guid }); 
             }
 
-            public bool TransactAsset(string account, double amount, string assetId, string costAssetId, double? cost, string date, string guid)
+            public bool TransactAsset(string account, double amount, string assetId, string costAssetId, double? cost, string date, string guid, double? fee)
             {
                 var isRetroactive = date.ToTime() != null &&
                                     _timeline.Now.ToInstant().Minus(date.ToTime().ToInstant()).TotalSeconds > 60;
@@ -161,8 +161,8 @@ namespace Chronos.Accounts
                 var costQuantity = new Quantity(cost ?? double.NaN, costAsset); 
 
                 return isRetroactive
-                    ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, quantity, costQuantity), time) { Guid = guid }) 
-                    : Resolve(new TransactAsset(account, quantity, costQuantity) { Guid = guid});
+                    ? Resolve(new RetroactiveCommand<TransactAsset>(new TransactAsset(account, quantity, costQuantity) { Fee = fee != null ? new Quantity(fee.Value, costAsset) : null } , time) { Guid = guid }) 
+                    : Resolve(new TransactAsset(account, quantity, costQuantity) { Guid = guid, Fee = fee != null ? new Quantity(fee.Value, costAsset) : null });
             }
             
             public bool DepositAsset(string name, double amount, string assetId, string date, string guid)

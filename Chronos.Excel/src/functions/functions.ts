@@ -27,6 +27,9 @@ function ExcelDateToJSDate (serial : number) : Date {
   var hours = Math.floor(total_seconds / (60 * 60));
   var minutes = Math.floor(total_seconds / 60) % 60;
 
+  if (hours == 0)
+    hours = 12
+  
   return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
 }
 
@@ -109,18 +112,17 @@ export async function depositAsset(name : string, amount : number, assetId : str
  * @customfunction
  * @param {string} account - The account identifier associated with the transaction.
  * @param {string} assetId - The unique identifier of the asset being transacted.
- * @param {string} assetType - The type of the asset being transacted.
  * @param {number} amount - The quantity of the asset being transacted.
  * @param {string} costAssetId - The unique identifier of the asset used for costing the transaction.
- * @param {number} costAmount - The quantity of the cost asset for this transaction.
+ * @param {number} cost - The quantity of the cost asset for this transaction.
  * @param {number} date - The transaction date, represented as an Excel serial date number.
  * @param {string} guid - A unique identifier for the transaction.
- * @return {Promise<string>} A promise that resolves to the result of the transaction or rejects with an error.
+ * @param {number} fee - The fee associated with the transaction.
  */
-export async function transactAsset(account: string, assetId : string, amount : number, costAssetId? : string, costAmount?: number, date? : number, guid? : string)
+export async function transactAsset(account: string, assetId : string, amount : number, costAssetId? : string, cost?: number, date? : number, guid? : string, fee? : number)
 {
   let mutation = `mutation {
-      transactAsset( account : "${account}", assetId: "${assetId}", amount : ${amount}, ${costAssetId != undefined ? `costAssetId : "${costAssetId}, "` : ``} ${costAmount != undefined ? `costAmount : ${costAmount},` : ""} date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" )
+      transactAsset( account : "${account}", assetId: "${assetId}", amount : ${amount}, ${costAssetId != undefined ? `costAssetId : "${costAssetId}", ` : ``} ${cost != undefined ? `cost : ${cost},` : ""} date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}", fee : ${fee} )
     }`
 
   let result = await SingleQuery(mutation, getIdOrError(account, data => data.transactAsset.toString()))
