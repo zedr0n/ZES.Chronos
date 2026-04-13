@@ -56,8 +56,8 @@ namespace Chronos.Hashflare
 
         public class Mutations : GraphQlMutation
         {
-            public Mutations(IBus bus, ILog log, IBranchManager manager)
-                : base(bus, log, manager)
+            public Mutations(IBus bus, ILog log, IBranchManager manager, GraphQlResolver resolver)
+                : base(bus, log, manager, resolver)
             {
             }
 

@@ -105,8 +105,8 @@ namespace Chronos.Accounts
             /// <param name="log">Log service</param>
             /// <param name="manager">Branch manager</param>
             /// <param name="timeline">Timeline</param>
-            public Mutation(IBus bus, ILog log, IBranchManager manager, ITimeline timeline) 
-                : base(bus, log, manager)
+            public Mutation(IBus bus, ILog log, IBranchManager manager, ITimeline timeline, GraphQlResolver resolver) 
+                : base(bus, log, manager, resolver)
             {
                 _bus = bus;
                 _timeline = timeline;
