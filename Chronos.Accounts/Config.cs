@@ -62,7 +62,7 @@ namespace Chronos.Accounts
             /// <returns>Account stats</returns>
             public Stats AccountStats() => Resolve(new StatsQuery());
 
-            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, bool? immediate = null)
+            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, bool? immediate = null, bool? withPositions = null)
             {
                 var time = date?.ToTime();
 
@@ -72,7 +72,8 @@ namespace Chronos.Accounts
                 {
                     ConvertToDenominatorAtTxDate = immediate ?? false,
                     Timestamp = time,
-                    QueryNet = true
+                    QueryNet = true,
+                    WithPositions = withPositions ?? true
                 });  
             } 
             

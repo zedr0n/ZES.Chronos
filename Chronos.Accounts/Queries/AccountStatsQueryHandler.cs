@@ -62,26 +62,29 @@ namespace Chronos.Accounts.Queries
 
             var positions = new List<Quantity>(); 
             var values = new List<Quantity>();
-            
-            foreach (var (asset, amount) in state.Assets.Zip(state.Quantities, (asset, value) => (asset, value)))
-            {
-                var price = 1.0;
-                if (asset.AssetId != denominator?.AssetId)
-                {
-                    var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
-                    {
-                        Timestamp = query.Timestamp,
-                        QueryNet = query.QueryNet
-                    });
-                    if (queryResult != null)
-                        price = queryResult.Quantity.Amount;
-                    else
-                        return null;
-                }
 
-                positions.Add(new Quantity(amount, asset));
-                values.Add(new Quantity(amount * price, denominator));
-                total += amount * price;
+            if (query.WithPositions)
+            {
+                foreach (var (asset, amount) in state.Assets.Zip(state.Quantities, (asset, value) => (asset, value)))
+                {
+                    var price = 1.0;
+                    if (asset.AssetId != denominator?.AssetId)
+                    {
+                        var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
+                        {
+                            Timestamp = query.Timestamp,
+                            QueryNet = query.QueryNet
+                        });
+                        if (queryResult != null)
+                            price = queryResult.Quantity.Amount;
+                        else
+                            return null;
+                    }
+
+                    positions.Add(new Quantity(amount, asset));
+                    values.Add(new Quantity(amount * price, denominator));
+                    total += amount * price;
+                }
             }
 
             foreach (var txId in state.Transactions)

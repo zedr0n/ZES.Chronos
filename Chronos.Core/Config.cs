@@ -144,6 +144,28 @@ namespace Chronos.Core
                 return result;
             }
 
+            public bool AddQuoteTicker(string assetId, string ticker, string date, string domAssetId, string guid)
+            {
+                var time = date?.ToTime() ?? Time.MinValue;
+                var fordoms = new List<string>();
+                if (domAssetId == null)
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master });
+                    fordoms = assetsList.Pairs.Where(x => x.StartsWith(assetId, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+                else
+                {
+                    fordoms = new List<string>() { AssetPair.Fordom(assetId, domAssetId) };
+                }
+
+                var valid = true;
+                foreach (var fordom in fordoms)
+                    valid &= Resolve(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker(fordom, ticker), time) { Guid = guid });
+
+                return valid;
+            }
+
             public bool AddStockSplit(string assetId, double ratio, string date, string domAssetId, string guid)
             {
                 var time = date?.ToTime();
