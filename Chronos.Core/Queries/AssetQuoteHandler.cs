@@ -61,9 +61,13 @@ namespace Chronos.Core.Queries
           Timeline = query.Timeline,
           Timestamp = query.Timestamp,
         });
-        
+
         if (result == null || timestamp.ToInstant().Minus(result.Timestamp).Days > 0)
-          throw new InvalidOperationException($"Stale pricing date for {fordom}");
+        {
+          log.Error($"Stale pricing date for {fordom}");
+          return new AssetQuote(new Quantity(0.0, query.DomAsset), timestamp.ToInstant());
+        }
+
         price = result.Price;
       }
       else 
@@ -101,9 +105,11 @@ namespace Chronos.Core.Queries
           var pathPrice = pathResult?.Price ?? 1.0;
 
           if (pathResult == null || timestamp.ToInstant().Minus(pathResult.Timestamp).Days > 0)
-            throw new InvalidOperationException($"Stale pricing date for {pathForDom}");
-
-          if (isInverse)
+          { 
+            log.Error($"Stale pricing date for {fordom}");
+            pathPrice = 0.0;
+          }
+          else if (isInverse)
             pathPrice = 1.0 / pathPrice;
           
           price *= pathPrice;
