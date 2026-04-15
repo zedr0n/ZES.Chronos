@@ -218,6 +218,28 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public async Task CanUpdateTransactionDetails()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+
+            await await bus.CommandAsync(new CreateAccount("Account", AccountType.Saving));
+
+            var gbp = new Currency("GBP");
+
+            await bus.Command(new CreateTransaction("Tx", new Quantity(-100, gbp), Transaction.TransactionType.General, string.Empty));
+            await bus.Command(new AddTransaction("Account", "Tx"));
+
+            var res = await bus.QueryAsync(new TransactionInfoQuery("Tx"));
+
+            await await bus.CommandAsync(new UpdateTransactionDetails("Tx", Transaction.TransactionType.Fee,
+                res.Comment));
+            
+            res = await bus.QueryAsync(new TransactionInfoQuery("Tx"));
+            Assert.Equal(Transaction.TransactionType.Fee, res.TransactionType);
+        }
+        
+        [Fact]
         public async Task CanListTransactions()
         {
             var container = CreateContainer();
