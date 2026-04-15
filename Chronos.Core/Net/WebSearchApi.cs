@@ -41,7 +41,7 @@ public class WebSearchApi : IWebSearchApi
     public string GetTicker(IJsonResult result)
     {
         var r = result as JsonResult;
-        var data = r?.FirstOrDefault();
+        var data = r?.FirstOrDefault(d => d.Exchange == "LSE") ?? r?.FirstOrDefault();
         return data != null ? $"{data.Code}.{data.Exchange}" : string.Empty;
     }
 

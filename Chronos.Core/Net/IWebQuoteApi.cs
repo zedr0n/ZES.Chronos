@@ -26,11 +26,11 @@ public interface IWebQuoteApi
     double GetValue(IJsonResult result);
 
     /// <summary>
-    /// Retrieves the search ticker corresponding to the specified asset and dominant asset.
+    /// Retrieves the search ticker corresponding to the specified asset and domestic asset.
     /// </summary>
     /// <param name="forAsset">The target asset for which the search ticker is to be obtained.</param>
-    /// <param name="domAsset">The dominant asset used to contextualize the search ticker.</param>
-    /// <returns>A string representing the search ticker for the specified asset and dominant asset.</returns>
+    /// <param name="domAsset">The domestic asset used to contextualize the search ticker.</param>
+    /// <returns>A string representing the search ticker for the specified asset and domestic asset.</returns>
     string GetSearchTicker(Asset forAsset, Asset domAsset);
 
     /// <summary>

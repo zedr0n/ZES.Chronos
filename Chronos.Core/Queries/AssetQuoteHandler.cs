@@ -48,7 +48,7 @@ namespace Chronos.Core.Queries
         if (query.QueryNet)
         {
           var quoteDates = await pairInfoHandler.Handle(new AssetPairInfoQuery(fordom));
-          if (quoteDates.QuoteDates.All(d => d.Minus(timestamp.ToInstant()).Days != 0))
+          if (quoteDates.QuoteDates.Where(d => d <= timestamp.ToInstant()).All(d => d.Minus(timestamp.ToInstant()).Days != 0))
           {
             await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
             await updateQuoteHandler.Handle(
@@ -62,7 +62,7 @@ namespace Chronos.Core.Queries
           Timestamp = query.Timestamp,
         });
         
-        if (result == null || result.Timestamp.Minus(timestamp.ToInstant()).Days > 0 || timestamp.ToInstant().Minus(result.Timestamp).Days > 0)
+        if (result == null || timestamp.ToInstant().Minus(result.Timestamp).Days > 0)
           throw new InvalidOperationException($"Stale pricing date for {fordom}");
         price = result.Price;
       }
@@ -85,7 +85,7 @@ namespace Chronos.Core.Queries
             var quoteDates = await pairInfoHandler.Handle(new AssetPairInfoQuery(pathForDom));
             var now = clock.GetCurrentInstant();
             var intraday = query.Timestamp.ToInstant().InUtc().Date == now.ToInstant().InUtc().Date;
-            if (intraday || quoteDates.QuoteDates.All(d => d.Minus(timestamp.ToInstant()).Days != 0))
+            if (intraday || quoteDates.QuoteDates.Where(d => d <= timestamp.ToInstant()).All(d => timestamp.ToInstant().Minus(d).Days > 0))
             {
               await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
               await updateQuoteHandler.Handle(
@@ -100,7 +100,7 @@ namespace Chronos.Core.Queries
           });
           var pathPrice = pathResult?.Price ?? 1.0;
 
-          if (pathResult == null || pathResult.Timestamp.Minus(timestamp.ToInstant()).Days > 0 || timestamp.ToInstant().Minus(pathResult.Timestamp).Days > 0)
+          if (pathResult == null || timestamp.ToInstant().Minus(pathResult.Timestamp).Days > 0)
             throw new InvalidOperationException($"Stale pricing date for {pathForDom}");
 
           if (isInverse)

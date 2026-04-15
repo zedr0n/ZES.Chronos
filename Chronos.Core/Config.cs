@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Chronos.Core.Commands;
@@ -6,6 +8,7 @@ using Chronos.Core.Net;
 using Chronos.Core.Queries;
 using SimpleInjector;
 using ZES.Infrastructure;
+using ZES.Infrastructure.Branching;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
 using ZES.Infrastructure.Utils;
@@ -139,6 +142,31 @@ namespace Chronos.Core
                 var command = new RegisterAssetPair(fordom, forAsset, domAsset);
                 var result = Resolve(new RetroactiveCommand<RegisterAssetPair>(command, Time.MinValue) { Guid = guid });
                 return result;
+            }
+
+            public bool AddStockSplit(string assetId, double ratio, string date, string domAssetId, string guid)
+            {
+                var time = date?.ToTime();
+                var fordoms = new List<string>();
+                if (domAssetId == null)
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master });
+                    fordoms = assetsList.Pairs.Where(x => x.StartsWith(assetId, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+                else
+                {
+                    fordoms = new List<string>() { AssetPair.Fordom(assetId, domAssetId) };
+                }
+
+                var valid = true;
+                foreach (var fordom in fordoms)
+                {
+                    valid &= time != null ? Resolve(new RetroactiveCommand<AddStockSplit>(new AddStockSplit(fordom, ratio), time) { Guid = guid }) 
+                        : Resolve(new AddStockSplit(fordom, ratio) { Guid = guid });
+                }
+
+                return valid;
             }
             
             public bool UpdateQuote(string forAsset, string domAsset, string date = null)

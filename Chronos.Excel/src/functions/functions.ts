@@ -91,6 +91,25 @@ export async function registerAssetPair(forAssetId : string, forAssetType : stri
 
 /**
  * @customfunction
+ * @param {string} forAssetId - The unique identifier of the asset for which the stock split is being added.
+ * @param {number} ratio - The factor by which the stock is being split.
+ * @param {string} [domAssetId] - An optional identifier for the domestic asset related to the stock split.
+ * @param {number} [date] - An optional date specifying when the stock split occurs.
+ * @param {string} [guid] Command guid
+ * @return {Promise<any>} A promise that resolves to the result of the stock split addition operation.
+ */
+export async function addStockSplit(assetId : string, ratio : number, domAssetId? : string, date? : number, guid? : string)
+{
+  const mutation = `mutation {
+    addStockSplit( assetId: "${assetId}", ratio: ${ratio}, domAssetId : "${domAssetId}", date : "${ExcelDateToJSDate(date).toISOString()}", guid : "${guid}" ) 
+  }`
+  
+  let result = await SingleQuery(mutation, getIdOrError(assetId, data => data.addStockSplit.toString()))
+  return result;
+}
+
+/**
+ * @customfunction
  * @param name Account name
  * @param amount Amount to deposit
  * @param assetId Asset id
@@ -472,12 +491,12 @@ export async function accountStats(account : string, asOfDate : number, assetId?
   let query = ''
   if (immediate != undefined && immediate) {
     query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId }} positions { amount denominator { assetId } } } 
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", assetId : "${assetId}", immediate : true ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } }
     }`;
   }
   else {
     query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } positions { amount denominator { assetId } } }  
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } }
     }`;
   }
   
@@ -487,7 +506,8 @@ export async function accountStats(account : string, asOfDate : number, assetId?
   let result = await SingleQuery(query, data => ({ 
     amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator,
     cashAmount: data.accountStats.cashBalance.amount, cashAsset: data.accountStats.cashBalance.denominator,
-    positions: data.accountStats.positions, values: data.accountStats.values}))
+    positions: data.accountStats.positions, values: data.accountStats.values}
+  ))
   if(typeof(result)  === "string")
     return result
   
@@ -534,7 +554,11 @@ export async function accountStats(account : string, asOfDate : number, assetId?
           "Asset" : {
             type : Excel.CellValueType.string,
             basicValue : result.positions.map(x => x.denominator.assetId ?? "").join(", ")
-          } 
+          },
+          "Value" : {
+            type : Excel.CellValueType.string,
+            basicValue : result.values.map(x => x.amount).join(", "),
+          }
         },
       },
     }

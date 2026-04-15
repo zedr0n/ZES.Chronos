@@ -23,6 +23,7 @@ namespace Chronos.Core
             Register<QuoteAdded>(ApplyEvent);
             Register<QuoteUrlAdded>(ApplyEvent);
             Register<QuoteTickerAdded>(ApplyEvent);
+            Register<StockSplitAdded>();
         }
 
         /// <summary>
@@ -80,6 +81,17 @@ namespace Chronos.Core
         }
 
         /// <summary>
+        /// Combines the identifiers of the given "for" asset and "dom" asset into a single string.
+        /// </summary>
+        /// <param name="forAssetId">The identifier of the "for" asset.</param>
+        /// <param name="domAssetId">The identifier of the "dom" asset.</param>
+        /// <returns>A string representing the combined identifier of the two assets.</returns>
+        public static string Fordom(string forAssetId, string domAssetId)
+        {
+            return forAssetId + domAssetId;
+        }
+
+        /// <summary>
         /// Adds a quote to the asset pair with specified date, close, open, low, and high values.
         /// </summary>
         /// <param name="date">The date of the quote being added.</param>
@@ -108,7 +120,16 @@ namespace Chronos.Core
         public void AddUrl (string url)
         {
             When(new QuoteUrlAdded(url));
-        }  
+        }
+
+        /// <summary>
+        /// Adjusts the asset pair to account for a stock split with the specified ratio.
+        /// </summary>
+        /// <param name="ratio">The ratio of the stock split, indicating the number of new shares issued for each existing share.</param>
+        public void SplitStock(double ratio)
+        {
+            When(new StockSplitAdded(ForAsset, DomAsset, ratio));
+        }
 
         private void ApplyEvent (AssetPairRegistered e)
         {

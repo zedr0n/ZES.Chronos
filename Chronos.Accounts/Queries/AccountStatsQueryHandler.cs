@@ -8,6 +8,7 @@ using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Domain;
+using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Accounts.Queries
@@ -19,7 +20,7 @@ namespace Chronos.Accounts.Queries
     /// This handler retrieves and transforms account-related data based on the query's specifications and projection state.
     /// </remarks>
     [Transient]
-    public class AccountStatsQueryHandler : DefaultSingleQueryHandler<AccountStatsQuery, AccountStats, AccountStatsState>
+    public class AccountStatsQueryHandler : DefaultQueryHandler<AccountStatsQuery, AccountStats, AccountStatsState>
     {
         private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
@@ -40,6 +41,12 @@ namespace Chronos.Accounts.Queries
             _handler = handler;
             _transactionInfoHandler = transactionInfoHandler;
             _log = log;
+        }
+
+        protected override async Task<AccountStats> Handle(AccountStatsQuery query)
+        {
+            Predicate = s => (s.Type == nameof(Account) && s.SameId(query.Name)) || s.Type == nameof(AssetPair);
+            return await base.Handle(query, query.Name);
         }
 
         /// <inheritdoc/>

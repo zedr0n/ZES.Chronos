@@ -9,7 +9,7 @@ using Chronos.Core;
 
 namespace Chronos.Accounts.Queries
 {
-  public class AccountStats : ZES.Interfaces.Domain.ISingleState
+  public class AccountStats : ZES.Interfaces.Domain.IState
   {
     public AccountStats() 
     {
@@ -23,7 +23,7 @@ namespace Chronos.Accounts.Queries
     public List<Quantity> Values { get; set; }
     public Quantity CashBalance { get; set; }
 
-    public AccountStats(Chronos.Core.Quantity balance) 
+    public AccountStats(Quantity balance) 
     {
       Balance = balance;
     }

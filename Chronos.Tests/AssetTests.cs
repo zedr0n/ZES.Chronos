@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Accounts;
 using Chronos.Accounts.Commands;
+using Chronos.Accounts.Queries;
 using Chronos.Core;
 using Chronos.Core.Commands;
 using Chronos.Core.Net;
@@ -252,6 +253,52 @@ namespace Chronos.Tests
            
             assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), laterDate));
             Assert.Equal(2, assetPairInfo.QuoteDates.Length);
+        }
+
+        [Fact]
+        public async Task CanApplyStockSplit()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var log = container.GetInstance<ILog>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+           
+            var date = new LocalDateTime(2023, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
+            
+            var domAsset = new Currency("USD");
+            var forAsset = new Asset("CORN", AssetType.Equity);
+           
+            var eqQuoteApi = webApiProvider.GetQuoteApi(forAsset.AssetType, domAsset.AssetType, false);
+
+            await connector.SetAsync(webSearchApi.GetUrl("CORN"),
+                "[{\"Code\":\"CORN\",\"Exchange\":\"US\",\"Name\":\"Teucrium Corn Fund\",\"Type\":\"ETF\",\"Country\":\"USA\",\"Currency\":\"USD\",\"ISIN\":\"US88166A1025\",\"isPrimary\":false,\"previousClose\":17.77,\"previousCloseDate\":\"2026-04-13\"},{\"Code\":\"CORN\",\"Exchange\":\"LSE\",\"Name\":\"WisdomTree Corn\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"USD\",\"ISIN\":\"JE00BN7KB441\",\"isPrimary\":false,\"previousClose\":18.755,\"previousCloseDate\":\"2026-04-13\"}]");
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset), date));
+
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Main", AccountType.Trading), date));
+            await bus.Command(new RetroactiveCommand<DepositAsset>(new  DepositAsset("Main", new Quantity(100, forAsset)), date));
+
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)));
+            var ticker = assetPairInfo.Ticker;
+            
+            await connector.SetAsync(eqQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2023-12-01\",\"open\":1.106,\"high\":1.115,\"low\":1.106,\"close\":1.115,\"adjusted_close\":24.53,\"volume\":3255}]");
+           
+            var res = await bus.QueryAsync(new AccountStatsQuery("Main", domAsset) { Timestamp = date, QueryNet = true });
+            Assert.Equal(100, res.Positions.SingleOrDefault()?.Amount);
+            Assert.Equal(100*1.115, res.Balance.Amount);
+            
+            var splitDate = new LocalDateTime(2023, 12, 4, 12, 30).InUtc().ToInstant().ToTime();
+            var splitRatio = 0.045;
+            await bus.Command(new RetroactiveCommand<AddStockSplit>(new AddStockSplit( AssetPair.Fordom(forAsset, domAsset),splitRatio), splitDate));
+
+            await connector.SetAsync(eqQuoteApi.GetUrl(ticker, splitDate),
+                "[{\"date\":\"2023-12-04\",\"open\":24.45,\"high\":24.97,\"low\":24.45,\"close\":24.7325,\"adjusted_close\":24.7325,\"volume\":96}]");
+            
+            res = await bus.QueryAsync(new AccountStatsQuery("Main", domAsset) { Timestamp = splitDate, QueryNet = true });
+            Assert.Equal(100*0.045, res.Positions.SingleOrDefault()?.Amount);
+            Assert.Equal(100*24.7325*0.045, res.Balance.Amount, 1e-6);
         }
         
         [Fact]
