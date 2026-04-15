@@ -1,4 +1,5 @@
-﻿using ZES.Infrastructure.Domain;
+﻿using Newtonsoft.Json;
+using ZES.Infrastructure.Domain;
 
 namespace Chronos.Core.Commands;
 
@@ -9,19 +10,9 @@ namespace Chronos.Core.Commands;
 /// A stock split adjusts the total number of shares and their individual value.
 /// This command includes the asset pair identifier and the split ratio to apply.
 /// </remarks>
+[method: JsonConstructor]
 public class AddStockSplit(string fordom, double ratio) : Command
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AddStockSplit"/> class.
-    /// Represents a command to add a stock split event for a specified asset pair.
-    /// </summary>
-    /// <remarks>
-    /// A stock split adjusts the total number of shares and their individual value.
-    /// This command includes the asset pair identifier and the split ratio to apply.
-    /// </remarks>
-    public AddStockSplit()
-        : this(string.Empty, 1.0) { }
-    
     /// <inheritdoc/>
     public override string Target => fordom;
 

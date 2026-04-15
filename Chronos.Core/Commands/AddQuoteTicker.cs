@@ -1,10 +1,12 @@
-﻿using ZES.Infrastructure.Domain;
+﻿using Newtonsoft.Json;
+using ZES.Infrastructure.Domain;
 
 namespace Chronos.Core.Commands;
 
 /// <summary>
 /// Represents a command to add a quote ticker for a specific target.
 /// </summary>
+[method: JsonConstructor]
 public class AddQuoteTicker(string fordom, string ticker) : Command
 {
     /// <inheritdoc/>

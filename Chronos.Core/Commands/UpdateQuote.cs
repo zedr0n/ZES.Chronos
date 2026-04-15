@@ -1,4 +1,5 @@
 using Chronos.Core.Net;
+using Newtonsoft.Json;
 using ZES.Interfaces.Net;
 
 namespace Chronos.Core.Commands
@@ -6,6 +7,7 @@ namespace Chronos.Core.Commands
     /// <summary>
     /// Represents a command used to update a quote for a specific asset pair.
     /// </summary>
+    [method: JsonConstructor]
     public class UpdateQuote(string fordom) : ZES.Infrastructure.Domain.Command
     {
         /// <inheritdoc/>
@@ -20,6 +22,7 @@ namespace Chronos.Core.Commands
     }
 
     /// <inheritdoc />
+    [method: JsonConstructor]
     public class UpdateQuote<T, TSearch>(string fordom) : UpdateQuote(fordom)
         where T : class, IWebQuoteJsonResult
         where TSearch : class, IWebSearchJsonResult

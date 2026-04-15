@@ -1,4 +1,5 @@
 ﻿using Chronos.Core.Net;
+using Newtonsoft.Json;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Net;
 
@@ -10,6 +11,7 @@ namespace Chronos.Core.Commands;
 /// <remarks>
 /// This command is targeted to a specific domain and ensures the ticker is updated accordingly.
 /// </remarks>
+[method: JsonConstructor]
 public class UpdateTicker(string fordom) : Command
 {
     /// <inheritdoc/>
@@ -17,6 +19,7 @@ public class UpdateTicker(string fordom) : Command
 }
 
 /// <inheritdoc />
+[method: JsonConstructor]
 public class UpdateTicker<T, TSearch>(string fordom) : UpdateTicker(fordom)
     where T : class, IWebQuoteJsonResult
     where TSearch : class, IWebSearchJsonResult
