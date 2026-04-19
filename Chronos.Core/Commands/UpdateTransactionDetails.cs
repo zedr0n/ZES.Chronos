@@ -31,4 +31,3 @@ public class UpdateTransactionDetails(string txId, Transaction.TransactionType t
     /// </summary>
     public override string Target => txId;
 }
-

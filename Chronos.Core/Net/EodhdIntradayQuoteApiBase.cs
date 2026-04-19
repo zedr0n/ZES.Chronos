@@ -21,7 +21,7 @@ public abstract class EodhdIntradayQuoteApiBase : EodhdQuoteApiBase
     public override double GetValue(IJsonResult result)
     {
         var r = result as JsonResult;
-        return r?.Close ?? 0;
+        return r?.Close ?? double.NaN;
     }
     
     /// <inheritdoc/>
@@ -60,7 +60,7 @@ public abstract class EodhdIntradayQuoteApiBase : EodhdQuoteApiBase
         /// For intraday data, this represents the latest traded price of the asset,
         /// updated in real-time or near real-time.
         /// </remarks>
-        public double Close { get; set; }
+        public double Close { get; set; } = double.NaN;
 
         /// <summary>
         /// Gets or sets the closing price from the previous trading session.

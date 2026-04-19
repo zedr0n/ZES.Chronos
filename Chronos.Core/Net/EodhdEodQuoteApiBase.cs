@@ -18,7 +18,7 @@ public abstract class EodhdEodQuoteApiBase : EodhdQuoteApiBase
     /// <inheritdoc/>
     public override string GetUrl(string ticker, Time date = null, bool enforceCache = false)
     {
-        var dateString = date?.ToString(DateFormat, new DateTimeFormatInfo());
+        var dateString = date?.ToDateTime().ToString(DateFormat, new DateTimeFormatInfo());
         return $"{BaseUrl}/{Endpoint}/{ticker}?from={dateString}&to={dateString}&fmt=json&api_token={ApiKey ?? string.Empty}";
     }
 
@@ -27,7 +27,7 @@ public abstract class EodhdEodQuoteApiBase : EodhdQuoteApiBase
     {
         var r = result as JsonResult;
         var data = r?.SingleOrDefault();
-        return data?.Close ?? 0;
+        return data?.Close ?? double.NaN;
     }
 
     /// <inheritdoc/>
@@ -64,7 +64,7 @@ public abstract class EodhdEodQuoteApiBase : EodhdQuoteApiBase
             /// <summary>
             /// Gets or sets the close price of an asset.
             /// </summary>
-            public double Close { get; set; }
+            public double Close { get; set; } = double.NaN;
         }
     }
 }

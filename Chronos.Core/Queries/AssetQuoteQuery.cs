@@ -21,7 +21,7 @@
     {
     }  
     
-    public bool QueryNet { get; set; }
+    public bool UpdateQuote { get; set; }
     
     public AssetQuoteQuery(Chronos.Core.Asset forAsset, Chronos.Core.Asset domAsset) 
     {

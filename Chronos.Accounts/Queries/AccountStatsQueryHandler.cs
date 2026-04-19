@@ -73,7 +73,7 @@ namespace Chronos.Accounts.Queries
                         var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
                         {
                             Timestamp = query.Timestamp,
-                            QueryNet = query.QueryNet
+                            UpdateQuote = query.QueryNet
                         });
                         if (queryResult != null)
                             price = queryResult.Quantity.Amount;

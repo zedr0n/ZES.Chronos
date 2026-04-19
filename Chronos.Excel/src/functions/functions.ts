@@ -36,10 +36,7 @@ function ExcelDateToJSDate (serial : number) : Date {
   var hours = Math.floor(total_seconds / (60 * 60));
   var minutes = Math.floor(total_seconds / 60) % 60;
 
-  if (hours == 0)
-    hours = 12
-  
-  return new Date(date_info.getFullYear(), date_info.getMonth(), date_info.getDate(), hours, minutes, seconds);
+  return new Date(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate(), hours, minutes, seconds);
 }
 
 function JSDateToExcelDate(date : Date) : number {

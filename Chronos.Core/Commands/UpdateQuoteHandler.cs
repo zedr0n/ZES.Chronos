@@ -4,25 +4,50 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Core.Net;
-using NodaTime.Extensions;
+using NodaTime;
+using PublicHoliday;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Net;
 using ZES.Infrastructure.Utils;
-using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Infrastructure;
-using ZES.Interfaces.Net;
+using IClock = ZES.Interfaces.Clocks.IClock;
 
 namespace Chronos.Core.Commands
 {
+  /// <summary>
+  /// Exception thrown when required data is missing or unavailable during processing.
+  /// </summary>
+  /// <remarks>
+  /// This exception is typically used in scenarios where an operation cannot be
+  /// completed due to missing or incomplete data, such as an inability to calculate
+  /// a value from a web API response or other required sources.
+  /// </remarks>
+  public class MissingDataException : ZesException
+  {
+      /// <summary>
+      /// Initializes a new instance of the <see cref="MissingDataException"/> class.
+      /// Represents an exception thrown when essential data is missing or unavailable during the execution
+      /// of an operation or process.
+      /// </summary>
+      /// <remarks>
+      /// This exception is used to indicate that the required data to complete a task or operation
+      /// could not be retrieved or was incomplete. It is commonly utilized in scenarios such as missing
+      /// responses from APIs or failures in data extraction from external sources.
+      /// </remarks>
+      public MissingDataException()
+        : base(true) { }
+  }
+  
   /// <inheritdoc />
   public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote, AssetPair>
   {
     private readonly IEsRepository<IAggregate> _repository;
     private readonly IUpdateCommandFactory _factory;
     private readonly IClock _clock;
+    private readonly IErrorLog _errorLog;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateQuoteHandler"/> class.
@@ -32,16 +57,18 @@ namespace Chronos.Core.Commands
     /// <param name="repository">The aggregate repository used to retrieve and manage asset pair aggregates.</param>
     /// <param name="factory">Factory for creating sub-commands and their corresponding handlers.</param>
     /// <param name="clock">Clock used for time-related operations during quote updates.</param>
+    /// <param name="errorLog">Error log used to track and manage errors during quote updates.</param>
     /// <remarks>
     /// Ensures proper validation and processing of quote updates, including checks to prevent duplicate updates
     /// for the same date and determining whether the update is intraday or not.
     /// </remarks>
-    public UpdateQuoteHandler(IEsRepository<IAggregate> repository, IUpdateCommandFactory factory, IClock clock)
+    public UpdateQuoteHandler(IEsRepository<IAggregate> repository, IUpdateCommandFactory factory, IClock clock, IErrorLog errorLog)
       : base(repository)
     {
       _repository = repository;
       _factory = factory;
       _clock = clock;
+      _errorLog = errorLog;
     }
 
     /// <inheritdoc/>
@@ -52,12 +79,9 @@ namespace Chronos.Core.Commands
         throw new ArgumentNullException(nameof(AssetPair));
 
       var now = _clock.GetCurrentInstant();
-      var intraday = command.Timestamp.ToInstant().InUtc().Date == now.ToInstant().InUtc().Date;
+      var intraday = command.Timestamp.ToDateTime().Date == now.ToDateTime().Date;
       
-      if (!intraday && root.QuoteDates.Any(d =>
-            d.InUtc().Year == command.Timestamp.ToInstant().InUtc().Year &&
-            d.InUtc().Month == command.Timestamp.ToInstant().InUtc().Month &&
-            d.InUtc().Day == command.Timestamp.ToInstant().InUtc().Day))
+      if (!intraday && root.QuoteDates.Any(d => d.IsWithinPriorWorkingDays(command.Timestamp.ToInstant())))
       {
         throw new InvalidOperationException(
           $"Quote already added for {command.Timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
@@ -65,6 +89,22 @@ namespace Chronos.Core.Commands
       
       var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
       await handler.Handle(commandT);
+      var error = _errorLog.PastErrors.FirstOrDefault(e => e?.OriginatingMessage == commandT);
+      if (error != null)
+      {
+        var zone = DateTimeZoneProviders.Tzdb["Europe/London"];
+        var date = command.Timestamp.ToInstant().InZone(zone).Date;
+        var uk = new UKBankHoliday();
+        date = date.PlusDays(-1);
+        while (!uk.IsWorkingDay(date.ToDateTimeUnspecified()))
+          date = date.PlusDays(-1);
+        
+        var newCommand = (UpdateQuote)command.Copy();
+        newCommand.Timestamp = date.At(new LocalTime(16, 30)).InZoneLeniently(zone).ToInstant().ToTime();
+        
+        (commandT, handler) = _factory.CreateUpdateQuote(newCommand, root.ForAsset.AssetType, root.DomAsset.AssetType, false);
+        await handler.Handle(commandT);
+      }
     }
 
     /// <inheritdoc/>
@@ -135,7 +175,7 @@ namespace Chronos.Core.Commands
         throw new ArgumentNullException(nameof(AssetPair));
 
       var now = _clock.GetCurrentInstant();
-      var intraday = command.Timestamp.ToInstant().InUtc().Date == now.ToInstant().InUtc().Date;
+      var intraday = command.Timestamp.ToDateTime().Date == now.ToDateTime().Date;
       
       var webQuoteApi = _webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
       var webSearchApi = _webApiProvider.GetSearchApi();
@@ -152,6 +192,9 @@ namespace Chronos.Core.Commands
         var resTicker = await obsTicker.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout); 
           
         ticker = webSearchApi.GetTicker(resTicker.Data);
+        if (string.IsNullOrEmpty(ticker))
+          return;
+        
         var addQuoteTickerCommand = new AddQuoteTicker(command.Target, ticker);
         await _addQuoteTickerHandler.Handle(addQuoteTickerCommand);
       }
@@ -176,6 +219,9 @@ namespace Chronos.Core.Commands
 
           var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
           value = webQuoteApi.GetValue(res.Data);
+          if (double.IsNaN(value))
+            throw new MissingDataException();
+          
           break;
         }
       }

@@ -242,17 +242,52 @@ namespace Chronos.Tests
             await connector.SetAsync(fxQuoteApi.GetUrl(ticker, laterDate),
                 "[{\"date\":\"2021-12-02\",\"open\":1.3279,\"high\":1.3333,\"low\":1.3273,\"close\":1.328,\"adjusted_close\":1.328,\"volume\":470}]");
 
-            var res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, date));
+            var res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, date));
             Assert.Equal(1.3337, res.Quantity.Amount);
             
-            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, date));
+            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, date));
             Assert.Equal(1.3337, res.Quantity.Amount);
             
-            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, laterDate));
+            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, laterDate));
             Assert.Equal(1.328, res.Quantity.Amount);
            
             assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), laterDate));
             Assert.Equal(2, assetPairInfo.QuoteDates.Length);
+        }
+
+        [Fact]
+        public async Task CanQuerySameWorkingDayQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false);
+
+            var forAsset = new Asset("GBP", AssetType.Currency);
+            var domAsset = new Asset("USD", AssetType.Currency);
+            
+            var date = new LocalDateTime(2020, 12, 1, 18, 30).InUtc().ToInstant().ToTime();
+            var otherDate = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
+            
+            await connector.SetAsync(webSearchApi.GetUrl(AssetPair.Fordom(forAsset, domAsset)),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3335,\"previousCloseDate\":\"2026-03-26\"}]");
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair("GBPUSD", forAsset, domAsset), Time.MinValue));
+            
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)), date));
+            var ticker = assetPairInfo.Ticker;
+           
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2020-12-01\",\"open\":1.3337,\"high\":1.3439,\"low\":1.3319,\"close\":1.3337,\"adjusted_close\":1.3337,\"volume\":908}]");
+           
+            var res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, date));
+            Assert.Equal(1.3337, res.Quantity.Amount);
+            
+            res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, otherDate));
+            Assert.Equal(1.3337, res.Quantity.Amount);
         }
 
         [Fact]

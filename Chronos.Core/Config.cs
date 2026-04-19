@@ -76,7 +76,7 @@ namespace Chronos.Core
             public AssetQuote AssetQuote(Asset forAsset, Asset domAsset, string date = null)
             {
                 var nDate = date?.ToTime(); 
-                return Resolve(new HistoricalQuery<AssetQuoteQuery, AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { QueryNet = true }, nDate));
+                return Resolve(new HistoricalQuery<AssetQuoteQuery, AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, nDate));
             }
             
             /// <summary>
