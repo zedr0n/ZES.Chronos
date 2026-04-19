@@ -12,7 +12,7 @@ namespace Chronos.Core.Commands;
 /// and an optional comment. Transactions created using this command can be associated with accounts and further processed within the system.
 /// </remarks>
 [method: JsonConstructor]
-public class CreateTransaction(string txId, Quantity amount, Transaction.TransactionType transactionType, string comment) : Command, ICreateCommand
+public class CreateTransaction(string txId, Quantity amount, Transaction.TransactionType transactionType, string comment, string assetId = null) : Command, ICreateCommand
 {
     /// <summary>
     /// Gets the unique transaction identifier associated with the command.
@@ -46,4 +46,11 @@ public class CreateTransaction(string txId, Quantity amount, Transaction.Transac
     /// the aggregate root instance the command is intended to act upon.
     /// </summary>
     public override string Target => TxId;
+
+    /// <summary>
+    /// Gets the unique identifier of the asset associated with the transaction.
+    /// This identifier is used to reference a specific asset within the system,
+    /// enabling accurate tracking and association with transactions.
+    /// </summary>
+    public string AssetId => assetId; 
 }

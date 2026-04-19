@@ -35,7 +35,7 @@ namespace Chronos.Core.Queries
         {
             var state = projection.State;
             if (state.TxId == null)
-                return default;
+                return null;
 
             if (query.Denominator == null || query.Denominator == state.Quantity.Denominator)
                 return state;
@@ -63,7 +63,7 @@ namespace Chronos.Core.Queries
                 amount *= fxResult.Quantity.Amount;
             }
             
-            return new TransactionInfo(state.TxId, state.Date, new Quantity(amount, query.Denominator), state.TransactionType, state.Comment) { Quotes = new HashSet<Quantity>(state.Quotes) };
+            return new TransactionInfo(state.TxId, state.Date, new Quantity(amount, query.Denominator), state.TransactionType, state.Comment, state.AssetId) { Quotes = new HashSet<Quantity>(state.Quotes) };
         }
     }
 }

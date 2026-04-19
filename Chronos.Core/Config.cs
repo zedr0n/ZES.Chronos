@@ -104,7 +104,7 @@ namespace Chronos.Core
                 
                 var quote = txInfo.Quotes.SingleOrDefault(q => q.Denominator == asset);
                 if (quote != null || assetId == null)
-                    return new TransactionInfo(txInfo.TxId, date.ToInstant(), quote ?? txInfo.Quantity, txInfo.TransactionType, txInfo.Comment);
+                    return new TransactionInfo(txInfo.TxId, date.ToInstant(), quote ?? txInfo.Quantity, txInfo.TransactionType, txInfo.Comment, txInfo.AssetId);
                 
                 _bus.Command(new RetroactiveCommand<UpdateQuote>(
                     new UpdateQuote(AssetPair.Fordom(txInfo.Quantity.Denominator, asset)), date)).Wait();

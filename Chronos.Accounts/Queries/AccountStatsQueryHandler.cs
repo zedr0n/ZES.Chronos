@@ -49,6 +49,13 @@ namespace Chronos.Accounts.Queries
             return await base.Handle(query, query.Name);
         }
 
+        private class PositionData
+        {
+            public Quantity Position { get; set; }
+            public Quantity Value { get; set; }
+            public Quantity Dividend { get; set; }
+        }
+
         /// <inheritdoc/>
         protected override async Task<AccountStats> Handle(IProjection<AccountStatsState> projection, AccountStatsQuery query)
         {
@@ -60,8 +67,10 @@ namespace Chronos.Accounts.Queries
             if (query.Denominator == null)
                 denominator = state.Assets.SingleOrDefault();
 
-            var positions = new List<Quantity>(); 
-            var values = new List<Quantity>();
+            var positions = new Dictionary<string, PositionData>();
+            //var positions = new List<Quantity>(); 
+            //var values = new List<Quantity>();
+            //var dividends = new List<Quantity>();
 
             if (query.WithPositions)
             {
@@ -81,8 +90,13 @@ namespace Chronos.Accounts.Queries
                             return null;
                     }
 
-                    positions.Add(new Quantity(amount, asset));
-                    values.Add(new Quantity(amount * price, denominator));
+                    if(!positions.ContainsKey(asset.AssetId))
+                        positions[asset.AssetId] = new PositionData();
+
+                    var positionData = positions[asset.AssetId];
+                    positionData.Dividend = new Quantity(0, denominator);
+                    positionData.Position = new Quantity(amount, asset);
+                    positionData.Value = new Quantity(amount * price, denominator);
                     total += amount * price;
                 }
             }
@@ -101,13 +115,28 @@ namespace Chronos.Accounts.Queries
                 }
 
                 total += tx.Quantity.Amount;
+                if (!query.WithPositions || tx.TransactionType != Transaction.TransactionType.Dividend ||
+                    tx.AssetId == null) continue;
+
+                if (positions.TryGetValue(tx.AssetId, out var positionData))
+                    positionData.Dividend = tx.Quantity with { Amount = positionData.Dividend.Amount + tx.Quantity.Amount };
+                /*else
+                {
+                    positions[tx.AssetId] = new PositionData
+                    {
+                        Position = new Quantity(0, new Asset(tx.AssetId, AssetType.Equity)),
+                        Value = new Quantity(0, denominator),
+                        Dividend = tx.Quantity
+                    };
+                }*/
             }
 
             return new AccountStats(new Quantity(total, denominator))
             {
-                Positions = positions, 
-                Values = values,
-                CashBalance = new Quantity(total - values.Sum(v => v.Amount), denominator)
+                Positions = positions.Values.Select(p => p.Position).ToList(),
+                Values = positions.Values.Select(p => p.Value).ToList(),
+                Dividends = positions.Values.Select(p => p.Dividend).ToList(),
+                CashBalance = new Quantity(total - positions.Values.Sum(v => v.Value.Amount), denominator)
             };
         }
     }

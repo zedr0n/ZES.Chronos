@@ -197,13 +197,14 @@ export async function addTransaction(account: string, txId: string, date : numbe
  * @param {number} amount - The amount associated with the transaction.
  * @param {number} date - The timestamp representing the date of the transaction.
  * @param {string} [comment] - An optional comment or description for the transaction.
- * @param {string} guid - A globally unique identifier for the transaction.
+ * @param {string} [guid] - A globally unique identifier for the transaction.
+ * @param {string} [relatedAssetId] - Related asset id
  * @return {Promise<any>} A promise that resolves with the result of the transaction creation.
  */
-export async function createTransaction(txId : string, transactionType : string, assetId : string, amount : number, date : number, comment? : string, guid? : string) : Promise<any>
+export async function createTransaction(txId : string, transactionType : string, assetId : string, amount : number, date : number, comment? : string, guid? : string, relatedAssetId? : string) : Promise<any>
 {
   const mutation = `mutation {
-    createTransaction( txId : "${txId}", assetId : "${assetId}", amount : ${amount}, date : ${ExcelDateToISO(date)}, transactionType : "${transactionType}", comment : "${comment}", guid : "${guid}" )
+    createTransaction( txId : "${txId}", assetId : "${assetId}", amount : ${amount}, date : ${ExcelDateToISO(date)}, transactionType : "${transactionType}", comment : "${comment}", guid : "${guid}" ${relatedAssetId != undefined ? `, relatedAssetId : "${relatedAssetId}"` : ``} )
   }`
   
   let result = await SingleQuery(mutation, getIdOrError(txId, data => data.createTransaction.toString()))
@@ -514,7 +515,7 @@ export async function accountStats(account : string, asOfDate : number, assetId?
     assetId = "GBP"
 
   let query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate}, withPositions : ${withPositions} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } }
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate}, withPositions : ${withPositions} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } }
     }`;
   
   window.console.log(query)
@@ -523,7 +524,7 @@ export async function accountStats(account : string, asOfDate : number, assetId?
   let result = await SingleQuery(query, data => ({ 
     amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator,
     cashAmount: data.accountStats.cashBalance.amount, cashAsset: data.accountStats.cashBalance.denominator,
-    positions: data.accountStats.positions, values: data.accountStats.values}
+    positions: data.accountStats.positions, values: data.accountStats.values, dividends: data.accountStats.dividends}
   ))
   if(typeof(result)  === "string")
     return result
@@ -578,6 +579,10 @@ export async function accountStats(account : string, asOfDate : number, assetId?
                 "Value": {
                   type: Excel.CellValueType.double,
                   basicValue: result.values?.[idx]?.amount ?? 0
+                },
+                "Dividend": {
+                  type: Excel.CellValueType.double,
+                  basicValue: result.dividends?.[idx]?.amount ?? 0
                 }
               }
             }))
@@ -594,6 +599,10 @@ export async function accountStats(account : string, asOfDate : number, assetId?
                   basicValue: 0
                 },
                 "Value": {
+                  type: Excel.CellValueType.double,
+                  basicValue: 0
+                },
+                "Dividend" : {
                   type: Excel.CellValueType.double,
                   basicValue: 0
                 }

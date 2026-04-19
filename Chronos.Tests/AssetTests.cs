@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -19,8 +18,6 @@ using ZES.Infrastructure.Net;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Clocks;
-using ZES.Interfaces.Domain;
-using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Infrastructure;
 using ZES.Interfaces.Net;
 using ZES.TestBase;
@@ -56,6 +53,43 @@ namespace Chronos.Tests
 
             await bus.Command(new CreateTransaction("Tx", new Quantity(100, gbp), Transaction.TransactionType.General, string.Empty));
             await bus.Equal(new TransactionInfoQuery("Tx", usd), t => t.Quantity.Amount, 100 * 1.2);
+        }
+
+        [Fact]
+        public async Task CanGetDividendInfo()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var eqQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, true);
+
+            var domAsset = new Asset("GBP", AssetType.Currency);
+            var quoteAsset = new Currency("GBX");
+            var iukdAsset = new Asset("IUKD", AssetType.Equity);
+            
+            await connector.SetAsync(webSearchApi.GetUrl(iukdAsset.AssetId),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+
+            await connector.SetAsync(eqQuoteApi.GetUrl("IUKD.LSE", null, true),
+                "{\"code\":\"IUKD.LSE\",\"timestamp\":1776440100,\"gmtoffset\":0,\"open\":995.4,\"high\":999.4,\"low\":989.4,\"close\":999.4,\"volume\":329826,\"previousClose\":993.6,\"change\":5.8,\"change_p\":0.5837}");
+            
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(domAsset, quoteAsset), domAsset, quoteAsset));
+            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(iukdAsset, quoteAsset), iukdAsset, quoteAsset));
+            await bus.Command(new CreateAccount("Main", AccountType.Trading));
+
+            await bus.Command(new TransactAsset("Main", new Quantity(100, iukdAsset), new Quantity(9.994*100, domAsset)));
+            await bus.Command(new CreateTransaction("Dividend", new Quantity(1, domAsset), Transaction.TransactionType.Dividend, "Dividend", iukdAsset.AssetId));
+            await bus.Command(new AddTransaction("Main", "Dividend"));
+           
+            await bus.Command(new UpdateQuote(AssetPair.Fordom(iukdAsset, quoteAsset)) { EnforceCache = true });
+            
+            //var res = await bus.QueryAsync(new TransactionInfoQuery("Dividend", domAsset));
+            var res = await bus.QueryAsync(new AccountStatsQuery("Main", domAsset));
+            Assert.Equal(1, res.Balance.Amount);
+            Assert.Equal(1-9.994*100, res.CashBalance.Amount);
+            Assert.Equal(1, res.Dividends.Sum(x => x?.Amount ?? 0));
         }
 
         [Fact]

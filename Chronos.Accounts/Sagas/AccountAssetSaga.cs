@@ -91,12 +91,12 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
 
     private void DoTransaction()
     {
-        SendCommand(new CreateTransaction(Id, _cost with { Amount = -_cost.Amount }, Transaction.TransactionType.Asset, $"{_quantity.Denominator.AssetId} asset transaction"));
+        SendCommand(new CreateTransaction(Id, _cost with { Amount = -_cost.Amount }, Transaction.TransactionType.Asset, $"{_quantity.Denominator.AssetId} asset transaction", _quantity.Denominator.AssetId));
         SendCommand(new AddTransaction(_account, Id));
         if (_fee != null && _fee.IsValid() && _fee.Amount != 0)
         {
             SendCommand(new CreateTransaction($"Fee_{Id}", _fee with { Amount = -_fee.Amount }, Transaction.TransactionType.Fee,
-                $"{_quantity.Denominator.AssetId} asset transaction fee"));
+                $"{_quantity.Denominator.AssetId} asset transaction fee", _quantity.Denominator.AssetId));
             SendCommand(new AddTransaction(_account, $"Fee_{Id}"));
         }
 

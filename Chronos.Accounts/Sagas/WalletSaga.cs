@@ -23,7 +23,7 @@ namespace Chronos.Accounts.Sagas
             RegisterWithParameters<WalletCreated>(e => e.Address, Trigger.WalletCreated);
             Register<AccountCreated>(Trigger.AccountCreated);
             RegisterWithParameters<WalletBalanceChanged>(e => e.AggregateRootId(), Trigger.BalanceChanged);
-            RegisterWithParameters<TransactionRecorded>(Trigger.TransactionRecorded);
+            RegisterWithParameters<TransactionCreated>(Trigger.TransactionRecorded);
             Register<TransactionAdded>(Trigger.AccountUpdated);
         }
         
@@ -75,7 +75,7 @@ namespace Chronos.Accounts.Sagas
             StateMachine.Configure(State.UpdatingAccount)
                 .Permit(Trigger.AccountUpdated, State.Listening)
                 .OnEntryFrom(
-                    GetTrigger<TransactionRecorded>(),
+                    GetTrigger<TransactionCreated>(),
                     e => SendCommand(new AddTransaction(Id, e.TxId)));
         }
     }
