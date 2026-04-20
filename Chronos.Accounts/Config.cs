@@ -80,8 +80,8 @@ namespace Chronos.Accounts
             public TransactionList TransactionList(string account) => Resolve(new TransactionListQuery(account));
             public List<TransactionInfo> TransactionInfos(string account)
             {
-                var txIds = _bus.QueryAsync(new TransactionListQuery(account)).Result;
-                var list = txIds.TxId.Select(tx => _bus.QueryAsync(new TransactionInfoQuery(tx)).Result).ToList();
+                var txList = _bus.QueryAsync(new TransactionListQuery(account)).Result;
+                var list = txList.TxId.Select(tx => _bus.QueryAsync(new TransactionInfoQuery(tx)).Result).ToList();
                 return list;
             }
         }

@@ -54,6 +54,7 @@ namespace Chronos.Accounts.Queries
             public Quantity Position { get; set; }
             public Quantity Value { get; set; }
             public Quantity Dividend { get; set; }
+            public Quantity CostBasis { get; set; }
         }
 
         /// <inheritdoc/>
@@ -68,6 +69,7 @@ namespace Chronos.Accounts.Queries
                 denominator = state.Assets.SingleOrDefault();
 
             var positions = new Dictionary<string, PositionData>();
+            var totalDividend = 0.0;
             //var positions = new List<Quantity>(); 
             //var values = new List<Quantity>();
             //var dividends = new List<Quantity>();
@@ -90,6 +92,9 @@ namespace Chronos.Accounts.Queries
                             return null;
                     }
 
+                    if (asset.AssetId == null)
+                        throw new InvalidOperationException("Asset id is required");
+                    
                     if(!positions.ContainsKey(asset.AssetId))
                         positions[asset.AssetId] = new PositionData();
 
@@ -106,7 +111,7 @@ namespace Chronos.Accounts.Queries
                 var tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, denominator)
                 {
                     ConvertToDenominatorAtTxDate = query.ConvertToDenominatorAtTxDate,
-                    Timestamp = query.Timestamp,
+                    //Timestamp = query.Timestamp,
                 });
                 if (tx == null)
                 {
@@ -115,6 +120,9 @@ namespace Chronos.Accounts.Queries
                 }
 
                 total += tx.Quantity.Amount;
+                if(tx.TransactionType == Transaction.TransactionType.Dividend)
+                    totalDividend += tx.Quantity.Amount;
+                
                 if (!query.WithPositions || tx.TransactionType != Transaction.TransactionType.Dividend ||
                     tx.AssetId == null) continue;
 
@@ -136,7 +144,8 @@ namespace Chronos.Accounts.Queries
                 Positions = positions.Values.Select(p => p.Position).ToList(),
                 Values = positions.Values.Select(p => p.Value).ToList(),
                 Dividends = positions.Values.Select(p => p.Dividend).ToList(),
-                CashBalance = new Quantity(total - positions.Values.Sum(v => v.Value.Amount), denominator)
+                CashBalance = new Quantity(total - positions.Values.Sum(v => v.Value.Amount), denominator),
+                TotalDividend = new Quantity(totalDividend, denominator)
             };
         }
     }

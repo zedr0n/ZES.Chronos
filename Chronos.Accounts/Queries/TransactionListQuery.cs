@@ -14,7 +14,10 @@
     }  
     public TransactionListQuery() 
     {
-    }  
+    }
+
+    public bool IncludeInfo { get; set; } = true;
+    
     public TransactionListQuery(string name) : base(name) 
     {
       Name = name;

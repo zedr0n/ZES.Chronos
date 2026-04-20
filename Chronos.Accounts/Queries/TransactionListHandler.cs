@@ -10,15 +10,15 @@ using System.Linq;
 
 namespace Chronos.Accounts.Queries
 {
-  public class TransactionListHandler : ZES.Interfaces.Domain.IProjectionHandler<TransactionList>
+  public class TransactionListHandler : ZES.Interfaces.Domain.IProjectionHandler<TransactionListState>
   {
-    public TransactionList Handle (ZES.Interfaces.IEvent e, TransactionList state)
+    public TransactionListState Handle (ZES.Interfaces.IEvent e, TransactionListState state)
     {
       return Handle(e as Chronos.Accounts.Events.TransactionAdded, state);;
     }  
-    public TransactionList Handle (Chronos.Accounts.Events.TransactionAdded e, TransactionList state)
+    public TransactionListState Handle (Chronos.Accounts.Events.TransactionAdded e, TransactionListState state)
     {
-      var newState = new TransactionList(new HashSet<string>(state.TxId ?? Array.Empty<string>()) { e.TxId }.ToArray());
+      var newState = new TransactionListState(new HashSet<string>(state.TxId ?? Array.Empty<string>()) { e.TxId }.ToArray());
       return newState;
     }
   }

@@ -182,9 +182,9 @@ namespace Chronos.Tests
 
             await bus.Command(new UpdateDailyOutflow(address, 0) { UseRemote = true });
             await bus.Equal(new WalletInfoQuery(address), i => i.Balance, -1302598.8557945699);
-            var txInfo = await bus.QueryUntil(new TransactionListQuery(address), x => x.TxId.Length == 10);
+            var txInfo = await bus.QueryUntil(new TransactionListQuery(address), x => x.TxId.Count == 10);
             Assert.NotNull(txInfo.TxId);
-            Assert.Equal(10, txInfo.TxId.Length);
+            Assert.Equal(10, txInfo.TxId.Count);
         }
 
         [Fact]

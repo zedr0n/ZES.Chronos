@@ -255,9 +255,26 @@ namespace Chronos.Tests
             await bus.Command(new AddTransaction("Account", "Tx"));
             await bus.Command(new AddTransaction("Account", "Tx2"));
 
-            var list = await bus.QueryUntil(new TransactionListQuery("Account"), r => r.TxId.Length > 0);
+            var list = await bus.QueryAsync(new TransactionListQuery("Account") { IncludeInfo = false });
+            Assert.Empty(list.Infos);
+            
+            list = await bus.QueryUntil(new TransactionListQuery("Account"), r => r.TxId.Count > 0);
             Assert.Contains("Tx", list.TxId);
             Assert.Contains("Tx2", list.TxId);
+            
+            var tx = list.Infos.Single(t => t.TxId == "Tx");
+            Assert.Equal(100, tx.Quantity.Amount);
+            Assert.Equal(gbp, tx.Quantity.Denominator);
+            Assert.Equal(Transaction.TransactionType.General, tx.TransactionType);
+            Assert.Equal(string.Empty, tx.Comment);
+            Assert.Null(tx.AssetId);
+            
+            var tx2 = list.Infos.Single(t => t.TxId == "Tx2");
+            Assert.Equal(-100, tx2.Quantity.Amount);
+            Assert.Equal(gbp, tx2.Quantity.Denominator);
+            Assert.Equal(Transaction.TransactionType.General, tx2.TransactionType);
+            Assert.Equal(string.Empty, tx2.Comment);
+            Assert.Null(tx2.AssetId);
             
             await bus.Equal(new AccountStatsQuery("Account", gbp), a => a.Balance, new Quantity(0, gbp));
         }
