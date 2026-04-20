@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 
@@ -10,8 +11,23 @@ namespace Chronos.Core.Commands;
  /// The command associates two assets — a "for" asset and a "dom" (dominant) asset —
  /// into an asset pair, with an identifier comprising the combination of these assets.
  /// </remarks>
+ [method: JsonConstructor]
  public class RegisterAssetPair(string fordom, Asset forAsset, Asset domAsset) : Command, ICreateCommand
  {
+     /// <summary>
+     /// Initializes a new instance of the <see cref="RegisterAssetPair"/> class.
+     /// Command to register an asset pair in the system.
+     /// </summary>
+     /// <param name="forAsset">Foreign asset in the pair</param>
+     /// <param name="domAsset">Domestic asset in the pair</param>
+     /// <remarks>
+     /// This command creates an association between two assets, referred to as the "for" asset and
+     /// the "dom" (dominant) asset. The combination of these assets creates a unique identifier
+     /// for the asset pair, known as "fordom".
+     /// </remarks>
+     public RegisterAssetPair(Asset forAsset, Asset domAsset)
+         : this(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset) { }
+     
      /// <summary>
      /// Gets the combined identifier for the asset pair, which is typically
      /// represented as a concatenation of the foreign and domestic asset IDs.

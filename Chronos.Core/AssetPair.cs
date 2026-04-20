@@ -99,9 +99,10 @@ namespace Chronos.Core
         /// <param name="open">The opening price of the quote.</param>
         /// <param name="low">The lowest price of the quote.</param>
         /// <param name="high">The highest price of the quote.</param>
-        public void AddQuote(Instant date, double close, double open, double low, double high)
+        /// <param name="isFallback">Indicates whether the quote is a fallback value.</param>
+        public void AddQuote(Instant date, double close, double open, double low, double high, bool isFallback)
         {
-            When(new QuoteAdded(date, close, open, low, high));
+            When(new QuoteAdded(date, close, open, low, high, isFallback));
         }
 
         /// <summary>

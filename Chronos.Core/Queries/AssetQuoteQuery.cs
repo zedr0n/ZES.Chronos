@@ -22,6 +22,7 @@
     }  
     
     public bool UpdateQuote { get; set; }
+    public bool EnforceCache { get; set; }
     
     public AssetQuoteQuery(Chronos.Core.Asset forAsset, Chronos.Core.Asset domAsset) 
     {

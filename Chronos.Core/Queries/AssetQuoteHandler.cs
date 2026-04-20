@@ -97,7 +97,7 @@ namespace Chronos.Core.Queries
         {
           await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
           await updateQuoteHandler.Handle(
-            new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom) { Ephemeral = true }, timestamp ));
+            new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = query.EnforceCache }, timestamp ));
         }
       }
       
@@ -113,7 +113,7 @@ namespace Chronos.Core.Queries
         return new SingleAssetQuote(double.NaN, timestamp.ToInstant());
       }
 
-      var valid = result.IsValid(timestamp.ToInstant(), intraday ? 1 : 0);
+      var valid = result.IsValid(timestamp.ToInstant(), intraday);
       if (valid) 
         return new SingleAssetQuote(result.Price, timestamp.ToInstant());
      

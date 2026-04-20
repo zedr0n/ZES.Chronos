@@ -19,6 +19,16 @@ namespace Chronos.Core.Commands
         /// operation may fetch fresh data regardless of any existing cached entries.
         /// </summary>
         public bool EnforceCache { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the operation should serve as a fallback execution.
+        /// </summary>
+        /// <remarks>
+        /// When set to <see langword="true"/>, the command is intended to act as a fallback mechanism,
+        /// typically used in scenarios where the primary operation fails or is unavailable.
+        /// Defaults to <see langword="false"/>.
+        /// </remarks>
+        public bool ForFallback { get; set; } = false;
     }
 
     /// <inheritdoc />
@@ -39,6 +49,7 @@ namespace Chronos.Core.Commands
             EnforceCache = command.EnforceCache;
             Ephemeral = command.Ephemeral;
             Timestamp = command.Timestamp;
+            ForFallback = command.ForFallback;
         }
     }
 }

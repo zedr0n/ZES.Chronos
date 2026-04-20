@@ -18,12 +18,12 @@ namespace Chronos.Core.Queries
 
     public SingleAssetQuote Handle(Chronos.Core.Events.AssetPairRegistered e, SingleAssetQuote state)
     {
-      return new SingleAssetQuote(double.NaN, Instant.MinValue);
+      return state.Timestamp == default ? new SingleAssetQuote(double.NaN, Instant.MinValue) : state;
     }
     
     public SingleAssetQuote Handle (Chronos.Core.Events.QuoteAdded e, SingleAssetQuote state)
     {
-      return e.Timestamp >= state.Timestamp.ToTime() ? new SingleAssetQuote(e.Close, e.Timestamp.ToInstant()) : state;
+      return e.Timestamp >= state.Timestamp.ToTime() ? new SingleAssetQuote(e.Close, e.Timestamp.ToInstant(), e.IsFallback) : state;
     }
   }
 }

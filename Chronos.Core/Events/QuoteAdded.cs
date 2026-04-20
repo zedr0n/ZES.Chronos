@@ -35,13 +35,17 @@
        get; 
        set;
     }  
-    public QuoteAdded(NodaTime.Instant date, double close, double open, double low, double high) 
+    
+    public bool IsFallback { get; set; }
+    
+    public QuoteAdded(NodaTime.Instant date, double close, double open, double low, double high, bool isFallback) 
     {
       Date = date; 
       Close = close; 
       Open = open; 
       Low = low; 
       High = high;
+      IsFallback = isFallback;
     }
   }
 }

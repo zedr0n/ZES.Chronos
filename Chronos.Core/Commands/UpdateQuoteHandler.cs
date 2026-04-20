@@ -100,6 +100,7 @@ namespace Chronos.Core.Commands
           date = date.PlusDays(-1);
         
         var newCommand = (UpdateQuote)command.Copy();
+        newCommand.ForFallback = true;
         newCommand.Timestamp = date.At(new LocalTime(16, 30)).InZoneLeniently(zone).ToInstant().ToTime();
         
         (commandT, handler) = _factory.CreateUpdateQuote(newCommand, root.ForAsset.AssetType, root.DomAsset.AssetType, false);
@@ -231,6 +232,7 @@ namespace Chronos.Core.Commands
         StoreInLog = false,
         CorrelationId = command.CorrelationId,
         AncestorId = command.AncestorId ?? command.MessageId,
+        IsFallback = command.ForFallback,
       };
       
       if (command.Ephemeral)

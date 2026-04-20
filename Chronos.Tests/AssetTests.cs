@@ -10,6 +10,8 @@ using Chronos.Core.Commands;
 using Chronos.Core.Net;
 using Chronos.Core.Queries;
 using NodaTime;
+using NodaTime.Extensions;
+using PublicHoliday;
 using Xunit;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Alerts;
@@ -322,6 +324,45 @@ namespace Chronos.Tests
             
             res = await bus.QueryAsync(new HistoricalQuery<AssetQuoteQuery,AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, otherDate));
             Assert.Equal(1.3337, res.Quantity.Amount);
+        }
+
+        [Fact]
+        public async Task CanUseFallbackQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var clock = container.GetInstance<IClock>();
+            
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var eqQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, true);
+            var eqEodQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
+            
+            var forAsset = new Asset("GB00B469P257", AssetType.Equity);
+            var domAsset = new Currency("GBX");
+
+            var searchTicker = eqQuoteApi.GetSearchTicker(forAsset, domAsset);
+            await connector.SetAsync(webSearchApi.GetUrl(searchTicker),
+                "[{\"Code\":\"GB00B469P257\",\"Exchange\":\"EUFUND\",\"Name\":\"Fidelity Extra Income Fund W Income\",\"Type\":\"FUND\",\"Country\":\"Unknown\",\"Currency\":\"GBX\",\"ISIN\":\"GB00B469P257\",\"isPrimary\":false,\"previousClose\":106.1,\"previousCloseDate\":\"2026-04-17\"}]");
+            await bus.Command(new RegisterAssetPair(forAsset, domAsset));
+            
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)));
+            var ticker = assetPairInfo.Ticker;
+
+            await connector.SetAsync(eqQuoteApi.GetUrl(ticker),
+                "{\"code\":\"GB00B469P257.EUFUND\",\"timestamp\":\"NA\",\"gmtoffset\":0,\"open\":\"NA\",\"high\":\"NA\",\"low\":\"NA\",\"close\":\"NA\",\"volume\":\"NA\",\"previousClose\":106.1,\"change\":\"NA\",\"change_p\":\"NA\"}");
+            
+            var now = clock.GetCurrentInstant();
+            var uk = new UKBankHoliday();
+            var prevBusinessDay = uk.PreviousWorkingDayNotSameDay(now.ToDateTime()).ToLocalDateTime().InUtc().ToInstant().ToTime();
+            
+            await connector.SetAsync(eqEodQuoteApi.GetUrl(ticker, prevBusinessDay),
+                "[{\"date\":\"2026-04-17\",\"open\":106.1,\"high\":106.1,\"low\":106.1,\"close\":106.1,\"adjusted_close\":106.1,\"volume\":0}]");
+            
+            var res = await bus.QueryAsync(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true, EnforceCache = true});
+            Assert.NotNull(res);
+            Assert.Equal(106.1, res.Quantity.Amount);
         }
 
         [Fact]

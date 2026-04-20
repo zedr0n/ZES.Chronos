@@ -88,8 +88,8 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.907" />
-                <PackageReference Include="ZES.TestBase" Version="1.0.907" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.908" />
+                <PackageReference Include="ZES.TestBase" Version="1.0.908" />
             </ItemGroup>
         </Otherwise>
     </Choose>
