@@ -515,7 +515,7 @@ export async function accountStats(account : string, asOfDate : number, assetId?
     assetId = "GBP"
 
   let query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate}, withPositions : ${withPositions} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } }
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate}, withPositions : ${withPositions} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } }
     }`;
   
   window.console.log(query)
@@ -524,13 +524,14 @@ export async function accountStats(account : string, asOfDate : number, assetId?
   let result = await SingleQuery(query, data => ({ 
     amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator,
     cashAmount: data.accountStats.cashBalance.amount, cashAsset: data.accountStats.cashBalance.denominator,
-    positions: data.accountStats.positions, values: data.accountStats.values, dividends: data.accountStats.dividends}
+    totalDividend: data.accountStats.totalDividend.amount,    
+    positions: data.accountStats.positions, values: data.accountStats.values, costBasis: data.accountStats.costBasis, dividends: data.accountStats.dividends}
   ))
   if(typeof(result)  === "string")
     return result
   
   const myEntity : Excel.EntityCellValue = {
-    type : Excel.CellValueType.entity,
+    type : Excel.CellValueType.entity, 
     text : account,
     properties : {
       "Balance" : {
@@ -561,6 +562,78 @@ export async function accountStats(account : string, asOfDate : number, assetId?
           }  
         },
       },
+      "Dividend" : {
+        type: Excel.CellValueType.entity,
+        text: "Total dividend",
+        properties : {
+          "Amount" : {
+            type : Excel.CellValueType.double,
+            basicValue : result.totalDividend,
+          },
+          "Asset" : {
+            type : Excel.CellValueType.string,
+            basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
+          }
+        },
+      },
+      /*"Info" : {
+        type : Excel.CellValueType.array,
+        elements: [[ {
+            type : Excel.CellValueType.entity,
+            text : "Balance",
+            properties : {
+              "Type" : {
+                type: Excel.CellValueType.string,
+                basicValue: "Balance",
+              },
+              "Amount" : {
+                type : Excel.CellValueType.double,
+                basicValue : result.amount,
+              },
+              "Asset" : {
+                type : Excel.CellValueType.string,
+                basicValue : result.asset ? result.asset.assetId ?? "" : ""
+              }
+            }            
+          },
+          {
+            type : Excel.CellValueType.entity,
+            text : "Cash Balance",
+            properties : {
+              "Type" : {
+                type: Excel.CellValueType.string,
+                basicValue: "Cash Balance",
+              },
+              "Amount" : {
+                type : Excel.CellValueType.double,
+                basicValue : result.cashAmount,
+              },
+              "Asset" : {
+                type : Excel.CellValueType.string,
+                basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
+              }
+            }
+          },
+          {
+              type: Excel.CellValueType.entity,
+              text: "Total dividend",
+              properties : {
+                "Type" : {
+                  type: Excel.CellValueType.string,
+                  basicValue: "Dividend",
+                },
+                "Amount" : {
+                  type : Excel.CellValueType.double,
+                  basicValue : result.totalDividend,
+                },
+                "Asset" : {
+                  type : Excel.CellValueType.string,
+                  basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
+                }
+              },
+            },            
+        ]],
+      },*/
       "Positions" : {
         type : Excel.CellValueType.array,
         elements: (result.positions && result.positions.length > 0)
@@ -583,7 +656,11 @@ export async function accountStats(account : string, asOfDate : number, assetId?
                 "Dividend": {
                   type: Excel.CellValueType.double,
                   basicValue: result.dividends?.[idx]?.amount ?? 0
-                }
+                },
+                "CostBasis" : {
+                  type: Excel.CellValueType.double,
+                  basicValue: result.costBasis?.[idx]?.amount ?? 0
+                },
               }
             }))
           : [{

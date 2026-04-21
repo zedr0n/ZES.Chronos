@@ -30,5 +30,12 @@ namespace Chronos.Accounts.Queries
             newState.AddSplit(e.ForAsset, e.Timestamp, e.Ratio);
             return newState;
         }
+
+        public AccountStatsState Handle(AssetTransactionStarted e, AccountStatsState state)
+        {
+            var newState = new AccountStatsState(state);
+            newState.AddCost(e.Asset, e.Cost, e.Timestamp);
+            return newState;
+        }
     }
 }

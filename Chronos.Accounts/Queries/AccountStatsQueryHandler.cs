@@ -102,6 +102,7 @@ namespace Chronos.Accounts.Queries
                     positionData.Dividend = new Quantity(0, denominator);
                     positionData.Position = new Quantity(amount, asset);
                     positionData.Value = new Quantity(amount * price, denominator);
+                    positionData.CostBasis = new Quantity(state.CostBasis[asset], denominator);
                     total += amount * price;
                 }
             }
@@ -144,6 +145,7 @@ namespace Chronos.Accounts.Queries
                 Positions = positions.Values.Select(p => p.Position).ToList(),
                 Values = positions.Values.Select(p => p.Value).ToList(),
                 Dividends = positions.Values.Select(p => p.Dividend).ToList(),
+                CostBasis = positions.Values.Select(p => p.CostBasis).ToList(),
                 CashBalance = new Quantity(total - positions.Values.Sum(v => v.Value.Amount), denominator),
                 TotalDividend = new Quantity(totalDividend, denominator)
             };
