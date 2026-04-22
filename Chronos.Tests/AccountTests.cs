@@ -224,6 +224,31 @@ namespace Chronos.Tests
             Assert.Equal(7.54*100 - 50*7.54 + 7.4*100, stats.CostBasis[0].Amount);
             Assert.Equal((-7.54+7.19)*50, stats.RealisedGains[0].Amount, 1e-6);
         }
+
+        [Fact]
+        public async Task CanComputeIrr()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+
+            var date = new LocalDateTime(2021, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2022, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            
+            var interestRate = 0.04;
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Saving), date));
+            await bus.Command(new RetroactiveCommand<CreateTransaction>(new CreateTransaction("Tx", new Quantity(20000, new Currency("GBP")), Transaction.TransactionType.Transfer, "Transfer In"), date));
+            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Account", "Tx"), date));
+            
+            await bus.Command(new RetroactiveCommand<CreateTransaction>(new CreateTransaction("Tx2", new Quantity(20000*interestRate, new Currency("GBP")), Transaction.TransactionType.Interest, "Interest"), date2));
+            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Account", "Tx2"), date2));
+            
+            await bus.Command(new RetroactiveCommand<CreateTransaction>(new CreateTransaction("Tx3", new Quantity(-20000*(1+interestRate), new Currency("GBP")), Transaction.TransactionType.Transfer, "Transfer Out"), date2));
+            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Account", "Tx3"), date2));
+
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", new Currency("GBP")) { Timestamp = date2 });
+            Assert.Equal(0.04, stats.Irr, 1e-3);
+        }
         
         [Fact]
         public async Task CanAddTransaction()

@@ -21,6 +21,7 @@
     public bool ConvertToDenominatorAtTxDate { get; set; } = false;
     public bool QueryNet { get; set; }
     public bool WithPositions { get; set; } = true;
+    public bool ComputeIrr { get; set; } = true;
     
     public AccountStatsQuery() 
     {

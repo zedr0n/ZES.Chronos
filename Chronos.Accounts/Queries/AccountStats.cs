@@ -26,8 +26,9 @@ namespace Chronos.Accounts.Queries
     public List<Quantity> RealisedGains { get; set; }
     public Quantity CashBalance { get; set; }
     public Quantity TotalDividend { get; set; }
-    
-    public AccountStats(Quantity balance) 
+    public double Irr { get; set; }
+
+    public AccountStats(Quantity balance)
     {
       Balance = balance;
     }
