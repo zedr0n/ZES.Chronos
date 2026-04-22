@@ -222,6 +222,7 @@ namespace Chronos.Tests
             
             var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy));
             Assert.Equal(7.54*100 - 50*7.54 + 7.4*100, stats.CostBasis[0].Amount);
+            Assert.Equal((-7.54+7.19)*50, stats.RealisedGains[0].Amount, 1e-6);
         }
         
         [Fact]

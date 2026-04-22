@@ -55,6 +55,7 @@ namespace Chronos.Accounts.Queries
             public Quantity Value { get; set; }
             public Quantity Dividend { get; set; }
             public Quantity CostBasis { get; set; }
+            public Quantity RealisedGain { get; set; }
         }
 
         /// <inheritdoc/>
@@ -102,7 +103,8 @@ namespace Chronos.Accounts.Queries
                     positionData.Dividend = new Quantity(0, denominator);
                     positionData.Position = new Quantity(amount, asset);
                     positionData.Value = new Quantity(amount * price, denominator);
-                    positionData.CostBasis = new Quantity(state.CostBasis[asset], denominator);
+                    positionData.CostBasis = state.CostBasis[asset]; 
+                    positionData.RealisedGain = state.RealisedGains[asset];
                     total += amount * price;
                 }
             }
@@ -129,15 +131,17 @@ namespace Chronos.Accounts.Queries
 
                 if (positions.TryGetValue(tx.AssetId, out var positionData))
                     positionData.Dividend = tx.Quantity with { Amount = positionData.Dividend.Amount + tx.Quantity.Amount };
-                /*else
+                else
                 {
                     positions[tx.AssetId] = new PositionData
                     {
                         Position = new Quantity(0, new Asset(tx.AssetId, AssetType.Equity)),
                         Value = new Quantity(0, denominator),
-                        Dividend = tx.Quantity
+                        Dividend = tx.Quantity,
+                        CostBasis = new Quantity(0, denominator),
+                        RealisedGain = state.RealisedGains[new Asset(tx.AssetId, AssetType.Equity)], 
                     };
-                }*/
+                }
             }
 
             return new AccountStats(new Quantity(total, denominator))
@@ -147,6 +151,7 @@ namespace Chronos.Accounts.Queries
                 Dividends = positions.Values.Select(p => p.Dividend).ToList(),
                 CostBasis = positions.Values.Select(p => p.CostBasis).ToList(),
                 CashBalance = new Quantity(total - positions.Values.Sum(v => v.Value.Amount), denominator),
+                RealisedGains = positions.Values.Select(p => p.RealisedGain).ToList(),
                 TotalDividend = new Quantity(totalDividend, denominator)
             };
         }

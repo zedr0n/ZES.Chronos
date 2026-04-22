@@ -515,7 +515,7 @@ export async function accountStats(account : string, asOfDate : number, assetId?
     assetId = "GBP"
 
   let query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate}, withPositions : ${withPositions} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } }
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate}, withPositions : ${withPositions} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } realisedGains { amount denominator { assetId } } }
     }`;
   
   window.console.log(query)
@@ -525,7 +525,7 @@ export async function accountStats(account : string, asOfDate : number, assetId?
     amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator,
     cashAmount: data.accountStats.cashBalance.amount, cashAsset: data.accountStats.cashBalance.denominator,
     totalDividend: data.accountStats.totalDividend.amount,    
-    positions: data.accountStats.positions, values: data.accountStats.values, costBasis: data.accountStats.costBasis, dividends: data.accountStats.dividends}
+    positions: data.accountStats.positions, values: data.accountStats.values, costBasis: data.accountStats.costBasis, realisedGains: data.accountStats.realisedGains, dividends: data.accountStats.dividends}
   ))
   if(typeof(result)  === "string")
     return result
@@ -661,6 +661,10 @@ export async function accountStats(account : string, asOfDate : number, assetId?
                   type: Excel.CellValueType.double,
                   basicValue: result.costBasis?.[idx]?.amount ?? 0
                 },
+                "RealisedGain": {
+                  type: Excel.CellValueType.double,
+                  basicValue: result.realisedGains?.[idx]?.amount ?? 0
+                }
               }
             }))
           : [{
@@ -680,6 +684,14 @@ export async function accountStats(account : string, asOfDate : number, assetId?
                   basicValue: 0
                 },
                 "Dividend" : {
+                  type: Excel.CellValueType.double,
+                  basicValue: 0
+                },
+                "CostBasis" : {
+                  type: Excel.CellValueType.double,
+                  basicValue: 0 
+                },
+                "RealisedGain": {
                   type: Excel.CellValueType.double,
                   basicValue: 0
                 }

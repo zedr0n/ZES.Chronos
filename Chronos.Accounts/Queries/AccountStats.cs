@@ -23,6 +23,7 @@ namespace Chronos.Accounts.Queries
     public List<Quantity> Values { get; set; }
     public List<Quantity> Dividends { get; set; }
     public List<Quantity> CostBasis { get; set; }
+    public List<Quantity> RealisedGains { get; set; }
     public Quantity CashBalance { get; set; }
     public Quantity TotalDividend { get; set; }
     

@@ -13,7 +13,8 @@ namespace Chronos.Accounts.Queries
     /// </summary>
     public class AccountStatsState : IState
     {
-        private readonly Dictionary<Asset, double> _costBasis = new();
+        private readonly Dictionary<Asset, Quantity> _costBasis = new();
+        private readonly Dictionary<Asset, Quantity> _realisedGains = new();
         private readonly Dictionary<Asset, List<(Quantity quantity, Time timestamp)>> _deposits = new();
         private readonly Dictionary<Asset, List<(Quantity assetQuantity, Quantity quantity, Time timestamp)>> _costs = new();
         private readonly Dictionary<Asset, List<(Time timestamp, double ratio )>> _splits = new();
@@ -51,53 +52,72 @@ namespace Chronos.Accounts.Queries
                 return _positions;
             }    
         }
-        
-        public Dictionary<Asset, double> CostBasis
+
+        public Dictionary<Asset, Quantity> RealisedGains
         {
             get
             {
-                if(_costBasis.Count > 0)
-                    return _costBasis;
-                
-                foreach(var asset in _deposits.Keys.Except(_costBasis.Keys))
-                    _costBasis[asset] = 0;
-                
-                if(_costs.Count == 0)
-                    return _costBasis;
+                if (_realisedGains.Count == 0)
+                    ComputeGains();
 
-                foreach (var (asset, costs) in _costs)
-                {
-                    var costBasis = 0.0;
-                    foreach (var (q, c, t) in costs.OrderBy(x => x.timestamp))
-                    {
-                        switch (q.Amount)
-                        {
-                            // purchase
-                            case >= 0:
-                                costBasis += c.Amount;
-                                break;
-                            // sale
-                            case < 0:
-                            {
-                                var positions = GetPositions(t);
-                                if (positions.TryGetValue(asset, out var position))
-                                {
-                                    var costPrice = costBasis / position;
-                                    costBasis += costPrice * q.Amount;
-                                }
+                return _realisedGains;
+            }
+        }
+        
+        public Dictionary<Asset, Quantity> CostBasis
+        {
+            get
+            {
+                if(_costBasis.Count == 0)
+                    ComputeGains();
 
-                                break;
-                            }
-                        }
-                    }
-
-                    _costBasis[asset] = costBasis;
-                }
-                
                 return _costBasis;
             }
         }
 
+        private void ComputeGains()
+        {
+            foreach(var asset in _deposits.Keys.Except(_realisedGains.Keys))
+                _realisedGains[asset] = new Quantity(0, null);
+
+            foreach(var asset in _deposits.Keys.Except(_costBasis.Keys))
+                _costBasis[asset] = new Quantity(0, null);
+            
+            foreach (var (asset, costs) in _costs)
+            {
+                var costBasis = 0.0;
+                var realisedGain = 0.0;
+                Asset denominator = null;
+                foreach (var (q, c, t) in costs.OrderBy(x => x.timestamp))
+                {
+                    switch (q.Amount)
+                    {
+                        // purchase
+                        case >= 0:
+                            costBasis += c.Amount;
+                            denominator = c.Denominator;
+                            break;
+                        // sale
+                        case < 0:
+                        {
+                            var positions = GetPositions(t);
+                            if (positions.TryGetValue(asset, out var position))
+                            {
+                                realisedGain += -c.Amount + costBasis / position * q.Amount;
+                                var costPrice = costBasis / position;
+                                costBasis += costPrice * q.Amount;
+                            }
+                            
+                            break;
+                        }
+                    }
+                }
+
+                _costBasis[asset] = new Quantity(costBasis, denominator);
+                _realisedGains[asset] = new Quantity(realisedGain, denominator);
+            }
+        }
+        
         /// <summary>
         /// Gets all account transactions
         /// </summary>
@@ -149,6 +169,7 @@ namespace Chronos.Accounts.Queries
             
             _costs[assetQuantity.Denominator].Add((assetQuantity, quantity, timestamp));
             _costBasis.Clear();
+            _realisedGains.Clear();
         }
         
         private Dictionary<Asset, double> GetPositions(Time T)
