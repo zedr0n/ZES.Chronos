@@ -25,6 +25,7 @@ namespace Chronos.Accounts.Queries
         private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
         private readonly ILog _log;
+        private readonly ITimeline _timeline;
 
         /// <summary>
         /// Handles the <see cref="AccountStatsQuery"/> by retrieving account-related data
@@ -35,12 +36,13 @@ namespace Chronos.Accounts.Queries
         /// </remarks>
         public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
             IQueryHandler<AssetQuoteQuery, AssetQuote> handler,
-            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log)
+            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log, ITimeline timeline)
             : base(manager, activeTimeline)
         {
             _handler = handler;
             _transactionInfoHandler = transactionInfoHandler;
             _log = log;
+            _timeline = timeline;
         }
 
         protected override async Task<AccountStats> Handle(AccountStatsQuery query)
@@ -149,7 +151,8 @@ namespace Chronos.Accounts.Queries
                     };
                 }
             }
-            extCashflows.Add((query.Timestamp.ToInstant(), total));
+            var now = query.Timestamp?.ToInstant() ?? _timeline.Now.ToInstant();
+            extCashflows.Add((now, total));
 
             return new AccountStats(new Quantity(total, denominator))
             {
