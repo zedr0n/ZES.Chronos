@@ -504,6 +504,27 @@ export async function hashflareStats() : Promise<any>
 
 /**
  * @customfunction
+ * @param {string[][]} accounts account names
+ * @param {number} asOfDate as of date
+ * @param {number} [startDate] start date
+ * @param {string} assetId denominator asset
+ */
+export async function blendedIrr(accounts: string[][], asOfDate : number, startDate? : number, assetId? : string) : Promise<any> {
+  if(assetId == undefined || assetId == "")
+    assetId = "GBP"
+
+  let query = `{
+    blendedIrr( accounts:[${accounts.map(a => `"${a}"`).join(', ')}], denominator : { assetId : "${assetId}", assetType : CURRENCY }, date : ${ExcelDateToISO(asOfDate)}, startDate : ${ExcelDateToISO(startDate)} ) { irr }
+  }`
+  
+  window.console.log(query)
+  
+  let result = await SingleQuery(query, data => data.blendedIrr.irr)
+  return result
+}
+
+/**
+ * @customfunction
  * @param {string} account account name
  * @param {number} asOfDate as of date
  * @param {string} assetId denominator asset

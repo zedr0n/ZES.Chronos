@@ -6,6 +6,9 @@
 
 using System.Collections.Generic;
 using Chronos.Core;
+using Newtonsoft.Json;
+using NodaTime;
+using ZES.Interfaces.Clocks;
 
 namespace Chronos.Accounts.Queries
 {
@@ -26,6 +29,9 @@ namespace Chronos.Accounts.Queries
     public List<Quantity> RealisedGains { get; set; }
     public Quantity CashBalance { get; set; }
     public Quantity TotalDividend { get; set; }
+    
+    [JsonIgnore]
+    public List<(Instant, Quantity)> ExternalCashflows { get; set; }
     public double Irr { get; set; }
 
     public AccountStats(Quantity balance)

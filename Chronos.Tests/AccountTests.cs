@@ -233,8 +233,10 @@ namespace Chronos.Tests
 
             var date = new LocalDateTime(2021, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
             var date2 = new LocalDateTime(2022, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date3 = new LocalDateTime(2023, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
             
             var interestRate = 0.04;
+            var interestRate2 = 0.06;
             
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Saving), date));
             await bus.Command(new RetroactiveCommand<CreateTransaction>(new CreateTransaction("Tx", new Quantity(20000, new Currency("GBP")), Transaction.TransactionType.Transfer, "Transfer In"), date));
@@ -243,11 +245,20 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<CreateTransaction>(new CreateTransaction("Tx2", new Quantity(20000*interestRate, new Currency("GBP")), Transaction.TransactionType.Interest, "Interest"), date2));
             await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Account", "Tx2"), date2));
             
-            await bus.Command(new RetroactiveCommand<CreateTransaction>(new CreateTransaction("Tx3", new Quantity(-20000*(1+interestRate), new Currency("GBP")), Transaction.TransactionType.Transfer, "Transfer Out"), date2));
-            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Account", "Tx3"), date2));
+            await bus.Command(new RetroactiveCommand<CreateTransaction>(new CreateTransaction("Tx3", new Quantity(20000*(1+interestRate)*interestRate2, new Currency("GBP")), Transaction.TransactionType.Interest, "Interest"), date3));
+            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Account", "Tx3"), date3));
+            
+            await bus.Command(new RetroactiveCommand<CreateTransaction>(new CreateTransaction("Tx4", new Quantity(-20000*(1+interestRate)*(1+interestRate2), new Currency("GBP")), Transaction.TransactionType.Transfer, "Transfer Out"), date3));
+            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Account", "Tx4"), date3));
 
-            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", new Currency("GBP")) { Timestamp = date2 });
-            Assert.Equal(0.04, stats.Irr, 1e-3);
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", new Currency("GBP")) { Timestamp = date3 });
+            Assert.Equal(0.05, stats.Irr, 1e-3);
+            
+            var blendedIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Timestamp = date3 });
+            Assert.Equal(0.05, blendedIrr.Irr, 1e-3);
+            
+            var intIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Timestamp = date3, Start = date2.ToInstant() });
+            Assert.Equal(0.06, intIrr.Irr, 1e-3);
         }
         
         [Fact]

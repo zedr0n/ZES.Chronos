@@ -22,10 +22,10 @@ namespace Chronos.Accounts.Queries
     [Transient]
     public class AccountStatsQueryHandler : DefaultQueryHandler<AccountStatsQuery, AccountStats, AccountStatsState>
     {
+        private readonly ITimeline _timeline;
         private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
         private readonly ILog _log;
-        private readonly ITimeline _timeline;
 
         /// <summary>
         /// Handles the <see cref="AccountStatsQuery"/> by retrieving account-related data
@@ -36,13 +36,13 @@ namespace Chronos.Accounts.Queries
         /// </remarks>
         public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
             IQueryHandler<AssetQuoteQuery, AssetQuote> handler,
-            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log, ITimeline timeline)
+            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log)
             : base(manager, activeTimeline)
         {
+            _timeline = activeTimeline;
             _handler = handler;
             _transactionInfoHandler = transactionInfoHandler;
             _log = log;
-            _timeline = timeline;
         }
 
         protected override async Task<AccountStats> Handle(AccountStatsQuery query)
@@ -153,6 +153,7 @@ namespace Chronos.Accounts.Queries
             }
             var now = query.Timestamp?.ToInstant() ?? _timeline.Now.ToInstant();
             extCashflows.Add((now, total));
+            var irr = query.ComputeIrr ? IrrSolver.Solve(extCashflows) : 0.0;
 
             return new AccountStats(new Quantity(total, denominator))
             {
@@ -163,53 +164,9 @@ namespace Chronos.Accounts.Queries
                 CashBalance = new Quantity(total - positions.Values.Sum(v => v.Value.Amount), denominator),
                 RealisedGains = positions.Values.Select(p => p.RealisedGain).ToList(),
                 TotalDividend = new Quantity(totalDividend, denominator),
-                Irr = query.ComputeIrr ? SolveIrr(extCashflows) : 0.0
+                ExternalCashflows = extCashflows.Take(extCashflows.Count - 1).Select( x => (x.time, new Quantity(x.amount, denominator))).ToList(),
+                Irr = irr
             };
-        }
-
-        private static double NewtonRaphson(Func<double, (double f, double df)> func, double x0, double lower = -0.99, double upper = 10.0, double tol = 1e-8, int maxIter = 100)
-        {
-            var x = x0;
-            for (var i = 0; i < maxIter; i++)
-            {
-                var (f, df) = func(x);
-                if (Math.Abs(df) < 1e-12) break;
-                var xNew = Math.Clamp(x - f / df, lower, upper);
-                if (Math.Abs(xNew - x) < tol) return xNew;
-                x = xNew;
-            }
-            return x;
-        }        
-        
-        private double SolveIrr(List<(Instant time, double amount)> cashflows)
-        {
-            if (cashflows.Count < 2)
-                return 0.0;
-
-            var t0 = cashflows.Min(c => c.time);
-            var normalised = cashflows
-                .Select(c => ((c.time - t0).TotalSeconds / (365.25 * 24 * 3600), c.amount))
-                .ToList();
-
-            var years = (cashflows.Max(c => c.time) - cashflows.Min(c => c.time)).TotalSeconds / (365.25 * 24 * 3600);
-            var invested = -cashflows.Where(c => c.amount < 0).Sum(c => c.amount);
-            var gain = cashflows.Where(c => c.amount > 0).Sum(c => c.amount);
-            var r0 = Math.Pow(gain / invested, 1.0 / years) - 1;
-
-            return NewtonRaphson(F, r0);
-
-            (double, double) F(double x)
-            {
-                var npv = 0.0;
-                var dnpv = 0.0;
-                foreach (var (t, cf) in normalised) {
-                    var discount = Math.Pow(1 + x, t);
-                    npv += cf / discount;
-                    dnpv -= t * cf / (discount * (1 + x));
-                }
-
-                return (npv, dnpv);
-            }
         }
     }
 }

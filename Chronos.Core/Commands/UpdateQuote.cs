@@ -28,7 +28,7 @@ namespace Chronos.Core.Commands
         /// typically used in scenarios where the primary operation fails or is unavailable.
         /// Defaults to <see langword="false"/>.
         /// </remarks>
-        public bool ForFallback { get; set; } = false;
+        public bool ForFallback { get; set; }
     }
 
     /// <inheritdoc />

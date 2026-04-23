@@ -43,7 +43,7 @@ namespace Chronos.Core.Queries
     /// <remarks>
     /// If the quote is a fallback quote, it is considered valid if it is within the last 2 working days ( inclusive ).
     /// </remarks>
-    public bool IsValid(Instant currentTimestamp, bool intraday = false) => !double.IsNaN(Price) && Timestamp.IsWithinPriorWorkingDays(currentTimestamp, intraday && IsFallback ? 2 : 0);
+    public bool IsValid(Instant currentTimestamp, bool intraday = false) => !double.IsNaN(Price) && Timestamp.IsWithinPriorWorkingDays(currentTimestamp, intraday && IsFallback ? 2 : 1);
   }
 }
 

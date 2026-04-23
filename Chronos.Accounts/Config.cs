@@ -16,6 +16,7 @@ using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.GraphQl;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Infrastructure;
 using ZES.Utils;
 
@@ -75,7 +76,20 @@ namespace Chronos.Accounts
                     QueryNet = true,
                     WithPositions = withPositions ?? true
                 });  
-            } 
+            }
+
+            public BlendedIrr BlendedIrr(string[] accounts, Asset denominator = null, string date = null, string startDate = null)
+            {
+                var time = date?.ToTime();
+                var startTime = startDate?.ToTime().ToInstant() ?? default;
+
+                return Resolve(new BlendedIrrQuery(accounts.ToList(), denominator)
+                {
+                    Timestamp = time,
+                    QueryNet = true,
+                    Start = startTime
+                });
+            }
             
             public TransactionList TransactionList(string account) => Resolve(new TransactionListQuery(account));
             public List<TransactionInfo> TransactionInfos(string account)
