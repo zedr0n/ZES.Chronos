@@ -529,14 +529,13 @@ export async function blendedIrr(accounts: string[][], asOfDate : number, startD
  * @param {number} asOfDate as of date
  * @param {string} assetId denominator asset
  * @param {boolean} immediate convert to asset at tx date
- * @param {boolean} [withPositions] include positions
  */
-export async function accountStats(account : string, asOfDate : number, assetId? : string, immediate? : boolean, withPositions?: boolean) : Promise<any> {
+export async function accountStats(account : string, asOfDate : number, assetId? : string, immediate? : boolean) : Promise<any> {
   if(assetId == undefined || assetId == "")
     assetId = "GBP"
 
   let query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate}, withPositions : ${withPositions} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } realisedGains { amount denominator { assetId } } irr }
+      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } realisedGains { amount denominator { assetId } } irr }
     }`;
   
   window.console.log(query)

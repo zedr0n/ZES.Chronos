@@ -226,6 +226,67 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public async Task CanComputeCostBasisForAssetSwaps()
+        { 
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false);
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), Time.MinValue));
+            
+            var btc = new Asset("BTC", AssetType.Coin);
+            var eth = new Asset("ETH", AssetType.Coin);
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+            
+            await connector.SetAsync(webSearchApi.GetUrl("BTC-USD"),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":78075.7109375,\"previousCloseDate\":\"2026-04-24\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl("ETH-USD"),
+                "[{\"Code\":\"ETH-USD\",\"Exchange\":\"CC\",\"Name\":\"Ethereum\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":2318.5300292969,\"previousCloseDate\":\"2026-04-24\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3466,\"previousCloseDate\":\"2026-04-23\"}]");
+ 
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(eth, usd), Time.MinValue));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue));
+            
+            var date = new LocalDateTime(2016, 12, 30, 12, 30).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2017, 8, 14, 12, 30).InUtc().ToInstant().ToTime();
+           
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            var ticker = assetPairInfo.Ticker;
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2016-12-30\",\"open\":1.2285,\"high\":1.2387,\"low\":1.227,\"close\":1.2288,\"adjusted_close\":1.2288,\"volume\":965}]");
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker, date2),
+                "[{\"date\":\"2017-08-14\",\"open\":1.3008,\"high\":1.3023,\"low\":1.2961,\"close\":1.3006,\"adjusted_close\":1.3006,\"volume\":493}]");
+            
+            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            ticker = assetPairInfo.Ticker;
+            await connector.SetAsync(coinQuoteApi.GetUrl(ticker, date2),
+                "[{\"date\":\"2017-08-14\",\"open\":4066.1000976563,\"high\":4325.1298828125,\"low\":3989.1599121094,\"close\":4325.1298828125,\"adjusted_close\":4325.1298828125,\"volume\":2463089920}]");
+            
+            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(eth, usd)), date));
+            ticker = assetPairInfo.Ticker;
+            await connector.SetAsync(coinQuoteApi.GetUrl(ticker, date2),
+                "[{\"date\":\"2017-08-14\",\"open\":298.0310058594,\"high\":306.8070068359,\"low\":296.4119873047,\"close\":300.0969848633,\"adjusted_close\":300.0969848633,\"volume\":864390976}]");
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.2, btc), new Quantity(166, gbp)), date));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.05, btc), new Quantity(178, gbp)), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.35, eth), new Quantity(0.07, btc)), date2));
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { QueryNet = true, Timestamp = date2 });
+            Assert.Equal(313.551072, stats.CostBasis[0].Amount, 1e-6);
+            Assert.Equal(180.822563, stats.RealisedGains[0].Amount, 1e-6);
+            Assert.Equal(302.759091, stats.CostBasis[1].Amount, 1e-6);
+            Assert.Equal(0, stats.RealisedGains[1].Amount);
+        }
+
+        [Fact]
         public async Task CanComputeIrr()
         {
             var container = CreateContainer();

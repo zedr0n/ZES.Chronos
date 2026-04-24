@@ -91,13 +91,30 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
 
     private void DoTransaction()
     {
-        SendCommand(new CreateTransaction(Id, _cost with { Amount = -_cost.Amount }, Transaction.TransactionType.Asset, $"{_quantity.Denominator.AssetId} asset transaction", _quantity.Denominator.AssetId));
-        SendCommand(new AddTransaction(_account, Id));
+        if (_cost.Denominator.AssetType == AssetType.Currency)
+        {
+            SendCommand(new CreateTransaction(Id, _cost with { Amount = -_cost.Amount },
+                Transaction.TransactionType.Asset, $"{_quantity.Denominator.AssetId} asset transaction",
+                _quantity.Denominator.AssetId));
+            SendCommand(new AddTransaction(_account, Id));
+        }
+        else
+        {
+            SendCommand(new DepositAsset(_account, _cost with { Amount = -_cost.Amount }));
+        }
+
         if (_fee != null && _fee.IsValid() && _fee.Amount != 0)
         {
-            SendCommand(new CreateTransaction($"Fee_{Id}", _fee with { Amount = -_fee.Amount }, Transaction.TransactionType.Fee,
-                $"{_quantity.Denominator.AssetId} asset transaction fee", _quantity.Denominator.AssetId));
-            SendCommand(new AddTransaction(_account, $"Fee_{Id}"));
+            if (_fee.Denominator.AssetType == AssetType.Currency)
+            {
+                SendCommand(new CreateTransaction($"Fee_{Id}", _fee with { Amount = -_fee.Amount }, Transaction.TransactionType.Fee,
+                    $"{_quantity.Denominator.AssetId} asset transaction fee", _quantity.Denominator.AssetId));
+                SendCommand(new AddTransaction(_account, $"Fee_{Id}"));
+            }
+            else
+            {
+                SendCommand(new DepositAsset(_account, _fee with { Amount = -_fee.Amount }));
+            }
         }
 
         SendCommand(new DepositAsset(_account, _quantity));

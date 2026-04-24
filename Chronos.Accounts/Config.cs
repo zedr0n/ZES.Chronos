@@ -63,7 +63,7 @@ namespace Chronos.Accounts
             /// <returns>Account stats</returns>
             public Stats AccountStats() => Resolve(new StatsQuery());
 
-            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, bool? immediate = null, bool? withPositions = null)
+            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, bool? immediate = null)
             {
                 var time = date?.ToTime();
 
@@ -71,10 +71,9 @@ namespace Chronos.Accounts
                     denominator = currency;
                 return Resolve(new AccountStatsQuery(accountName, denominator)
                 {
-                    ConvertToDenominatorAtTxDate = immediate ?? false,
+                    ConvertToDenominatorAtTxDate = immediate ?? true,
                     Timestamp = time,
                     QueryNet = true,
-                    WithPositions = withPositions ?? true
                 });  
             }
 
@@ -152,9 +151,18 @@ namespace Chronos.Accounts
                     var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
                     return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
                 });
-                
-                var costAsset = new Asset(costAssetId, AssetType.Currency);
-                if (costAssetId == null)
+
+                Asset costAsset = null;
+                if (costAssetId != null)
+                {
+                    costAsset = _assets.GetOrAdd(costAssetId, x =>
+                    {
+                        var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
+                        var a = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                        return a ?? throw new InvalidOperationException($"Asset {x} not registered");
+                    });
+                }
+                else
                 {
                     if(cost != null)
                         throw new InvalidOperationException("Cost asset id is required");
