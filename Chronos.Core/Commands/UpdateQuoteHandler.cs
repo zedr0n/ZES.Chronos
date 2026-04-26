@@ -211,8 +211,8 @@ namespace Chronos.Core.Commands
           break;
         default:
         {
-          if (!command.Timestamp.ToInstant().IsWorkingDay())
-            throw new MissingDataException();
+          // if (!command.Timestamp.ToInstant().IsWorkingDay())
+          //  throw new MissingDataException();
           
           var url = root.Url ?? webQuoteApi.GetUrl(ticker, command.Timestamp, command.EnforceCache);
 

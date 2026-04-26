@@ -276,13 +276,13 @@ namespace Chronos.Tests
                 "[{\"date\":\"2017-08-14\",\"open\":298.0310058594,\"high\":306.8070068359,\"low\":296.4119873047,\"close\":300.0969848633,\"adjusted_close\":300.0969848633,\"volume\":864390976}]");
             
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.2, btc), new Quantity(166, gbp)), date));
-            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.05, btc), new Quantity(178, gbp)), date2));
-            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.35, eth), new Quantity(0.07, btc)), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.05, btc), new Quantity(0.05*4325.12988281251/1.3006, gbp)), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.35, eth), new Quantity(0.025, btc)), date2));
             
             var stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { QueryNet = true, Timestamp = date2 });
-            Assert.Equal(313.551072, stats.CostBasis[0].Amount, 1e-6);
-            Assert.Equal(180.822563, stats.RealisedGains[0].Amount, 1e-6);
-            Assert.Equal(302.759091, stats.CostBasis[1].Amount, 1e-6);
+            Assert.Equal(166*1.2288+0.05*4325.1298828125*0.5, stats.CostBasis[0].Amount, 1e-6);
+            Assert.Equal(0, stats.RealisedGains[0].Amount, 1e-6);
+            Assert.Equal(0.025*4325.12988281251, stats.CostBasis[1].Amount, 1e-6);
             Assert.Equal(0, stats.RealisedGains[1].Amount);
         }
 

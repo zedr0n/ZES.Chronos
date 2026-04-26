@@ -8,6 +8,7 @@ using NodaTime;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Infrastructure;
 
@@ -175,94 +176,158 @@ namespace Chronos.Accounts.Queries
                 Irr = irr
             };
         }
+
+        public interface IAssetPools
+        {
+            double RealisedGain { get; }
+            double CostBasis { get; }
+            
+            void Acquire(Time time, double quantity, double cost);
+            void Dispose(Time time, double quantity, double cost);
+            void EndOfDay(Time time);
+        }
+
+        public class UkAssetPools : IAssetPools
+        {
+            private readonly List<Pool> _pools;
+            private readonly Pool _sameDayPool = new();
+            private readonly Pool _section104Pool = new();
+            
+            private DateTime _lastEndOfDay;
+            
+            public double CostBasis => _pools.Sum(p => p.Cost);
+            public double RealisedGain { get; set; }
+
+            public UkAssetPools()
+            {
+                _pools = [_sameDayPool, _section104Pool];
+            }
+            
+            public void Acquire(Time time, double quantity, double cost)
+            {
+               _sameDayPool.Quantity += quantity;
+               _sameDayPool.Cost += cost;
+            }
+
+            public void Dispose(Time time, double quantity, double cost)
+            {
+                var remainingQuantity = quantity;
+                var remainingProceeds = cost;
+                
+                foreach (var pool in _pools)
+                {
+                    if (remainingQuantity <= 0)
+                        break;
+                    if (pool.Quantity <= 0)
+                        continue;
+                    
+                    var takeQuantity = Math.Min(pool.Quantity, remainingQuantity);
+                    var ratio = takeQuantity / quantity;
+
+                    // compute the gains 
+                    var proceeds = cost * ratio;
+                    RealisedGain += proceeds - pool.AverageCost * takeQuantity;
+                    remainingProceeds -= proceeds;
+                    
+                    // adjust the pool 
+                    pool.Cost -= pool.AverageCost * takeQuantity;
+                    pool.Quantity -= takeQuantity;
+                    remainingQuantity -= takeQuantity;
+                }
+            }
+
+            public void EndOfDay(Time time)
+            {
+                var date = time.ToDateTime().Date;
+                if (date == _lastEndOfDay) 
+                    return;
+                
+                // transfer the same-day pool to the section 104 pool
+                _section104Pool.Quantity += _sameDayPool.Quantity;
+                _section104Pool.Cost += _sameDayPool.Cost;
+                _sameDayPool.Quantity = 0.0;
+                _sameDayPool.Cost = 0.0;
+                _lastEndOfDay = date;
+            }
+        }
+        
+        private record Pool
+        {
+            public double Quantity { get; set; }
+            public double Cost { get; set; }
+            public double AverageCost => Cost / Quantity; 
+        }
         
         private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains)> ComputeGains(AccountStatsState state, AccountStatsQuery query)
         {
             var denominator = query.Denominator;
             
+            var poolsDictionary = new Dictionary<Asset, IAssetPools>();
             var costBasisDictionary = new Dictionary<Asset, Quantity>();
             var realisedGainsDictionary = new Dictionary<Asset, Quantity>();
             
-            foreach (var (asset, costs) in state.Costs)
+            // we now need to sort all the costs by timestamp so that asset-asset swaps can be handled correctly
+            foreach (var (t, costs) in state.Costs.OrderBy(x => x.Key))
             {
-                var costBasis = 0.0;
-                var realisedGain = 0.0;
-                foreach (var (q, c, t) in costs.OrderBy(x => x.timestamp))
+                // all assets involved in the transactions on t
+                var assets = costs.Select(c => c.assetQuantity.Denominator).Where(a => a.AssetType != AssetType.Currency)
+                    .Union(costs.Select(c => c.costQuantity.Denominator).Where(a => a.AssetType != AssetType.Currency) ).ToList();
+                foreach (var asset in assets)
                 {
-                    var positions = state.GetPositions(t);
+                    var pools = poolsDictionary.GetValueOrDefault(asset, new UkAssetPools());
+                    pools.EndOfDay(t);
                     
-                    var quote = 1.0;
-                    if(c.Denominator != denominator)
+                    // process all purchases first 
+                    foreach (var (q,c) in costs.Where(x => (x.assetQuantity.Denominator == asset && x.assetQuantity.Amount > 0) || (x.costQuantity.Denominator == asset && x.costQuantity.Amount < 0)) )
                     {
-                        var assetQuote = await _handler.Handle(new AssetQuoteQuery(c.Denominator, denominator)
+                        var quote = 1.0;
+                        if(c.Denominator != denominator)
                         {
-                            Timestamp = t,
-                            UpdateQuote = query.QueryNet
-                        });
-                        if (assetQuote != null)
-                            quote = assetQuote.Quantity.Amount;
-                        else
-                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(c.Denominator, denominator)} at {query.Timestamp}");
-                    }
-                    
-                    switch (q.Amount)
-                    {
-                        // purchase
-                        case >= 0:
-                            // the cost can be in different asset
-                            costBasis += c.Amount * quote;
-                            break;
-                        // sale
-                        case < 0:
-                        {
-                            if (positions.Value.TryGetValue(asset, out var position))
+                            var assetQuote = await _handler.Handle(new AssetQuoteQuery(c.Denominator, denominator)
                             {
-                                // we need to subtract the amount from the position to compute the cost basis
-                                position -= q.Amount;
-                                var costBasisPrice = costBasis / position;
-                                realisedGain += -c.Amount*quote + costBasisPrice * q.Amount;
-                                costBasis += costBasisPrice * q.Amount;
-                            }
+                                Timestamp = t,
+                                UpdateQuote = query.QueryNet,
+                            });
+                            if (assetQuote != null)
+                                quote = assetQuote.Quantity.Amount;
                             else
-                                throw new InvalidOperationException($"Position for asset {asset} not found at timestamp {t}");
-                            
-                            break;
+                                throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(c.Denominator, denominator)} at {query.Timestamp}");
                         }
-                    }
+                        
+                        if (q.Denominator == asset)
+                            pools.Acquire(t, q.Amount, c.Amount * quote);
+                        else
+                            pools.Acquire(t, -c.Amount, -c.Amount * quote);
+                    } 
                     
-                    costBasisDictionary[asset] = new Quantity(costBasis, denominator);
-                    realisedGainsDictionary[asset] = new Quantity(realisedGain, denominator);
-
-                    if (c.Denominator.AssetType == AssetType.Currency) 
-                        continue;
-
-                    // if we are exchanging asset to asset, we need to adjust the cost basis and realised gains of the opposing asset as well
-                    var opposingCostBasis = costBasisDictionary.GetValueOrDefault(c.Denominator, new Quantity(0, denominator)).Amount;
-                    var opposingRealisedGain = realisedGainsDictionary.GetValueOrDefault(c.Denominator, new Quantity(0, denominator)).Amount;
-                    switch (c.Amount)
+                    // process all disposals
+                    foreach (var (q, c) in costs.Where(x =>
+                                 (x.assetQuantity.Denominator == asset && x.assetQuantity.Amount < 0) ||
+                                 (x.costQuantity.Denominator == asset && x.costQuantity.Amount > 0)))
                     {
-                        // purchase of the opposing asset
-                        case < 0:
-                            opposingCostBasis += -c.Amount * quote;
-                            break;
-                        // sale of the opposing asset
-                        case >= 0:
-                            if (positions.Value.TryGetValue(c.Denominator, out var costPosition))
+                        var quote = 1.0;
+                        if(c.Denominator != denominator)
+                        {
+                            var assetQuote = await _handler.Handle(new AssetQuoteQuery(c.Denominator, denominator)
                             {
-                                costPosition += c.Amount;
-                                var opposingCostPrice = opposingCostBasis / costPosition;
-                               
-                                opposingRealisedGain += c.Amount * quote - opposingCostPrice * c.Amount;
-                                opposingCostBasis += -opposingCostPrice * c.Amount; 
-                            }
+                                Timestamp = t,
+                                UpdateQuote = query.QueryNet,
+                            });
+                            if (assetQuote != null)
+                                quote = assetQuote.Quantity.Amount;
                             else
-                                throw new InvalidOperationException($"Position for asset {c.Denominator} not found at timestamp {t}");
-                            
-                            break;
+                                throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(c.Denominator, denominator)} at {query.Timestamp}");
+                        }
+                        
+                        if(q.Denominator == asset)
+                            pools.Dispose(t, -q.Amount, -c.Amount * quote);
+                        else
+                            pools.Dispose(t, c.Amount, c.Amount * quote);
                     }
                     
-                    costBasisDictionary[c.Denominator] = new Quantity(opposingCostBasis, denominator);
-                    realisedGainsDictionary[c.Denominator] = new Quantity(opposingRealisedGain, denominator);
+                    poolsDictionary[asset] = pools;
+                    costBasisDictionary[asset] = new Quantity(pools.CostBasis, denominator);
+                    realisedGainsDictionary[asset] = new Quantity(pools.RealisedGain, denominator);
                 }
             }
             

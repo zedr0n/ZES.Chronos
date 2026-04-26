@@ -16,12 +16,12 @@ namespace Chronos.Accounts.Queries
     public class AccountStatsState : IState
     {
         private readonly Dictionary<Asset, List<(Quantity quantity, Time timestamp)>> _deposits = new();
-        private readonly Dictionary<Asset, List<(Quantity assetQuantity, Quantity quantity, Time timestamp)>> _costs = new();
+        private readonly Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> _costs = new();
         private readonly Dictionary<Asset, List<(Time timestamp, double ratio )>> _splits = new();
         
         private Dictionary<Asset, double> _positions = new();
 
-        public ReadOnlyDictionary<Asset, List<(Quantity assetQuantity, Quantity quantity, Time timestamp)>> Costs =>
+        public ReadOnlyDictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> Costs =>
             _costs.AsReadOnly();
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Chronos.Accounts.Queries
             _positions = new Dictionary<Asset, double>(other._positions);
             _deposits = new Dictionary<Asset, List<(Quantity quantity, Time timestamp)>>(other._deposits);
             _splits = new Dictionary<Asset, List<(Time timestamp, double ratio)>>(other._splits);
-            _costs = new Dictionary<Asset, List<(Quantity assetQuantity, Quantity quantity, Time timestamp)>>(other._costs);
+            _costs = new Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>>(other._costs);
             Transactions = new HashSet<string>(other.Transactions);
         }
 
@@ -100,12 +100,12 @@ namespace Chronos.Accounts.Queries
             _positions.Clear();
         }
 
-        public void AddCost(Quantity assetQuantity, Quantity quantity, Time timestamp)
+        public void AddCost(Quantity assetQuantity, Quantity costQuantity, Time timestamp)
         {
-            if(!_costs.ContainsKey(assetQuantity.Denominator))
-                _costs[assetQuantity.Denominator] = new List<(Quantity assetQuantity, Quantity quantity, Time timestamp)>();
-            
-            _costs[assetQuantity.Denominator].Add((assetQuantity, quantity, timestamp));
+            if(!_costs.ContainsKey(timestamp))
+                _costs[timestamp] = new List<(Quantity assetQuantity, Quantity costQuantity)>();
+           
+            _costs[timestamp].Add((assetQuantity, costQuantity));
         }
 
         /// <summary>
