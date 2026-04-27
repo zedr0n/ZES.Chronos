@@ -18,6 +18,7 @@ namespace Chronos.Accounts.Queries
         private readonly Dictionary<Asset, List<(Quantity quantity, Time timestamp)>> _deposits = new();
         private readonly Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> _costs = new();
         private readonly Dictionary<Asset, List<(Time timestamp, double ratio )>> _splits = new();
+        private readonly Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>> _transfers = new();
         
         private Dictionary<Asset, double> _positions = new();
 
@@ -37,10 +38,12 @@ namespace Chronos.Accounts.Queries
         /// <param name="other">Source state</param>
         public AccountStatsState(AccountStatsState other)
         {
+            AccountName = other.AccountName;
             _positions = new Dictionary<Asset, double>(other._positions);
             _deposits = new Dictionary<Asset, List<(Quantity quantity, Time timestamp)>>(other._deposits);
             _splits = new Dictionary<Asset, List<(Time timestamp, double ratio)>>(other._splits);
             _costs = new Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>>(other._costs);
+            _transfers = new Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>>(other._transfers);
             Transactions = new HashSet<string>(other.Transactions);
         }
 
@@ -56,10 +59,27 @@ namespace Chronos.Accounts.Queries
             }    
         }
 
+        public string AccountName { get; set; }
+        
         /// <summary>
         /// Gets all account transactions
         /// </summary>
         public HashSet<string> Transactions { get; } = new();
+
+        /// <summary>
+        /// Gets transfers associated with the account over time.
+        /// </summary>
+        public Dictionary<Time, List<Quantity>> AssetTransfers => _transfers.Where(t => t.Value.Count > 0).ToDictionary(t => t.Key, t => t.Value.Where(v => v.toAccount == AccountName || v.fromAccount == AccountName).Select(v => v.quantity * ( v.toAccount == AccountName ? 1 : -1 )).ToList());
+
+        public Dictionary<Time, List<(string fromAccount, Quantity quantity)>> GetAssetTransfersIn()
+        {
+            return _transfers.Where(t => t.Value.Count > 0).ToDictionary(t => t.Key, t => t.Value.Where(v => v.toAccount == AccountName).Select(v => (v.fromAccount, v.quantity)).ToList());
+        }
+        
+        public Dictionary<Time, List<Quantity>> GetAssetTransfersOut()
+        {
+            return _transfers.Where(t => t.Value.Count > 0).ToDictionary(t => t.Key, t => t.Value.Where(v => v.fromAccount == AccountName).Select(v => v.quantity).ToList());
+        }
         
         /// <summary>
         /// Gets all account assets
@@ -106,6 +126,14 @@ namespace Chronos.Accounts.Queries
                 _costs[timestamp] = new List<(Quantity assetQuantity, Quantity costQuantity)>();
            
             _costs[timestamp].Add((assetQuantity, costQuantity));
+        }
+
+        public void AddAssetTransfer(string fromAccount, string toAccount, Quantity quantity, Time timestamp)
+        {
+           if(!_transfers.ContainsKey(timestamp))
+               _transfers[timestamp] = new List<(string, string, Quantity)>(); 
+           
+           _transfers[timestamp].Add((fromAccount, toAccount, quantity));
         }
 
         /// <summary>

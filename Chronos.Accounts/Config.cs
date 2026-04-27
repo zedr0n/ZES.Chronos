@@ -17,6 +17,7 @@ using ZES.Infrastructure.GraphQl;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Clocks;
+using ZES.Interfaces.Domain;
 using ZES.Interfaces.Infrastructure;
 using ZES.Utils;
 
@@ -37,6 +38,7 @@ namespace Chronos.Accounts
         public static void RegisterAll(Container c)
         {
             c.RegisterAll(Assembly.GetExecutingAssembly());
+            c.RegisterSingleton<Func<IQueryHandler<AccountStatsQuery, AccountStats>>>(() => c.GetInstance<IQueryHandler<AccountStatsQuery, AccountStats>>);
         }
         
         /// <summary>

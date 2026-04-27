@@ -32,6 +32,8 @@ namespace Chronos.Accounts.Queries
     
     [JsonIgnore]
     public List<(Instant, Quantity)> ExternalCashflows { get; set; }
+    [JsonIgnore]
+    public Dictionary<Asset, IAssetPools> AssetPools { get; set; }
     public double Irr { get; set; }
 
     public AccountStats(Quantity balance)

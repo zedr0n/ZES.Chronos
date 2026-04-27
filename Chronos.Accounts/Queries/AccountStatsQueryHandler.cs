@@ -27,6 +27,7 @@ namespace Chronos.Accounts.Queries
         private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
         private readonly ILog _log;
+        private readonly Func<IQueryHandler<AccountStatsQuery, AccountStats>> _accountStatsHandlerFactory;
 
         /// <summary>
         /// Handles the <see cref="AccountStatsQuery"/> by retrieving account-related data
@@ -37,18 +38,20 @@ namespace Chronos.Accounts.Queries
         /// </remarks>
         public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
             IQueryHandler<AssetQuoteQuery, AssetQuote> handler,
-            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log)
+            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log,
+            Func<IQueryHandler<AccountStatsQuery, AccountStats>> accountStatsHandlerFactory)
             : base(manager, activeTimeline)
         {
             _timeline = activeTimeline;
             _handler = handler;
             _transactionInfoHandler = transactionInfoHandler;
             _log = log;
+            _accountStatsHandlerFactory = accountStatsHandlerFactory;
         }
 
         protected override async Task<AccountStats> Handle(AccountStatsQuery query)
         {
-            Predicate = s => (s.Type == nameof(Account) && s.SameId(query.Name)) || s.Type == nameof(AssetPair);
+            Predicate = s => (s.Type == nameof(Account) && s.SameId(query.Name)) || s.Type == nameof(AssetPair) || s.Type == nameof(Transfer);
             return await base.Handle(query, query.Name);
         }
 
@@ -75,7 +78,7 @@ namespace Chronos.Accounts.Queries
             var positions = new Dictionary<string, PositionData>();
             var totalDividend = 0.0;
             
-            var (costBasis, realisedGains) = await ComputeGains(state, query);
+            var (costBasis, realisedGains, pools) = await ComputeGains(state, query);
             var assets = new HashSet<Asset>();
 
             foreach (var (asset, amount) in state.Assets.Zip(state.Quantities, (asset, value) => (asset, value)))
@@ -159,6 +162,28 @@ namespace Chronos.Accounts.Queries
                     };
                 }
             }
+
+            foreach (var (timestamp, transfers) in state.AssetTransfers)
+            {
+                foreach (var transfer in transfers)
+                {
+                    var quote = 1.0;
+                    if (transfer.Denominator != denominator)
+                    {
+                        var assetQuote = await _handler.Handle(new AssetQuoteQuery(transfer.Denominator, denominator)
+                        {
+                            Timestamp = timestamp,
+                            UpdateQuote = query.QueryNet,
+                        });
+                        if (assetQuote != null)
+                            quote = assetQuote.Quantity.Amount;
+                        else
+                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(transfer.Denominator, denominator)} at {query.Timestamp}");
+                    }
+                    extCashflows.Add((timestamp.ToInstant(), -transfer.Amount * quote));
+                }
+            }
+            
             var now = query.Timestamp?.ToInstant() ?? _timeline.Now.ToInstant();
             extCashflows.Add((now, total));
             var irr = query.ComputeIrr ? IrrSolver.Solve(extCashflows) : 0.0;
@@ -173,102 +198,54 @@ namespace Chronos.Accounts.Queries
                 RealisedGains = positions.Values.Select(p => p.RealisedGain).ToList(),
                 TotalDividend = new Quantity(totalDividend, denominator),
                 ExternalCashflows = extCashflows.Take(extCashflows.Count - 1).Select( x => (x.time, new Quantity(x.amount, denominator))).ToList(),
-                Irr = irr
+                Irr = irr,
+                AssetPools = pools
             };
         }
 
-        public interface IAssetPools
-        {
-            double RealisedGain { get; }
-            double CostBasis { get; }
-            
-            void Acquire(Time time, double quantity, double cost);
-            void Dispose(Time time, double quantity, double cost);
-            void EndOfDay(Time time);
-        }
-
-        public class UkAssetPools : IAssetPools
-        {
-            private readonly List<Pool> _pools;
-            private readonly Pool _sameDayPool = new();
-            private readonly Pool _section104Pool = new();
-            
-            private DateTime _lastEndOfDay;
-            
-            public double CostBasis => _pools.Sum(p => p.Cost);
-            public double RealisedGain { get; set; }
-
-            public UkAssetPools()
-            {
-                _pools = [_sameDayPool, _section104Pool];
-            }
-            
-            public void Acquire(Time time, double quantity, double cost)
-            {
-               _sameDayPool.Quantity += quantity;
-               _sameDayPool.Cost += cost;
-            }
-
-            public void Dispose(Time time, double quantity, double cost)
-            {
-                var remainingQuantity = quantity;
-                var remainingProceeds = cost;
-                
-                foreach (var pool in _pools)
-                {
-                    if (remainingQuantity <= 0)
-                        break;
-                    if (pool.Quantity <= 0)
-                        continue;
-                    
-                    var takeQuantity = Math.Min(pool.Quantity, remainingQuantity);
-                    var ratio = takeQuantity / quantity;
-
-                    // compute the gains 
-                    var proceeds = cost * ratio;
-                    RealisedGain += proceeds - pool.AverageCost * takeQuantity;
-                    remainingProceeds -= proceeds;
-                    
-                    // adjust the pool 
-                    pool.Cost -= pool.AverageCost * takeQuantity;
-                    pool.Quantity -= takeQuantity;
-                    remainingQuantity -= takeQuantity;
-                }
-            }
-
-            public void EndOfDay(Time time)
-            {
-                var date = time.ToDateTime().Date;
-                if (date == _lastEndOfDay) 
-                    return;
-                
-                // transfer the same-day pool to the section 104 pool
-                _section104Pool.Quantity += _sameDayPool.Quantity;
-                _section104Pool.Cost += _sameDayPool.Cost;
-                _sameDayPool.Quantity = 0.0;
-                _sameDayPool.Cost = 0.0;
-                _lastEndOfDay = date;
-            }
-        }
-        
-        private record Pool
-        {
-            public double Quantity { get; set; }
-            public double Cost { get; set; }
-            public double AverageCost => Cost / Quantity; 
-        }
-        
-        private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains)> ComputeGains(AccountStatsState state, AccountStatsQuery query)
+        private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains, Dictionary<Asset, IAssetPools>)> ComputeGains(AccountStatsState state, AccountStatsQuery query)
         {
             var denominator = query.Denominator;
             
             var poolsDictionary = new Dictionary<Asset, IAssetPools>();
             var costBasisDictionary = new Dictionary<Asset, Quantity>();
             var realisedGainsDictionary = new Dictionary<Asset, Quantity>();
+
+            var assetTransferIn = state.GetAssetTransfersIn();
+            var assetTransfersOut = state.GetAssetTransfersOut();
+            
+            var allTimestamps = state.Costs.Keys?.Union(assetTransferIn.Select(x => x.Key)).Union(assetTransfersOut.Select(x => x.Key)) ?? [];
             
             // we now need to sort all the costs by timestamp so that asset-asset swaps can be handled correctly
-            foreach (var (t, costs) in state.Costs.OrderBy(x => x.Key))
+            foreach (var t in allTimestamps.OrderBy(x => x))
             {
+                var costs = state.Costs.GetValueOrDefault(t, []);
+                var transfersIn = assetTransferIn.GetValueOrDefault(t, []);
+                var transfersOut = assetTransfersOut.GetValueOrDefault(t, []);
+                
+                // handle transfers in
+                foreach (var (fromAccount, q) in transfersIn)
+                {
+                    var handler = _accountStatsHandlerFactory();
+                    var fromAccountStats = await handler.Handle(new AccountStatsQuery(fromAccount, denominator)
+                    {
+                        QueryNet = query.QueryNet,
+                        Timestamp = t,
+                        IncludeTransfersOutAtQueryDate = false
+                    });
+                    if (fromAccountStats == null)
+                        throw new InvalidOperationException($"Account {fromAccount} not found");
+
+                    var fromPools = fromAccountStats.AssetPools;
+                    foreach (var asset in fromPools.Keys)
+                    {
+                        var pools = poolsDictionary.GetValueOrDefault(asset, new UkAssetPools());
+                        pools.EndOfDay(t);
+                        pools.TransferFrom(fromPools[asset], q.Amount);
+                        poolsDictionary[asset] = pools;
+                    }
+                }
+                
                 // all assets involved in the transactions on t
                 var assets = costs.Select(c => c.assetQuantity.Denominator).Where(a => a.AssetType != AssetType.Currency)
                     .Union(costs.Select(c => c.costQuantity.Denominator).Where(a => a.AssetType != AssetType.Currency) ).ToList();
@@ -326,12 +303,32 @@ namespace Chronos.Accounts.Queries
                     }
                     
                     poolsDictionary[asset] = pools;
-                    costBasisDictionary[asset] = new Quantity(pools.CostBasis, denominator);
-                    realisedGainsDictionary[asset] = new Quantity(pools.RealisedGain, denominator);
+                }
+                
+                // handle transfers out
+                if(transfersOut.GroupBy(x => x.Denominator).Any(x => x.Count() > 1))
+                    throw new InvalidOperationException("Multiple transfers out to the same asset are not supported");
+                
+                foreach (var q in transfersOut)
+                {
+                    if(t == query.Timestamp && !query.IncludeTransfersOutAtQueryDate)
+                        continue;
+                    
+                    var pools = poolsDictionary.GetValueOrDefault(q.Denominator, new UkAssetPools());
+                    pools.EndOfDay(t);
+                    pools.TransferOut(q.Amount);
+                    poolsDictionary[q.Denominator] = pools;
                 }
             }
+
+            foreach (var asset in poolsDictionary.Keys)
+            {
+                var pools = poolsDictionary[asset];
+                costBasisDictionary[asset] = new Quantity(pools.CostBasis, denominator);
+                realisedGainsDictionary[asset] = new Quantity(pools.RealisedGain, denominator);
+            }
             
-            return (costBasisDictionary, realisedGainsDictionary);
+            return (costBasisDictionary, realisedGainsDictionary, poolsDictionary);
         }
     }
 }

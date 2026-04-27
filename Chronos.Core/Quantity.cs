@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ZES.Infrastructure;
 
@@ -8,6 +9,32 @@ namespace Chronos.Core
     /// </summary>
     public record Quantity(double Amount, Asset Denominator)
     {
+        public static Quantity operator +(Quantity quantity1, Quantity quantity2)
+        {
+            if (quantity1.Denominator != quantity2.Denominator)
+                throw new InvalidOperationException("Cannot add quantities with different denominators");
+                
+            return new Quantity(quantity1.Amount + quantity2.Amount, quantity1.Denominator);
+        }
+        
+        public static Quantity operator -(Quantity quantity1, Quantity quantity2)
+        {
+            if (quantity1.Denominator != quantity2.Denominator)
+                throw new InvalidOperationException("Cannot add quantities with different denominators");
+            
+            return new Quantity(quantity1.Amount - quantity2.Amount, quantity1.Denominator);
+        }
+        
+        public static Quantity operator *(Quantity quantity, double multiplier)
+        {
+            return new Quantity(quantity.Amount * multiplier, quantity.Denominator);
+        }
+
+        public static Quantity operator /(Quantity quantity, double divisor)
+        {
+            return new Quantity(quantity.Amount / divisor, quantity.Denominator);
+        }
+        
         /// <summary>
         /// Validates the current Quantity instance by checking whether the numeric amount is a valid number
         /// and whether the associated Denominator (Asset) is valid.
