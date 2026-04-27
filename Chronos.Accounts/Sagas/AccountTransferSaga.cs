@@ -64,10 +64,18 @@ namespace Chronos.Accounts.Sagas
             var fromTxId = $"{e.TxId}[From]";
             var toTxId = $"{e.TxId}[To]";
 
-            SendCommand(new CreateTransaction(fromTxId, new Quantity(-e.Amount.Amount, e.Amount.Denominator), Transaction.TransactionType.Transfer, $"Transfer to {e.ToAccount}"));
-            SendCommand(new AddTransaction(e.FromAccount, fromTxId));
-            SendCommand(new CreateTransaction(toTxId, new Quantity(e.Amount.Amount, e.Amount.Denominator), Transaction.TransactionType.Transfer, $"Transfer from {e.FromAccount}"));
-            SendCommand(new AddTransaction(e.ToAccount, toTxId));
+            if (e.Amount.Denominator.AssetType == AssetType.Currency)
+            {
+                SendCommand(new CreateTransaction(fromTxId, new Quantity(-e.Amount.Amount, e.Amount.Denominator), Transaction.TransactionType.Transfer, $"Transfer to {e.ToAccount}",null, e.ToAccount));
+                SendCommand(new AddTransaction(e.FromAccount, fromTxId));
+                SendCommand(new CreateTransaction(toTxId, new Quantity(e.Amount.Amount, e.Amount.Denominator), Transaction.TransactionType.Transfer, $"Transfer from {e.FromAccount}", null, e.FromAccount));
+                SendCommand(new AddTransaction(e.ToAccount, toTxId));
+            }
+            else
+            {
+                SendCommand(new DepositAsset(e.FromAccount, new Quantity(-e.Amount.Amount, e.Amount.Denominator)));
+                SendCommand(new DepositAsset(e.ToAccount, new Quantity(e.Amount.Amount, e.Amount.Denominator)));
+            }
         }
 
         private void Handle(TransactionAdded e)

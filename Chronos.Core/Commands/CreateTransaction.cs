@@ -12,7 +12,7 @@ namespace Chronos.Core.Commands;
 /// and an optional comment. Transactions created using this command can be associated with accounts and further processed within the system.
 /// </remarks>
 [method: JsonConstructor]
-public class CreateTransaction(string txId, Quantity amount, Transaction.TransactionType transactionType, string comment, string assetId = null) : Command, ICreateCommand
+public class CreateTransaction(string txId, Quantity amount, Transaction.TransactionType transactionType, string comment, string assetId = null, string counterpartyAccountId = null) : Command, ICreateCommand
 {
     /// <summary>
     /// Gets the unique transaction identifier associated with the command.
@@ -52,5 +52,12 @@ public class CreateTransaction(string txId, Quantity amount, Transaction.Transac
     /// This identifier is used to reference a specific asset within the system,
     /// enabling accurate tracking and association with transactions.
     /// </summary>
-    public string AssetId => assetId; 
+    public string AssetId => assetId;
+
+    /// <summary>
+    /// Gets the unique identifier of the counterparty's account associated with the transaction.
+    /// This property is used to specify the account of the counterparty involved in the transaction,
+    /// enabling further processing and association with their account details within the system.
+    /// </summary>
+    public string CounterpartyAccountId => counterpartyAccountId;
 }

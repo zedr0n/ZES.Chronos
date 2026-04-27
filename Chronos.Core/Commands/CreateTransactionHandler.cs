@@ -15,7 +15,7 @@ namespace Chronos.Core.Commands
     }  
     protected override Transaction Create (CreateTransaction command)
     {
-      return new Transaction(command.TxId, command.Amount, command.TransactionType, command.Comment, command.AssetId);
+      return new Transaction(command.TxId, command.Amount, command.TransactionType, command.Comment, command.AssetId, command.CounterpartyAccountId);
     }
   }
 }

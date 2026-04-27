@@ -36,16 +36,17 @@ public sealed class Transaction : AggregateRoot
     /// <param name="transactionType">Type of the transaction</param>
     /// <param name="comment">Optional comment associated with the transaction</param>
     /// <param name="assetId">Optional asset identifier associated with the transaction</param>
+    /// <param name="counterpartyAccountId">The account id the transaction originates from, if applicable, e.g. transfer</param>
     /// <remarks>
     /// The <see cref="Transaction"/> class is designed to manage the lifecycle of a transaction, starting from its creation through domain events.
     /// It is an immutable entity that applies domain events, such as <see cref="Events.TransactionCreated"/>, to define its initial state and subsequent changes.
     /// Every transaction contains detailed information, including its unique ID, quantity, type, and an optional comment.
     /// The <see cref="TransactionType"/> enumeration provides categorization for the transaction, aiding in business logic and reporting.
     /// </remarks>
-    public Transaction(string txId, Quantity quantity, TransactionType transactionType, string comment, string assetId = null)
+    public Transaction(string txId, Quantity quantity, TransactionType transactionType, string comment, string assetId = null, string counterpartyAccountId = null)
         : this()
     {
-        When(new Events.TransactionCreated(txId, quantity, transactionType, comment, assetId));
+        When(new Events.TransactionCreated(txId, quantity, transactionType, comment, assetId, counterpartyAccountId));
     }
 
     /// <summary>
