@@ -90,7 +90,7 @@ namespace Chronos.Accounts.Queries
                 //if (amount == 0)
                 //    continue;
                 
-                if (asset.AssetId != denominator?.AssetId)
+                if (asset.AssetId != denominator?.AssetId && amount != 0)
                 {
                     var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
                     {

@@ -32,6 +32,9 @@ public static class IrrSolver
          .ToList();
 
       var years = (cashflows.Max(c => c.time) - cashflows.Min(c => c.time)).TotalSeconds / (365.25 * 24 * 3600);
+      if (years == 0)
+         return 0.0;
+      
       var invested = -cashflows.Where(c => c.amount < 0).Sum(c => c.amount);
       var gain = cashflows.Where(c => c.amount > 0).Sum(c => c.amount);
       var r0 = Math.Pow(gain / invested, 1.0 / years) - 1;
