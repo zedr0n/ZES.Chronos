@@ -191,6 +191,53 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public async Task CanSpendAsset()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var log = container.GetInstance<ILog>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false); 
+           
+            var date = new LocalDateTime(2017, 8, 16, 12, 30).InUtc().ToInstant().ToTime();
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), date));
+            
+            var btc = new Asset("BTC", AssetType.Coin);
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+            
+            await connector.SetAsync(webSearchApi.GetUrl(fxQuoteApi.GetSearchTicker(gbp, usd)),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3537,\"previousCloseDate\":\"2026-04-27\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(btc, usd)),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":76734.7109375,\"previousCloseDate\":\"2026-04-28\"}]");
+ 
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue)); 
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue)); 
+
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var btcTicker = assetPairInfo.Ticker;
+            
+            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            var gbpTicker = assetPairInfo.Ticker;
+
+            await connector.SetAsync(coinQuoteApi.GetUrl(btcTicker, date),
+                "[{\"date\":\"2017-08-16\",\"open\":4200.33984375,\"high\":4381.2299804688,\"low\":3994.419921875,\"close\":4376.6298828125,\"adjusted_close\":4376.6298828125,\"volume\":2272039936}]");
+            await connector.SetAsync(fxQuoteApi.GetUrl(gbpTicker, date),
+                "[{\"date\":\"2017-08-16\",\"open\":1.2868,\"high\":1.2903,\"low\":1.2845,\"close\":1.2867,\"adjusted_close\":1.2867,\"volume\":474}]");
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.06, btc), new Quantity(241.58, usd)), date));
+            await bus.Command(new RetroactiveCommand<SpendAsset>(new SpendAsset("Account",new Quantity(0.00114549, btc), new Quantity(double.NaN, usd)), date));
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", gbp) { QueryNet = true });
+            log.Info(stats);
+        }
+
+        [Fact]
         public async Task CanComputeSameDayDisposal()
         {
             var container = CreateContainer();

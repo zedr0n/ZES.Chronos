@@ -143,6 +143,45 @@ namespace Chronos.Accounts
                     : Resolve(new CreateAccount(name, accountType) { Guid = guid }); 
             }
 
+            public bool SpendAsset(string account, double amount, string assetId, string costAssetId, double? cost, string date, string guid)
+            {
+                var time = date?.ToTime();
+
+                var asset = _assets.GetOrAdd(assetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() {Timeline = BranchManager.Master}); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
+
+                Asset costAsset = null;
+                if (costAssetId != null)
+                {
+                    costAsset = _assets.GetOrAdd(costAssetId, x =>
+                    {
+                        var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
+                        var a = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                        return a ?? throw new InvalidOperationException($"Asset {x} not registered");
+                    });
+                }
+                else
+                {
+                    if(cost != null)
+                        throw new InvalidOperationException("Cost asset id is required");
+                    
+                    var assetPairs = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master });
+                    var pair = assetPairs.GetPairs()
+                        .FirstOrDefault(x => x.forAsset.AssetId == asset.AssetId);
+                    if (pair != default)
+                        costAsset = pair.domAsset;
+                }
+                var quantity = new Quantity(amount, asset);
+                var costQuantity = new Quantity(cost ?? double.NaN, costAsset); 
+                
+                return time != null ? Resolve(new RetroactiveCommand<SpendAsset>(new SpendAsset(account, quantity, costQuantity), time) { Guid = guid }) 
+                    : Resolve(new SpendAsset(account, quantity, costQuantity) { Guid = guid });
+            }
+
             public bool TransactAsset(string account, double amount, string assetId, string costAssetId, double? cost, string date, string guid, double? fee)
             {
                 var time = date?.ToTime();

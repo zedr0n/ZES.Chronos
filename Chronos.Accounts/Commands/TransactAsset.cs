@@ -40,6 +40,17 @@ public class TransactAsset(string account, Quantity asset, Quantity cost) : Comm
     /// and its corresponding asset denominator, such as a currency or other value unit.
     /// </remarks>
     public Quantity Fee { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether an offsetting cost transaction should be created.
+    /// </summary>
+    /// <remarks>
+    /// When set to <c>true</c>, an additional transaction is initiated to offset the cost
+    /// associated with the primary asset transaction. If <c>false</c>, no offsetting transaction
+    /// is created, and only the primary transaction is executed. This property is useful for ensuring
+    /// accurate cost allocation and maintaining proper financial reporting within the system.
+    /// </remarks>
+    public bool CreateOffsettingCostTransaction { get; set; } = true;
     
     public override string Target => account;
 }

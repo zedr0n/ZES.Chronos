@@ -14,6 +14,7 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
     private Quantity _cost;
     private Quantity _fee;
     private string _account;
+    private bool _createCostTransaction;
     
     public AccountAssetSaga()
     {
@@ -66,6 +67,7 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
         _quantity = e.Asset;
         _cost = e.Cost;
         _fee = e.Fee;
+        _createCostTransaction = e.CreateOffsettingCostTransaction;
         _account = e.AggregateRootId();
         var queryQuote = !_cost.IsValid();
 
@@ -93,10 +95,13 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
     {
         if (_cost.Denominator.AssetType == AssetType.Currency)
         {
-            SendCommand(new CreateTransaction(Id, _cost with { Amount = -_cost.Amount },
-                Transaction.TransactionType.Asset, $"{_quantity.Denominator.AssetId} asset transaction",
-                _quantity.Denominator.AssetId));
-            SendCommand(new AddTransaction(_account, Id));
+            if (_createCostTransaction)
+            {
+                SendCommand(new CreateTransaction(Id, _cost with { Amount = -_cost.Amount },
+                    Transaction.TransactionType.Asset, $"{_quantity.Denominator.AssetId} asset transaction",
+                    _quantity.Denominator.AssetId));
+                SendCommand(new AddTransaction(_account, Id));
+            }
         }
         else
         {
@@ -107,9 +112,12 @@ public class AccountAssetSaga : StatelessSaga<AccountAssetSaga.State, AccountAss
         {
             if (_fee.Denominator.AssetType == AssetType.Currency)
             {
-                SendCommand(new CreateTransaction($"Fee_{Id}", _fee with { Amount = -_fee.Amount }, Transaction.TransactionType.Fee,
-                    $"{_quantity.Denominator.AssetId} asset transaction fee", _quantity.Denominator.AssetId));
-                SendCommand(new AddTransaction(_account, $"Fee_{Id}"));
+                if (_createCostTransaction)
+                {
+                    SendCommand(new CreateTransaction($"Fee_{Id}", _fee with { Amount = -_fee.Amount }, Transaction.TransactionType.Fee,
+                        $"{_quantity.Denominator.AssetId} asset transaction fee", _quantity.Denominator.AssetId));
+                    SendCommand(new AddTransaction(_account, $"Fee_{Id}"));
+                }
             }
             else
             {

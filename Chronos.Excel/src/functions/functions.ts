@@ -159,6 +159,25 @@ export async function depositAsset(name : string, amount : number, assetId : str
  * @param {number} cost - The quantity of the cost asset for this transaction.
  * @param {number} date - The transaction date, represented as an Excel serial date number.
  * @param {string} guid - A unique identifier for the transaction.
+ */
+export async function spendAsset(account: string, assetId : string, amount : number, costAssetId? : string, cost?: number, date? : number, guid? : string)
+{
+  let mutation = `mutation {
+      spendAsset( account : "${account}", assetId: "${assetId}", amount : ${amount}, ${costAssetId != undefined ? `costAssetId : "${costAssetId}", ` : ``} ${cost != undefined ? `cost : ${cost},` : ""} date : ${ExcelDateToISO(date)}, guid : "${guid}")
+    }`
+
+  let result = await SingleQuery(mutation, getIdOrError(account, data => data.spendAsset.toString()))
+  return result
+}
+/**
+ * @customfunction
+ * @param {string} account - The account identifier associated with the transaction.
+ * @param {string} assetId - The unique identifier of the asset being transacted.
+ * @param {number} amount - The quantity of the asset being transacted.
+ * @param {string} costAssetId - The unique identifier of the asset used for costing the transaction.
+ * @param {number} cost - The quantity of the cost asset for this transaction.
+ * @param {number} date - The transaction date, represented as an Excel serial date number.
+ * @param {string} guid - A unique identifier for the transaction.
  * @param {number} fee - The fee associated with the transaction.
  */
 export async function transactAsset(account: string, assetId : string, amount : number, costAssetId? : string, cost?: number, date? : number, guid? : string, fee? : number)
@@ -399,14 +418,12 @@ export async function createAccount(name : string, type : string, date : number,
  * Fetches the asset quote based on the provided input parameters.
  * @customfunction
  * @param {string} forAssetId - The ID of the foreign asset.
- * @param {string} forAssetType - The type of the foreign asset.
  * @param {string} domAssetId - The ID of the domestic asset.
- * @param {string} domAssetType - The type of the domestic asset.
  * @param {number} date - The date (in numeric format) for which the asset quote is requested.
  */
-export async function assetQuote(forAssetId : string, forAssetType : string, domAssetId : string, domAssetType: string, date: number) : Promise<any>
+export async function assetQuote(forAssetId : string, domAssetId : string, date: number) : Promise<any>
 {
-  let query = `query { assetQuote( forAsset : {assetId : "${forAssetId}", assetType : ${forAssetType.toUpperCase()}}, domAsset : {assetId : "${domAssetId}", assetType : ${domAssetType.toUpperCase()}}, date : ${ExcelDateToISO(date)} ) { quantity { amount } } }`
+  let query = `query { assetQuote( forAssetId : "${forAssetId}", domAssetId : "${domAssetId}", date : ${ExcelDateToISO(date)} ) { quantity { amount } } }`
 
   let result = await SingleQuery(query, data => data.assetQuote.quantity.amount)
   window.console.log(result)

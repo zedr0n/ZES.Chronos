@@ -62,6 +62,7 @@ namespace Chronos.Core
         public class Query : GraphQlQuery
         {
             private readonly IBus _bus;
+            private readonly ConcurrentDictionary<string, Asset> _assets = new();
 
             public Query(IBus bus, ILog log)
                 : base(bus, log)
@@ -73,9 +74,23 @@ namespace Chronos.Core
 
             public AssetPairInfo AssetPairInfo(string fordom) => Resolve(new AssetPairInfoQuery(fordom));
 
-            public AssetQuote AssetQuote(Asset forAsset, Asset domAsset, string date = null)
+            public AssetQuote AssetQuote(string forAssetId, string domAssetId, string date = null)
             {
                 var nDate = date?.ToTime(); 
+                
+                var forAsset = _assets.GetOrAdd(forAssetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() {Timeline = BranchManager.Master}); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
+                var domAsset = _assets.GetOrAdd(domAssetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() {Timeline = BranchManager.Master}); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
+                
                 return Resolve(new HistoricalQuery<AssetQuoteQuery, AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, nDate));
             }
             

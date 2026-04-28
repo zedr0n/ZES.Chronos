@@ -19,7 +19,8 @@ namespace Chronos.Accounts.Queries
         private readonly Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> _costs = new();
         private readonly Dictionary<Asset, List<(Time timestamp, double ratio )>> _splits = new();
         private readonly Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>> _transfers = new();
-        
+        private readonly Dictionary<string, Dictionary<Time, double>> _quotes = new();
+       
         private Dictionary<Asset, double> _positions = new();
 
         public ReadOnlyDictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> Costs =>
@@ -44,6 +45,7 @@ namespace Chronos.Accounts.Queries
             _splits = new Dictionary<Asset, List<(Time timestamp, double ratio)>>(other._splits);
             _costs = new Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>>(other._costs);
             _transfers = new Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>>(other._transfers);
+            _quotes = new Dictionary<string, Dictionary<Time, double>>(other._quotes);
             Transactions = new HashSet<string>(other.Transactions);
         }
 
@@ -120,12 +122,41 @@ namespace Chronos.Accounts.Queries
             _positions.Clear();
         }
 
-        public void AddCost(Quantity assetQuantity, Quantity costQuantity, Time timestamp)
+        public void AddCost(Quantity assetQuantity, Quantity costQuantity, Quantity feeQuantity, Time timestamp)
         {
             if(!_costs.ContainsKey(timestamp))
                 _costs[timestamp] = new List<(Quantity assetQuantity, Quantity costQuantity)>();
-           
+          
+            if (double.IsNaN(costQuantity.Amount))
+            {
+                var fordom = AssetPair.Fordom(assetQuantity.Denominator, costQuantity.Denominator);
+                if (_quotes.TryGetValue(fordom, out var quotes) && quotes.TryGetValue(timestamp, out var quote))
+                    costQuantity = costQuantity with { Amount = assetQuantity.Amount * quote };
+            }            
+            
+            if (feeQuantity != null && feeQuantity.IsValid())
+                costQuantity += feeQuantity;
+            
             _costs[timestamp].Add((assetQuantity, costQuantity));
+        }
+
+        public void AddQuote(string fordom, double quote, Time timestamp)
+        {
+            if(!_quotes.ContainsKey(fordom))
+                _quotes[fordom] = new Dictionary<Time, double>();
+            
+            _quotes[fordom][timestamp] = quote;
+            
+            if (!_costs.TryGetValue(timestamp, out var costs)) return;
+            for (var i = 0; i < costs.Count; i++)
+            {
+                var (q, c) = costs[i];
+                if (!double.IsNaN(c.Amount)) 
+                    continue;
+                if (AssetPair.Fordom(q.Denominator, c.Denominator) != fordom)
+                    continue;
+                costs[i] = (q, c with { Amount = q.Amount * quote });
+            }
         }
 
         public void AddAssetTransfer(string fromAccount, string toAccount, Quantity quantity, Time timestamp)

@@ -1,6 +1,7 @@
 using Chronos.Accounts.Events;
 using Chronos.Core;
 using Chronos.Core.Events;
+using ZES.Infrastructure.Utils;
 
 namespace Chronos.Accounts.Queries
 {
@@ -42,7 +43,14 @@ namespace Chronos.Accounts.Queries
         public AccountStatsState Handle(AssetTransactionStarted e, AccountStatsState state)
         {
             var newState = new AccountStatsState(state);
-            newState.AddCost(e.Asset, e.Cost, e.Timestamp);
+            newState.AddCost(e.Asset, e.Cost, e.Fee, e.Timestamp);
+            return newState;
+        }
+
+        public AccountStatsState Handle(QuoteAdded e, AccountStatsState state)
+        {
+            var newState = new AccountStatsState(state);
+            newState.AddQuote(e.AggregateRootId(), e.Close, e.Timestamp);
             return newState;
         }
 
