@@ -195,7 +195,6 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var log = container.GetInstance<ILog>();
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
             
@@ -205,7 +204,7 @@ namespace Chronos.Tests
            
             var date = new LocalDateTime(2017, 8, 16, 12, 30).InUtc().ToInstant().ToTime();
             
-            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), date));
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), Time.MinValue));
             
             var btc = new Asset("BTC", AssetType.Coin);
             var gbp = new Currency("GBP");
@@ -225,16 +224,19 @@ namespace Chronos.Tests
             assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
             var gbpTicker = assetPairInfo.Ticker;
 
-            await connector.SetAsync(coinQuoteApi.GetUrl(btcTicker, date),
-                "[{\"date\":\"2017-08-16\",\"open\":4200.33984375,\"high\":4381.2299804688,\"low\":3994.419921875,\"close\":4376.6298828125,\"adjusted_close\":4376.6298828125,\"volume\":2272039936}]");
+            await connector.SetAsync(coinQuoteApi.GetPreciseUrl(btcTicker, date),
+                "[{\"timestamp\":1502886600,\"gmtoffset\":0,\"datetime\":\"2017-08-16 12:30:00\",\"open\":4082.9,\"high\":4109.154,\"low\":4062.45,\"close\":4065,\"volume\":27.95}]");
             await connector.SetAsync(fxQuoteApi.GetUrl(gbpTicker, date),
                 "[{\"date\":\"2017-08-16\",\"open\":1.2868,\"high\":1.2903,\"low\":1.2845,\"close\":1.2867,\"adjusted_close\":1.2867,\"volume\":474}]");
             
-            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.06, btc), new Quantity(241.58, usd)), date));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.06, btc), new Quantity(241.58, usd)), date.StartOfDay()));
             await bus.Command(new RetroactiveCommand<SpendAsset>(new SpendAsset("Account",new Quantity(0.00114549, btc), new Quantity(double.NaN, usd)), date));
             
             var stats = await bus.QueryAsync(new AccountStatsQuery("Account", gbp) { QueryNet = true, Timestamp = date });
-            log.Info(stats);
+            Assert.Equal(-241.58/1.2867, stats.CashBalance.Amount, 6);
+            Assert.Equal(0.00114549*(4065-241.58/0.06)/1.2867, stats.RealisedGains[0].Amount, 6);
+            Assert.Equal(0.06-0.00114549, stats.Positions[0].Amount, 6);
+            Assert.Equal((241.58 - 0.00114549 * (241.58 / 0.06))/1.2867, stats.CostBasis[0].Amount, 6);
         }
 
         [Fact]
