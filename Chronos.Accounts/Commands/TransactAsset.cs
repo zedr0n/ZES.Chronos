@@ -10,6 +10,13 @@ namespace Chronos.Accounts.Commands;
 /// This class is used to execute an asset transaction within an account. The transaction involves
 /// a specified asset amount and the associated cost for the operation.
 /// </remarks>
+/// <param name="account">The unique identifier of the account where the asset transaction is applied.</param>
+/// <param name="asset">The quantity of the asset being acquired or disposed.</param>
+/// <param name="cost">
+/// The consideration associated with the asset transaction. Use <see cref="double.NaN"/> as the amount
+/// to request quote-based market valuation, zero for a zero-cost acquisition or zero-proceeds disposal,
+/// or an explicit amount when the transaction consideration is known.
+/// </param>
 public class TransactAsset(string account, Quantity asset, Quantity cost) : Command
 {
     /// <summary>
@@ -26,8 +33,9 @@ public class TransactAsset(string account, Quantity asset, Quantity cost) : Comm
     /// Gets the cost associated with the asset transaction.
     /// </summary>
     /// <remarks>
-    /// Represents the value required to complete the transaction, specified in the associated asset denominator.
-    /// This property is determined at the creation of the command and works in tandem with the asset amount.
+    /// Represents the transaction consideration, specified in the associated asset denominator.
+    /// <see cref="double.NaN"/> requests quote-based market valuation, zero records zero consideration,
+    /// and an explicit amount records known consideration.
     /// </remarks>
     public Quantity Cost => cost;
 

@@ -7,12 +7,17 @@ namespace Chronos.Accounts.Commands;
 /// Represents a command for spending an asset from a specified account.
 /// </summary>
 /// <remarks>
-/// This command is used to deduct a specified quantity of an asset
-/// along with an associated cost from a target account.
+/// This command is used to deduct a specified quantity of an asset from a target account without
+/// creating an offsetting cash transaction. The associated cost is still recorded for cost-basis
+/// and realised-gain calculations.
 /// </remarks>
 /// <param name="account">The unique identifier of the account where the asset will be spent.</param>
 /// <param name="asset">The quantity of the asset being spent (amount and associated asset type).</param>
-/// <param name="cost">The cost associated with the expenditure.</param>
+/// <param name="cost">
+/// The consideration associated with the asset disposal. Use <see cref="double.NaN"/> as the amount
+/// to request quote-based market valuation, zero for a zero-proceeds disposal, or an explicit amount
+/// when the disposal consideration is known.
+/// </param>
 public class SpendAsset(string account, Quantity asset, Quantity cost) : Command
 {
    /// <summary>
@@ -21,9 +26,13 @@ public class SpendAsset(string account, Quantity asset, Quantity cost) : Command
    public Quantity Asset => asset;
 
    /// <summary>
-   /// Gets the cost associated with spending an asset.
-   /// The cost represents the quantity of a resource or currency required to execute the asset transaction.
+   /// Gets the consideration associated with spending the asset.
    /// </summary>
+   /// <remarks>
+   /// <see cref="double.NaN"/> requests quote-based market valuation, zero records a zero-proceeds
+   /// disposal, and an explicit amount records known disposal consideration. No offsetting cash
+   /// transaction is created by this command.
+   /// </remarks>
    public Quantity Cost => cost;
 
    /// <summary>
