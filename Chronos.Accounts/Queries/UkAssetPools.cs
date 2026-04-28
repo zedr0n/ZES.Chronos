@@ -34,7 +34,16 @@ public class UkAssetPools : IAssetPools
             return pools._realisedGain;
         }
     }
-    public double TotalQuantity => _pools.Sum(p => p.Quantity); 
+
+    public double TotalQuantity
+    {
+        get
+        {
+            var pools = new UkAssetPools(this);
+            pools.EndOfDay(Time.MaxValue);
+            return pools._pools.Sum(p => p.Quantity);
+        }
+    } 
 
     public UkAssetPools()
     {
