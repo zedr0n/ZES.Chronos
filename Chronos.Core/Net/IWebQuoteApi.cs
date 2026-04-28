@@ -19,6 +19,20 @@ public interface IWebQuoteApi
     string GetUrl(string ticker, Time date = null, bool enforceCache = false);
 
     /// <summary>
+    /// Gets a more precise quote URL for the specified ticker and timestamp when the provider supports it
+    /// (for example, minute-level data for historical timestamps).
+    /// </summary>
+    /// <param name="ticker">The asset ticker symbol.</param>
+    /// <param name="date">The specific timestamp for the query, or null to use the latest available data.</param>
+    /// <param name="enforceCache">A boolean flag indicating whether to enforce caching mechanisms.</param>
+    /// <returns>
+    /// The constructed URL for a precise web API request.
+    /// Return <c>null</c> when no precise endpoint can be produced.
+    /// Implementations may also return the same URL as <see cref="GetUrl"/> when no distinct precise endpoint exists.
+    /// </returns>
+    string GetPreciseUrl(string ticker, Time date = null, bool enforceCache = false);
+    
+    /// <summary>
     /// Retrieves a value from the provided JSON result.
     /// </summary>
     /// <param name="result">The JSON result containing the data from which the value is to be extracted.</param>

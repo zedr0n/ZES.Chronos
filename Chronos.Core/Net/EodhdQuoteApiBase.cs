@@ -23,6 +23,9 @@ public abstract class EodhdQuoteApiBase : IWebQuoteApi
     public abstract string GetUrl(string ticker, Time date = null, bool enforceCache = false);
 
     /// <inheritdoc/>
+    public virtual string GetPreciseUrl(string ticker, Time date = null, bool enforceCache = false) => GetUrl(ticker, date, enforceCache);
+    
+    /// <inheritdoc/>
     public abstract double GetValue(IJsonResult result);
 
     /// <inheritdoc/>

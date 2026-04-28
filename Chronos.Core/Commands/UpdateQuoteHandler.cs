@@ -80,8 +80,9 @@ namespace Chronos.Core.Commands
 
       var now = _clock.GetCurrentInstant();
       var intraday = command.Timestamp.ToDateTime().Date == now.ToDateTime().Date;
+      var hasExplicitTime = command.Timestamp != null && command.Timestamp != command.Timestamp.StartOfDay();
       
-      if (!intraday && root.QuoteDates.Any(d => d.IsWithinPriorWorkingDays(command.Timestamp.ToInstant())))
+      if (!intraday && !hasExplicitTime && root.QuoteDates.Any(d => d.IsWithinPriorWorkingDays(command.Timestamp.ToInstant())))
       {
         throw new InvalidOperationException(
           $"Quote already added for {command.Timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
@@ -213,12 +214,24 @@ namespace Chronos.Core.Commands
         {
           // if (!command.Timestamp.ToInstant().IsWorkingDay())
           //  throw new MissingDataException();
-          
-          var url = root.Url ?? webQuoteApi.GetUrl(ticker, command.Timestamp, command.EnforceCache);
-
           var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
           obs.Connect();
-      
+
+          var noTimeSpecified = command.Timestamp == command.Timestamp.StartOfDay();
+            
+          var preciseUrl = root.Url ?? webQuoteApi.GetPreciseUrl(ticker, command.Timestamp, command.EnforceCache);
+          var url = root.Url ?? webQuoteApi.GetUrl(ticker, command.Timestamp, command.EnforceCache);
+
+          if (preciseUrl != null && preciseUrl != url && !noTimeSpecified)
+          {
+            await _jsonRequestHandler.Handle(new RequestJson<T>($"{command.Target}-precise", preciseUrl)).Timeout();
+
+            var resPrecise = await obs.FirstOrDefaultAsync(r => r.RequestorId == $"{command.Target}-precise").Timeout(Configuration.Timeout);
+            value = webQuoteApi.GetValue(resPrecise.Data);
+            if (!double.IsNaN(value))
+              break;
+          }
+          
           await _jsonRequestHandler.Handle(new RequestJson<T>(command.Target, url)).Timeout();
 
           var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);

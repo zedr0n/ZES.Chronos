@@ -92,8 +92,10 @@ namespace Chronos.Core.Queries
         var quoteDates = (await pairInfoHandler.Handle(new AssetPairInfoQuery(fordom)))?.QuoteDates;
         var sameWorkingDatesQuotes = quoteDates?.Where(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant())).ToList();
 
+        var hasExplicitTime = timestamp != timestamp.StartOfDay();
+        
         // we always try to update quote for intraday if requested
-        if ( (sameWorkingDatesQuotes?.Count == 0 || intraday))
+        if ( (sameWorkingDatesQuotes?.Count == 0 || intraday || hasExplicitTime))
         {
           await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
           await updateQuoteHandler.Handle(

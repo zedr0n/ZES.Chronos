@@ -233,7 +233,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.06, btc), new Quantity(241.58, usd)), date));
             await bus.Command(new RetroactiveCommand<SpendAsset>(new SpendAsset("Account",new Quantity(0.00114549, btc), new Quantity(double.NaN, usd)), date));
             
-            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", gbp) { QueryNet = true });
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", gbp) { QueryNet = true, Timestamp = date });
             log.Info(stats);
         }
 
@@ -347,10 +347,14 @@ namespace Chronos.Tests
             ticker = assetPairInfo.Ticker;
             await connector.SetAsync(coinQuoteApi.GetUrl(ticker, date2),
                 "[{\"date\":\"2017-08-14\",\"open\":4066.1000976563,\"high\":4325.1298828125,\"low\":3989.1599121094,\"close\":4325.1298828125,\"adjusted_close\":4325.1298828125,\"volume\":2463089920}]");
+            await connector.SetAsync(coinQuoteApi.GetPreciseUrl(ticker, date2),
+                "[{\"date\":\"2017-08-14\",\"open\":4066.1000976563,\"high\":4325.1298828125,\"low\":3989.1599121094,\"close\":4325.1298828125,\"adjusted_close\":4325.1298828125,\"volume\":2463089920}]");
             
             assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(eth, usd)), date));
             ticker = assetPairInfo.Ticker;
             await connector.SetAsync(coinQuoteApi.GetUrl(ticker, date2),
+                "[{\"date\":\"2017-08-14\",\"open\":298.0310058594,\"high\":306.8070068359,\"low\":296.4119873047,\"close\":300.0969848633,\"adjusted_close\":300.0969848633,\"volume\":864390976}]");
+            await connector.SetAsync(coinQuoteApi.GetPreciseUrl(ticker, date2),
                 "[{\"date\":\"2017-08-14\",\"open\":298.0310058594,\"high\":306.8070068359,\"low\":296.4119873047,\"close\":300.0969848633,\"adjusted_close\":300.0969848633,\"volume\":864390976}]");
             
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.2, btc), new Quantity(166, gbp)), date));
@@ -372,6 +376,7 @@ namespace Chronos.Tests
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
             var webSearchApi = webApiProvider.GetSearchApi();
+            var equityQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
 
             var iukd = new Asset("IUKD", AssetType.Equity);
             var gbp = new Currency("GBP");
@@ -388,6 +393,13 @@ namespace Chronos.Tests
             
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date));
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date));
+           
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date));
+            var ticker = assetPairInfo.Ticker;
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date2),
+                "[{\"date\":\"2022-08-26\",\"open\":724.1,\"high\":729.7,\"low\":720.1,\"close\":720.1,\"adjusted_close\":589.2986,\"volume\":97436}]");
             
             var price = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date });
             var price2 = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date2 });

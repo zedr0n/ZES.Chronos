@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
@@ -197,6 +198,65 @@ namespace Chronos.Tests
             Assert.Equal("GBPUSD.FOREX", ticker);
         }
 
+        [Fact]
+        public async Task CanGetAssetQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+
+            var btc = new Asset("BTC", AssetType.Coin);
+            var usd = new Currency("USD");
+            
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(btc, usd)),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":76734.7109375,\"previousCloseDate\":\"2026-04-28\"}]");
+
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc,usd), Time.MinValue));
+            
+            var date = new LocalDateTime(2017, 8, 16, 1, 50).InUtc().ToInstant().ToTime();
+            
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var btcTicker = assetPairInfo.Ticker;
+            await connector.SetAsync(coinQuoteApi.GetPreciseUrl(btcTicker, date),
+                "[{\"timestamp\":1502848200,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:50:00\",\"open\":4147.5,\"high\":4155.02,\"low\":4136.89,\"close\":4136.89,\"volume\":17.83}]");
+            
+            var quote = await bus.QueryAsync(new AssetQuoteQuery(btc, usd) { Timestamp = date, UpdateQuote = true });
+            Assert.Equal(4136.89, quote.Quantity.Amount);
+        }
+
+        [Fact]
+        public async Task CanGetPreciseQuoteDependingOnDate()
+        {
+            var path = "../../../Ad-hoc/CanGetPreciseQuoteDependingOnDate.json";
+            
+            var player = GetReplayer();
+            var container = player.Container;
+
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+           
+            var btc = new Asset("BTC", AssetType.Coin);
+            var usd = new Currency("USD");
+
+            var date = Time.FromExtendedIso("2017-08-15T23:00:00.000Z");
+            var date2 = Time.FromExtendedIso("2017-08-16T00:50:00.000Z");
+            
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(btc, usd)),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":76734.7109375,\"previousCloseDate\":\"2026-04-28\"}]");
+            await connector.SetAsync(coinQuoteApi.GetUrl("BTC-USD.CC", date),
+                "[{\"date\":\"2017-08-16\",\"open\":4200.33984375,\"high\":4381.2299804688,\"low\":3994.419921875,\"close\":4376.6298828125,\"adjusted_close\":4376.6298828125,\"volume\":2272039936}]");
+            await connector.SetAsync(coinQuoteApi.GetPreciseUrl("BTC-USD.CC", date2),
+                "[{\"timestamp\":1502844600,\"gmtoffset\":0,\"datetime\":\"2017-08-16 00:50:00\",\"open\":4142.01,\"high\":4165.499,\"low\":4122.5,\"close\":4150.00699,\"volume\":48.01}]");
+            
+            var result = await player.Replay(path);
+            Assert.True(result.Result);
+        }
+        
         [Fact]
         public async Task CanGetEphemeralQuote()
         {

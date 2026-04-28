@@ -80,13 +80,13 @@ namespace Chronos.Core
                 
                 var forAsset = _assets.GetOrAdd(forAssetId, x =>
                 {
-                    var assetsList = Resolve(new AssetPairsInfoQuery() {Timeline = BranchManager.Master}); 
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
                     var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
                     return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
                 });
                 var domAsset = _assets.GetOrAdd(domAssetId, x =>
                 {
-                    var assetsList = Resolve(new AssetPairsInfoQuery() {Timeline = BranchManager.Master}); 
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
                     var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
                     return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
                 });

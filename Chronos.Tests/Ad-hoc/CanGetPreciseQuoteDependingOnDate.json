@@ -1,0 +1,18 @@
+{
+  "Requests": [
+    {
+      "GraphQl": "mutation {\r\n  registerAssetPair(forAsset: { assetId: \"BTC\", assetType: COIN }, domAsset: { assetId: \"USD\", assetType: CURRENCY }, guid: \"b030d214-8051-4ab3-b6a8-11cc1c9a897e\")\r\n}",
+      "Timestamp": "17774003075954686"
+    }
+  ],
+  "Results": [
+    {
+      "GraphQl": "{\r\n  assetQuote(forAssetId: \"BTC\", domAssetId: \"USD\", date: \"2017-08-15T23:00:00.000Z\") {\r\n    quantity {\r\n      amount\r\n    }\r\n  }\r\n}",
+      "Result": "{\r\n  \"data\": {\r\n    \"assetQuote\": {\r\n      \"quantity\": {\r\n        \"amount\": 4376.6298828125\r\n      }\r\n    }\r\n  }\r\n}"
+    },
+    {
+      "GraphQl": "{\r\n  assetQuote(forAssetId: \"BTC\", domAssetId: \"USD\", date: \"2017-08-16T00:50:00.000Z\") {\r\n    quantity {\r\n      amount\r\n    }\r\n  }\r\n}",
+      "Result": "{\r\n  \"data\": {\r\n    \"assetQuote\": {\r\n      \"quantity\": {\r\n        \"amount\": 4150.00699\r\n      }\r\n    }\r\n  }\r\n}"
+    }
+  ]
+}
