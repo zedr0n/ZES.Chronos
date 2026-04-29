@@ -212,6 +212,7 @@ namespace Chronos.Accounts.Queries
                 ExternalCashflows = extCashflows.Take(extCashflows.Count - 1).Select( x => (x.time, new Quantity(x.amount, denominator))).ToList(),
                 Irr = irr,
                 AssetPools = pools,
+                State = state
             };
         }
         

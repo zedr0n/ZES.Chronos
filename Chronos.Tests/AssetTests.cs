@@ -652,6 +652,7 @@ namespace Chronos.Tests
             
             await bus.IsTrue(new AssetQuoteQuery(forAsset, domAsset), q => q.Quantity.Amount > 1);
             var res = await bus.QueryAsync(new AssetQuoteQuery(forAsset, domAsset));
+            Assert.Equal(1.3235, res.Quantity.Amount);
             log.Info($"{AssetPair.Fordom(forAsset, domAsset)} is {res.Quantity} for {res.Timestamp}");
         }
 

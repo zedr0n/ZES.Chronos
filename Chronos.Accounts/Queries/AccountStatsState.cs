@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -17,9 +15,10 @@ namespace Chronos.Accounts.Queries
     {
         private readonly Dictionary<Asset, List<(Quantity quantity, Time timestamp)>> _deposits = new();
         private readonly Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> _costs = new();
-        private readonly Dictionary<Asset, List<(Time timestamp, double ratio )>> _splits = new();
+        private readonly Dictionary<Asset, List<(Time timestamp, double ratio)>> _splits = new();
         private readonly Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>> _transfers = new();
         private readonly Dictionary<string, Dictionary<Time, double>> _quotes = new();
+        private readonly HashSet<string> _accountNames = [];
        
         private Dictionary<Asset, double> _positions = new();
 
@@ -41,12 +40,39 @@ namespace Chronos.Accounts.Queries
         {
             AccountName = other.AccountName;
             _positions = new Dictionary<Asset, double>(other._positions);
-            _deposits = new Dictionary<Asset, List<(Quantity quantity, Time timestamp)>>(other._deposits);
-            _splits = new Dictionary<Asset, List<(Time timestamp, double ratio)>>(other._splits);
-            _costs = new Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>>(other._costs);
-            _transfers = new Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>>(other._transfers);
-            _quotes = new Dictionary<string, Dictionary<Time, double>>(other._quotes);
+            _deposits = other._deposits.ToDictionary(x => x.Key, x => x.Value.ToList());
+            _splits = other._splits.ToDictionary(x => x.Key, x => x.Value.ToList());
+            _costs = other._costs.ToDictionary(x => x.Key, x => x.Value.ToList());
+            _transfers = other._transfers.ToDictionary(x => x.Key, x => x.Value.ToList());
+            _quotes = other._quotes.ToDictionary(x => x.Key, x => new Dictionary<Time, double>(x.Value));
+            _accountNames = new HashSet<string>(other.GetAccountNames());
             Transactions = new HashSet<string>(other.Transactions);
+        }
+
+        public AccountStatsState Copy() => new(this);
+        
+        public AccountStatsState CombineWith(AccountStatsState other)
+        {
+            if (other == null)
+                return this;
+            
+            foreach (var accountName in GetAccountNames().Concat(other.GetAccountNames()).Where(a => a != null))
+                _accountNames.Add(accountName);
+
+            AddRange(_deposits, other._deposits);
+            AddDistinctRange(_splits, other._splits);
+            AddRange(_costs, other._costs);
+            AddDistinctRange(_transfers, other._transfers);
+            MergeQuotes(other._quotes);
+           
+            RemoveInternalTransfers();
+            SortCombinedState();
+            
+            foreach (var txId in other.Transactions)
+                Transactions.Add(txId);
+            
+            _positions.Clear();
+            return this;
         }
 
         public Dictionary<Asset, double> Positions
@@ -71,16 +97,26 @@ namespace Chronos.Accounts.Queries
         /// <summary>
         /// Gets transfers associated with the account over time.
         /// </summary>
-        public Dictionary<Time, List<Quantity>> AssetTransfers => _transfers.Where(t => t.Value.Count > 0).ToDictionary(t => t.Key, t => t.Value.Where(v => v.toAccount == AccountName || v.fromAccount == AccountName).Select(v => v.quantity * ( v.toAccount == AccountName ? 1 : -1 )).ToList());
+        public Dictionary<Time, List<Quantity>> AssetTransfers => _transfers
+            .Where(t => t.Value.Count > 0)
+            .ToDictionary(t => t.Key, t => 
+                t.Value.Where(v => IsIncludedAccount(v.toAccount) || IsIncludedAccount(v.fromAccount))
+                    .Select(v => v.quantity * ( IsIncludedAccount(v.toAccount) ? 1 : -1 )).ToList());
 
         public Dictionary<Time, List<(string fromAccount, Quantity quantity)>> GetAssetTransfersIn()
         {
-            return _transfers.Where(t => t.Value.Count > 0).ToDictionary(t => t.Key, t => t.Value.Where(v => v.toAccount == AccountName).Select(v => (v.fromAccount, v.quantity)).ToList());
+            return _transfers.Where(t => t.Value.Count > 0)
+                .ToDictionary(t => t.Key, t => 
+                    t.Value.Where(v => IsIncludedAccount(v.toAccount))
+                        .Select(v => (v.fromAccount, v.quantity)).ToList());
         }
         
         public Dictionary<Time, List<Quantity>> GetAssetTransfersOut()
         {
-            return _transfers.Where(t => t.Value.Count > 0).ToDictionary(t => t.Key, t => t.Value.Where(v => v.fromAccount == AccountName).Select(v => v.quantity).ToList());
+            return _transfers.Where(t => t.Value.Count > 0)
+                .ToDictionary(t => t.Key, t => 
+                    t.Value.Where(v => IsIncludedAccount(v.fromAccount))
+                        .Select(v => v.quantity).ToList());
         }
         
         /// <summary>
@@ -196,6 +232,91 @@ namespace Chronos.Accounts.Queries
 
                 return positions;
             });
+        }
+
+        private IEnumerable<string> GetAccountNames()
+        {
+            if (_accountNames.Count > 0)
+                return _accountNames;
+
+            return AccountName == null ? Enumerable.Empty<string>() : new[] { AccountName };
+        }
+
+        private bool IsIncludedAccount(string accountName)
+        {
+            if (_accountNames.Count > 0)
+                return _accountNames.Contains(accountName);
+
+            return accountName == AccountName;
+        }
+
+        private static void AddRange<TKey, TValue>(Dictionary<TKey, List<TValue>> target, Dictionary<TKey, List<TValue>> source)
+        {
+            foreach (var (key, values) in source)
+            {
+                if (!target.TryGetValue(key, out var targetValues))
+                {
+                    targetValues = new List<TValue>();
+                    target[key] = targetValues;
+                }
+
+                targetValues.AddRange(values);
+            }
+        }
+
+        private static void AddDistinctRange<TKey, TValue>(Dictionary<TKey, List<TValue>> target, Dictionary<TKey, List<TValue>> source)
+        {
+            foreach (var (key, values) in source)
+            {
+                if (!target.TryGetValue(key, out var targetValues))
+                {
+                    targetValues = new List<TValue>();
+                    target[key] = targetValues;
+                }
+
+                foreach (var value in values)
+                {
+                    if (!targetValues.Contains(value))
+                        targetValues.Add(value);
+                }
+            }
+        }
+
+        private void MergeQuotes(Dictionary<string, Dictionary<Time, double>> source)
+        {
+            foreach (var (assetPair, quotes) in source)
+            {
+                if (!_quotes.TryGetValue(assetPair, out var targetQuotes))
+                {
+                    targetQuotes = new Dictionary<Time, double>();
+                    _quotes[assetPair] = targetQuotes;
+                }
+
+                foreach (var (time, quote) in quotes)
+                    targetQuotes[time] = quote;
+            }
+        }
+
+        private void SortCombinedState()
+        {
+            foreach (var deposits in _deposits.Values)
+                deposits.Sort((x, y) => x.timestamp.CompareTo(y.timestamp));
+
+            foreach (var splits in _splits.Values)
+                splits.Sort((x, y) => x.timestamp.CompareTo(y.timestamp));
+        }
+
+        private void RemoveInternalTransfers()
+        {
+            foreach (var timestamp in _transfers.Keys.ToList())
+            {
+                _transfers[timestamp] = _transfers[timestamp]
+                    .Where(v => IsIncludedAccount(v.toAccount) != IsIncludedAccount(v.fromAccount))
+                    .ToList();
+
+                if (_transfers[timestamp].Count == 0)
+                    _transfers.Remove(timestamp);
+            }
         }
     }
 }
