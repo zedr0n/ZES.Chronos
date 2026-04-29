@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Chronos.Core;
@@ -82,7 +81,22 @@ namespace Chronos.Accounts.Queries
                 if(_positions.Count > 0 || _deposits.Count == 0)
                     return _positions;
 
-                _positions = GetPositions(Time.MaxValue).Value;   
+                foreach (var (asset, deposits) in _deposits)
+                {
+                    var position = 0.0;
+                    var splits = _splits.GetValueOrDefault(asset, new());
+
+                    foreach (var (q, t) in deposits.OrderBy(d => d.timestamp))
+                    {
+                        var amount = q.Amount;
+                        foreach (var (s, r) in splits.Where(s => s.timestamp > t))
+                            amount *= r;
+                        position += amount;
+                    }
+
+                    _positions[asset] = position;
+                }
+
                 return _positions;
             }    
         }
@@ -201,37 +215,6 @@ namespace Chronos.Accounts.Queries
                _transfers[timestamp] = new List<(string, string, Quantity)>(); 
            
            _transfers[timestamp].Add((fromAccount, toAccount, quantity));
-        }
-
-        /// <summary>
-        /// Computes the positions for each asset up to the specified time and returns a lazy-loaded dictionary of the results.
-        /// </summary>
-        /// <param name="T">The time up to which the positions are calculated.</param>
-        /// <returns>A lazy-loaded dictionary mapping each asset to its computed position value.</returns>
-        public Lazy<Dictionary<Asset, double>> GetPositions(Time T)
-        {
-            return new Lazy<Dictionary<Asset, double>>(() =>
-            {
-                var positions = new Dictionary<Asset, double>();
-                foreach (var (asset, deposits) in _deposits)
-                {
-                    var position = 0.0;
-                    var splits = _splits.GetValueOrDefault(asset, new());
-
-                    foreach (var (q, t) in deposits.Where(d => d.timestamp <= T).OrderBy(d => d.timestamp))
-                    {
-                        var amount = q.Amount;
-                        foreach (var (s, r) in splits.Where(s => s.timestamp > t))
-                            amount *= r;
-                        position += amount;
-                    }
-
-                    positions[asset] = position;
-                }
-
-
-                return positions;
-            });
         }
 
         private IEnumerable<string> GetAccountNames()
