@@ -355,7 +355,6 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account1", AccountType.Trading), Time.MinValue));
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account2", AccountType.Trading), Time.MinValue));
 
-            
             var asset = new Asset("IUKD", AssetType.Equity);
             var ccy = new Currency("GBP");
             var quoteCcy = new Currency("GBX");
@@ -374,7 +373,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account2",new Quantity(-50, asset), new Quantity(-7.19*50, ccy)), date2));
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account1",new Quantity(100, asset), new Quantity(7.4*100, ccy)), date3));
             
-            var stats = await bus.QueryAsync(new CombinedAccountStatsQuery(["Account1", "Account2"], ccy) { QueryNet = true } );
+            var stats = await bus.QueryAsync(new CombinedAccountStatsQuery(["Account1", "Account2"], ccy) );
             Assert.Equal(7.54*100 + 7.4*50, stats.CostBasis[0].Amount);
             Assert.Equal((7.19-7.4)*50, stats.RealisedGains[0].Amount, 1e-6); 
         }        
