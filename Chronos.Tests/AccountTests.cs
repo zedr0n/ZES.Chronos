@@ -301,8 +301,12 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(100, asset), new Quantity(7.4*100, ccy)), date3));
             
             var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy));
-            Assert.Equal(7.54*100 - 50*7.54 + 7.4*100, stats.CostBasis[0].Amount);
-            Assert.Equal((-7.54+7.19)*50, stats.RealisedGains[0].Amount, 1e-6);
+            Assert.Equal(7.54*100 + 7.4*50, stats.CostBasis[0].Amount);
+            Assert.Equal((7.19-7.4)*50, stats.RealisedGains[0].Amount, 1e-6); 
+            
+            var statsNoMatching = await bus.QueryAsync(new AccountStatsQuery("Account", ccy) { NumberOfMatchingDays = 0 });
+            Assert.Equal(7.54*100 - 50*7.54 + 7.4*100, statsNoMatching.CostBasis[0].Amount);
+            Assert.Equal((-7.54+7.19)*50, statsNoMatching.RealisedGains[0].Amount, 1e-6);
         }
 
         [Fact]
