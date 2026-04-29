@@ -11,6 +11,13 @@ export async function guid() : Promise<any> {
   return guid;
 }
 
+function OptionalExcelNumber(value: any): number {
+  if (value === null || value === undefined || value === "")
+    return null;
+
+  return Number(value);
+}
+
 function ExcelDateToISO( serial : number ) : string {
   let date = ExcelDateToJSDate(serial);
   if ( date == null )
@@ -97,7 +104,7 @@ export async function registerAssetPair(forAssetId : string, forAssetType : stri
 
 /**
  * @customfunction
- * @param {string} forAssetId - The unique identifier of the asset for which the stock split is being added.
+ * @param {string} assetId - The unique identifier of the asset for which the stock split is being added.
  * @param {number} ratio - The factor by which the stock is being split.
  * @param {string} [domAssetId] - An optional identifier for the domestic asset related to the stock split.
  * @param {number} [date] - An optional date specifying when the stock split occurs.
@@ -156,16 +163,26 @@ export async function depositAsset(name : string, amount : number, assetId : str
  * @param {string} assetId - The unique identifier of the asset being transacted.
  * @param {number} amount - The quantity of the asset being transacted.
  * @param {string} costAssetId - The unique identifier of the asset used for costing the transaction.
- * @param {number} cost - The quantity of the cost asset for this transaction.
+ * @param {any} cost - The quantity of the cost asset for this transaction.
  * @param {number} date - The transaction date, represented as an Excel serial date number.
  * @param {string} guid - A unique identifier for the transaction.
  */
-export async function spendAsset(account: string, assetId : string, amount : number, costAssetId? : string, cost?: number, date? : number, guid? : string)
+export async function spendAsset(account: string, assetId : string, amount : number, costAssetId? : string, cost?: any, date? : number, guid? : string)
 {
-  let mutation = `mutation {
-      spendAsset( account : "${account}", assetId: "${assetId}", amount : ${amount}, ${costAssetId != undefined ? `costAssetId : "${costAssetId}", ` : ``} ${cost != undefined ? `cost : ${cost},` : ""} date : ${ExcelDateToISO(date)}, guid : "${guid}")
-    }`
+  const costAmount = OptionalExcelNumber(cost);
 
+  const mutation = `mutation {
+    spendAsset(
+      account: "${account}",
+      assetId: "${assetId}",
+      amount: ${amount},
+      ${costAssetId !== undefined ? `costAssetId: "${costAssetId}",` : ""}
+      cost: ${costAmount},
+      date: ${ExcelDateToISO(date)},
+      guid: "${guid}"
+    )
+  }`;  
+  
   let result = await SingleQuery(mutation, getIdOrError(account, data => data.spendAsset.toString()))
   return result
 }
@@ -175,17 +192,28 @@ export async function spendAsset(account: string, assetId : string, amount : num
  * @param {string} assetId - The unique identifier of the asset being transacted.
  * @param {number} amount - The quantity of the asset being transacted.
  * @param {string} costAssetId - The unique identifier of the asset used for costing the transaction.
- * @param {number} cost - The quantity of the cost asset for this transaction.
+ * @param {any} cost - The quantity of the cost asset for this transaction.
  * @param {number} date - The transaction date, represented as an Excel serial date number.
  * @param {string} guid - A unique identifier for the transaction.
  * @param {number} fee - The fee associated with the transaction.
  */
-export async function transactAsset(account: string, assetId : string, amount : number, costAssetId? : string, cost?: number, date? : number, guid? : string, fee? : number)
+export async function transactAsset(account: string, assetId : string, amount : number, costAssetId? : string, cost?: any, date? : number, guid? : string, fee? : number)
 {
-  let mutation = `mutation {
-      transactAsset( account : "${account}", assetId: "${assetId}", amount : ${amount}, ${costAssetId != undefined ? `costAssetId : "${costAssetId}", ` : ``} ${cost != undefined ? `cost : ${cost},` : ""} date : ${ExcelDateToISO(date)}, guid : "${guid}", fee : ${fee} )
-    }`
-
+  const costAmount = OptionalExcelNumber(cost);
+  
+  const mutation = `mutation {
+    transactAsset(
+      account: "${account}",
+      assetId: "${assetId}",
+      amount: ${amount},
+      ${costAssetId !== undefined ? `costAssetId: "${costAssetId}",` : ""}
+      cost: ${costAmount},
+      date: ${ExcelDateToISO(date)},
+      guid: "${guid}",
+      fee: ${fee}
+    )
+  }`;  
+  
   let result = await SingleQuery(mutation, getIdOrError(account, data => data.transactAsset.toString()))
   return result
 }

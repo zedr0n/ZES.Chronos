@@ -155,7 +155,7 @@ namespace Chronos.Accounts
                 });
 
                 Asset costAsset = null;
-                if (costAssetId != null)
+                if (!string.IsNullOrEmpty(costAssetId))
                 {
                     costAsset = _assets.GetOrAdd(costAssetId, x =>
                     {
@@ -194,7 +194,7 @@ namespace Chronos.Accounts
                 });
 
                 Asset costAsset = null;
-                if (costAssetId != null)
+                if (!string.IsNullOrEmpty(costAssetId))
                 {
                     costAsset = _assets.GetOrAdd(costAssetId, x =>
                     {
