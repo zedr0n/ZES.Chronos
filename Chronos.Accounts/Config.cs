@@ -39,6 +39,7 @@ namespace Chronos.Accounts
         {
             c.RegisterAll(Assembly.GetExecutingAssembly());
             c.RegisterSingleton<Func<IQueryHandler<AccountStatsQuery, AccountStats>>>(() => c.GetInstance<IQueryHandler<AccountStatsQuery, AccountStats>>);
+            c.RegisterSingleton<AssetPoolFactory>();
         }
         
         /// <summary>

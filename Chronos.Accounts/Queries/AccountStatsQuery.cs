@@ -27,9 +27,8 @@ namespace Chronos.Accounts.Queries
     
     public bool ComputeIrr { get; set; } = true;
     
-    public bool IgnoreStale { get; set; }
-
     public bool IncludeTransfersOutAtQueryDate { get; set; } = true;
+    public int NumberOfMatchingDays { get; set; } = 30;
     
     public AccountStatsQuery() 
     {

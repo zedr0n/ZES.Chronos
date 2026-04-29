@@ -28,6 +28,7 @@ namespace Chronos.Accounts.Queries
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
         private readonly ILog _log;
         private readonly Func<IQueryHandler<AccountStatsQuery, AccountStats>> _accountStatsHandlerFactory;
+        private readonly AssetPoolFactory _assetPoolFactory;
 
         /// <summary>
         /// Handles the <see cref="AccountStatsQuery"/> by retrieving account-related data
@@ -39,7 +40,8 @@ namespace Chronos.Accounts.Queries
         public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
             IQueryHandler<AssetQuoteQuery, AssetQuote> handler,
             IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log,
-            Func<IQueryHandler<AccountStatsQuery, AccountStats>> accountStatsHandlerFactory)
+            Func<IQueryHandler<AccountStatsQuery, AccountStats>> accountStatsHandlerFactory,
+            AssetPoolFactory assetPoolFactory)
             : base(manager, activeTimeline)
         {
             _timeline = activeTimeline;
@@ -47,6 +49,7 @@ namespace Chronos.Accounts.Queries
             _transactionInfoHandler = transactionInfoHandler;
             _log = log;
             _accountStatsHandlerFactory = accountStatsHandlerFactory;
+            _assetPoolFactory = assetPoolFactory;
         }
 
         protected override async Task<AccountStats> Handle(AccountStatsQuery query)
@@ -70,6 +73,15 @@ namespace Chronos.Accounts.Queries
             if (projection == null)
                 throw new ArgumentNullException(nameof(projection), $"{typeof(IProjection<AccountStatsState>).Name}");
             var state = projection.State;
+            
+            return await Handle(state, query);
+        }
+
+        public override async Task<AccountStats> Handle<TState>(TState tState, AccountStatsQuery query)
+        { 
+            if (tState is not AccountStatsState state)
+                throw new ArgumentException($"{nameof(AccountStatsState)} expected", nameof(tState));
+            
             var total = 0.0;
             var denominator = query.Denominator;
             if (query.Denominator == null)
@@ -199,10 +211,10 @@ namespace Chronos.Accounts.Queries
                 TotalDividend = new Quantity(totalDividend, denominator),
                 ExternalCashflows = extCashflows.Take(extCashflows.Count - 1).Select( x => (x.time, new Quantity(x.amount, denominator))).ToList(),
                 Irr = irr,
-                AssetPools = pools
+                AssetPools = pools,
             };
         }
-
+        
         private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains, Dictionary<Asset, IAssetPools>)> ComputeGains(AccountStatsState state, AccountStatsQuery query)
         {
             var denominator = query.Denominator;
@@ -231,7 +243,8 @@ namespace Chronos.Accounts.Queries
                     {
                         QueryNet = query.QueryNet,
                         Timestamp = t,
-                        IncludeTransfersOutAtQueryDate = false
+                        IncludeTransfersOutAtQueryDate = false,
+                        NumberOfMatchingDays = query.NumberOfMatchingDays
                     });
                     if (fromAccountStats == null)
                         throw new InvalidOperationException($"Account {fromAccount} not found");
@@ -239,7 +252,7 @@ namespace Chronos.Accounts.Queries
                     var fromPools = fromAccountStats.AssetPools;
                     foreach (var asset in fromPools.Keys)
                     {
-                        var pools = poolsDictionary.GetValueOrDefault(asset, new UkAssetPools());
+                        var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays));
                         pools.EndOfDay(t);
                         pools.TransferFrom(fromPools[asset], q.Amount);
                         poolsDictionary[asset] = pools;
@@ -251,7 +264,7 @@ namespace Chronos.Accounts.Queries
                     .Union(costs.Select(c => c.costQuantity.Denominator).Where(a => a.AssetType != AssetType.Currency) ).ToList();
                 foreach (var asset in assets)
                 {
-                    var pools = poolsDictionary.GetValueOrDefault(asset, new UkAssetPools());
+                    var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays));
                     pools.EndOfDay(t);
                     
                     // process all purchases first 
@@ -314,7 +327,7 @@ namespace Chronos.Accounts.Queries
                     if(t == query.Timestamp && !query.IncludeTransfersOutAtQueryDate)
                         continue;
                     
-                    var pools = poolsDictionary.GetValueOrDefault(q.Denominator, new UkAssetPools());
+                    var pools = poolsDictionary.GetValueOrDefault(q.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays));
                     pools.EndOfDay(t);
                     pools.TransferOut(q.Amount);
                     poolsDictionary[q.Denominator] = pools;
@@ -330,5 +343,6 @@ namespace Chronos.Accounts.Queries
             
             return (costBasisDictionary, realisedGainsDictionary, poolsDictionary);
         }
+        
     }
 }

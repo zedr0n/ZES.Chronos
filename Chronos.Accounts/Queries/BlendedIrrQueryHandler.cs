@@ -47,7 +47,6 @@ public class BlendedIrrQueryHandler : DefaultQueryHandler<BlendedIrrQuery, Blend
                     Timeline = query.Timeline,
                     Timestamp = t0.ToTime(),
                     QueryNet = query.QueryNet,
-                    IgnoreStale = true
                 });
                 startBalance += accountStats.Balance.Amount;
                 allCashflows.AddRange(accountStats.ExternalCashflows.Where(x => x.Item1 >= t0));
@@ -65,7 +64,6 @@ public class BlendedIrrQueryHandler : DefaultQueryHandler<BlendedIrrQuery, Blend
                 Timeline = query.Timeline,
                 Timestamp = query.Timestamp,
                 QueryNet = query.QueryNet,
-                IgnoreStale = true
             });
             endBalance += accountStats.Balance.Amount;
             allCashflows.AddRange(accountStats.ExternalCashflows.Where(x => x.Item1 >= t0));
