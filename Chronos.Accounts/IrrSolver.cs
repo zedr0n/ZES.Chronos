@@ -38,6 +38,8 @@ public static class IrrSolver
       var invested = -cashflows.Where(c => c.amount < 0).Sum(c => c.amount);
       var gain = cashflows.Where(c => c.amount > 0).Sum(c => c.amount);
       var r0 = Math.Pow(gain / invested, 1.0 / years) - 1;
+      if (Math.Abs(r0 - (-1)) < 1e-12)
+         return 0.0;
 
       return NewtonRaphson(F, r0);
 
