@@ -80,6 +80,16 @@ namespace Chronos.Accounts
                 });  
             }
 
+            public AccountStats CombinedAccountStats(string[] accounts, Asset denominator = null, string date = null)
+            {
+                var time = date?.ToTime();
+                return Resolve(new CombinedAccountStatsQuery(accounts.ToList(), denominator)
+                {
+                    Timestamp = time,
+                    QueryNet = true,
+                }); 
+            }
+
             public BlendedIrr BlendedIrr(string[] accounts, Asset denominator = null, string date = null, string startDate = null)
             {
                 var time = date?.ToTime();

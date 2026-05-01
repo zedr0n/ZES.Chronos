@@ -9,7 +9,7 @@ namespace Chronos.Accounts.Queries;
 
 [Transient]
 public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler)
-    : DefaultQueryHandler<CombinedAccountStatsQuery, AccountStats, CombinedAccountStatsState>(manager, activeTimeline)
+    : DefaultQueryHandler<CombinedAccountStatsQuery, AccountStats, NullState>(manager, activeTimeline)
 {
     // do not read any streams for the query itself
     protected override Task<AccountStats> Handle(CombinedAccountStatsQuery query)
@@ -18,7 +18,7 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
         return base.Handle(query);
     }
 
-    protected override async Task<AccountStats> Handle(IProjection<CombinedAccountStatsState> projection, CombinedAccountStatsQuery query)
+    protected override async Task<AccountStats> Handle(IProjection<NullState> projection, CombinedAccountStatsQuery query)
     {
         var accounts = query.Accounts;
         AccountStatsState state = null;

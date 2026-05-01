@@ -570,35 +570,45 @@ export async function blendedIrr(accounts: string[][], asOfDate : number, startD
 
 /**
  * @customfunction
- * @param {string} account account name
+ * @param {string[][]} accounts account name
  * @param {number} asOfDate as of date
  * @param {string} assetId denominator asset
  * @param {boolean} immediate convert to asset at tx date
  */
-export async function accountStats(account : string, asOfDate : number, assetId? : string, immediate? : boolean) : Promise<any> {
+export async function accountStats(accounts : string[][], asOfDate : number, assetId? : string, immediate? : boolean) : Promise<any> {
   if(assetId == undefined || assetId == "")
     assetId = "GBP"
 
-  let query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } realisedGains { amount denominator { assetId } } irr }
+  let query = ''
+  if(accounts.length == 1)
+  {
+    query = `{
+      stats: accountStats(  accountName : "${accounts[0][0]}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } realisedGains { amount denominator { assetId } } irr }
     }`;
+  }
+  else 
+  {
+    query = `{
+      stats: combinedAccountStats(  accounts:[${accounts.map(a => `"${a}"`).join(', ')}], date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } realisedGains { amount denominator { assetId } } irr }
+    }`;
+  }
   
   window.console.log(query)
 
   // amount = Number(await SingleQuery(query, data => data.accountStats.balance.amount.toString()))
   let result = await SingleQuery(query, data => ({ 
-    amount: data.accountStats.balance.amount, asset: data.accountStats.balance.denominator,
-    cashAmount: data.accountStats.cashBalance.amount, cashAsset: data.accountStats.cashBalance.denominator,
-    totalDividend: data.accountStats.totalDividend.amount,    
-    positions: data.accountStats.positions, values: data.accountStats.values, costBasis: data.accountStats.costBasis, realisedGains: data.accountStats.realisedGains, dividends: data.accountStats.dividends,
-    irr: data.accountStats.irr }
+    amount: data.stats.balance.amount, asset: data.stats.balance.denominator,
+    cashAmount: data.stats.cashBalance.amount, cashAsset: data.stats.cashBalance.denominator,
+    totalDividend: data.stats.totalDividend.amount,    
+    positions: data.stats.positions, values: data.stats.values, costBasis: data.stats.costBasis, realisedGains: data.stats.realisedGains, dividends: data.stats.dividends,
+    irr: data.stats.irr }
   ))
   if(typeof(result)  === "string")
     return result
   
   const myEntity : Excel.EntityCellValue = {
     type : Excel.CellValueType.entity, 
-    text : account,
+    text : accounts.map(a => `${a}`).join(', '),
     properties : {
       "IRR" : {
         type : Excel.CellValueType.double,
