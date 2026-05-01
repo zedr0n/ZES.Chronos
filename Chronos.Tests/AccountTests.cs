@@ -341,6 +341,48 @@ namespace Chronos.Tests
             Assert.Equal(7.54*100 - 50*7.54 + 7.4*100, statsNoMatching.CostBasis[0].Amount);
             Assert.Equal((-7.54+7.19)*50, statsNoMatching.RealisedGains[0].Amount, 1e-6);
         }
+
+        [Fact]
+        public async Task CanComputeGainsForTaxYear()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            
+            var webSearchApi = webApiProvider.GetSearchApi();
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), Time.MinValue));
+            
+            var asset = new Asset("IUKD", AssetType.Equity);
+            var ccy = new Currency("GBP");
+            var quoteCcy = new Currency("GBX");
+            
+            await connector.SetAsync(webSearchApi.GetUrl(asset.AssetId),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(ccy, quoteCcy), Time.MinValue));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(asset, quoteCcy), Time.MinValue));
+            
+            var date = new LocalDateTime(2021, 2, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2021, 3, 29, 12, 30).InUtc().ToInstant().ToTime();
+            var date3 = new LocalDateTime(2021, 4, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date4 = new LocalDateTime(2021, 4, 28, 12, 30).InUtc().ToInstant().ToTime(); 
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(100, asset), new Quantity(7.54*100, ccy)), date));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(-50, asset), new Quantity(-7.19*50, ccy)), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(100, asset), new Quantity(7.4*100, ccy)), date3));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(-50, asset), new Quantity(-7.4*50, ccy)), date4));
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy));
+            Assert.Equal(7.54*100 +7.4*50 - 50*(100*7.54+50*7.4)/150, stats.CostBasis[0].Amount);
+            Assert.Equal((7.19-7.4)*50 + (7.4-(100*7.54+50*7.4)/150)*50, stats.RealisedGains[0].Amount, 1e-6);
+
+            var realisedGains2020 = await bus.QueryAsync(new RealisedGainsForTaxYearQuery("Account", 2020, asset, ccy));
+            Assert.Equal(-10.5, realisedGains2020.RealisedGain.Amount, 1e-6);
+            var realisedGains2021 = await bus.QueryAsync(new RealisedGainsForTaxYearQuery("Account", 2021, asset, ccy));
+            Assert.Equal(-4.666666, realisedGains2021.RealisedGain.Amount, 1e-6);
+        }
         
         [Fact]
         public async Task CanCombineAccountsWithCostBasis()

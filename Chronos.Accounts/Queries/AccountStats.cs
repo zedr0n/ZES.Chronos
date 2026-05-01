@@ -31,7 +31,9 @@ namespace Chronos.Accounts.Queries
     public List<Quantity> RealisedGains { get; set; }
     public Quantity CashBalance { get; set; }
     public Quantity TotalDividend { get; set; }
-    
+   
+    [JsonIgnore]
+    public Dictionary<Asset, Dictionary<int, Quantity>> RealisedGainsPerTaxYear { get; set; }
     [JsonIgnore]
     public List<(Instant, Quantity)> ExternalCashflows { get; set; }
     [JsonIgnore]

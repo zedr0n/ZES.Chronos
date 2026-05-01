@@ -90,7 +90,7 @@ namespace Chronos.Accounts.Queries
             var positions = new Dictionary<string, PositionData>();
             var totalDividend = 0.0;
             
-            var (costBasis, realisedGains, pools) = await ComputeGains(state, query);
+            var (costBasis, realisedGains, pools, realisedGainsPerTaxYear) = await ComputeGains(state, query);
             var assets = new HashSet<Asset>();
 
             foreach (var (asset, amount) in state.Assets.Zip(state.Quantities, (asset, value) => (asset, value)))
@@ -208,6 +208,7 @@ namespace Chronos.Accounts.Queries
                 CostBasis = positions.Values.Select(p => p.CostBasis).ToList(),
                 CashBalance = new Quantity(total - positions.Values.Sum(v => v.Value.Amount), denominator),
                 RealisedGains = positions.Values.Select(p => p.RealisedGain).ToList(),
+                RealisedGainsPerTaxYear = realisedGainsPerTaxYear,
                 TotalDividend = new Quantity(totalDividend, denominator),
                 ExternalCashflows = extCashflows.Take(extCashflows.Count - 1).Select( x => (x.time, new Quantity(x.amount, denominator))).ToList(),
                 Irr = irr,
@@ -216,13 +217,15 @@ namespace Chronos.Accounts.Queries
             };
         }
         
-        private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains, Dictionary<Asset, IAssetPools>)> ComputeGains(AccountStatsState state, AccountStatsQuery query)
+        private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains, Dictionary<Asset, IAssetPools>, Dictionary<Asset, Dictionary<int, Quantity>> realisedGainsPerTaxYear)>
+            ComputeGains(AccountStatsState state, AccountStatsQuery query)
         {
             var denominator = query.Denominator;
             
             var poolsDictionary = new Dictionary<Asset, IAssetPools>();
             var costBasisDictionary = new Dictionary<Asset, Quantity>();
             var realisedGainsDictionary = new Dictionary<Asset, Quantity>();
+            var realisedGainsPerTaxYearDictionary = new Dictionary<Asset, Dictionary<int, Quantity>>();
 
             var assetTransferIn = state.GetAssetTransfersIn();
             var assetTransfersOut = state.GetAssetTransfersOut();
@@ -340,10 +343,10 @@ namespace Chronos.Accounts.Queries
                 var pools = poolsDictionary[asset];
                 costBasisDictionary[asset] = new Quantity(pools.CostBasis, denominator);
                 realisedGainsDictionary[asset] = new Quantity(pools.RealisedGain, denominator);
+                realisedGainsPerTaxYearDictionary[asset] = pools.GetRealisedGainsPerTaxYear().ToDictionary(x => x.Key, x => new Quantity(x.Value, denominator));
             }
             
-            return (costBasisDictionary, realisedGainsDictionary, poolsDictionary);
+            return (costBasisDictionary, realisedGainsDictionary, poolsDictionary, realisedGainsPerTaxYearDictionary);
         }
-        
     }
 }

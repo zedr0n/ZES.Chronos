@@ -16,7 +16,7 @@ public class UkAssetPools : IAssetPools
     private readonly Pool _section104Pool = new();
     
     private DateTime _lastEndOfDay;
-    private double _realisedGain;
+    private readonly Dictionary<int, double> _realisedGains = new();
     
     public double CostBasis
     {
@@ -40,9 +40,21 @@ public class UkAssetPools : IAssetPools
             
             var pools = new UkAssetPools(this);
             pools.EndOfDay(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
-            return pools._realisedGain;
+            return pools._realisedGains.Sum(g => g.Value);
         }
     }
+    
+    /// <inheritdoc />
+    public Dictionary<int, double> GetRealisedGainsPerTaxYear()
+    {
+        if (_lastEndOfDay == default)
+            return new Dictionary<int, double>();
+            
+        var pools = new UkAssetPools(this);
+        pools.EndOfDay(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+
+        return new Dictionary<int, double>(pools._realisedGains);
+    } 
 
     public double TotalQuantity
     {
@@ -77,7 +89,7 @@ public class UkAssetPools : IAssetPools
         _sameDayAcquisitions = new Pool(other._sameDayAcquisitions);
         _sameDayDisposals = new Pool(other._sameDayDisposals);
         _section104Pool = new Pool(other._section104Pool);
-        _realisedGain = other._realisedGain;
+        _realisedGains = new Dictionary<int, double>(other._realisedGains);
         _pendingDisposalsByAge = other._pendingDisposalsByAge.Select(p => new Pool(p)).ToList();
         _pools =
         [
@@ -119,12 +131,17 @@ public class UkAssetPools : IAssetPools
 
     public void Acquire(Time time, double quantity, double cost)
     {
-       _sameDayAcquisitions.Quantity += quantity;
-       _sameDayAcquisitions.Cost += cost;
+        _sameDayAcquisitions.Date = time.ToDateTime().Date;
+        
+        _sameDayAcquisitions.Quantity += quantity;
+        _sameDayAcquisitions.Cost += cost;
     }
 
     public void Dispose(Time time, double quantity, double cost)
     {
+        _sameDayDisposals.Date = time.ToDateTime().Date; 
+        _realisedGains.TryAdd(_sameDayDisposals.TaxYear, 0.0);
+        
         _sameDayDisposals.Quantity -= quantity;
         _sameDayDisposals.Cost -= cost;
     }
@@ -161,7 +178,7 @@ public class UkAssetPools : IAssetPools
             closeSameDay = false;
         }
     }
-
+    
     private void EndSingleDay(bool closeSameDay)
     {
         var remainingAcquisitions = closeSameDay ? _sameDayAcquisitions.Quantity : 0;
@@ -174,7 +191,8 @@ public class UkAssetPools : IAssetPools
         var matched = Math.Min(remainingAcquisitions, -remainingDisposals);
         if (matched > 0)
         {
-            _realisedGain += matched*(sameDayDisposalsAverageCost - sameDayAcquisitionsAverageCost);
+            _realisedGains[_sameDayDisposals.TaxYear] += matched*(sameDayDisposalsAverageCost - sameDayAcquisitionsAverageCost);
+            
             remainingAcquisitions -= matched;
             remainingDisposals += matched;
         }
@@ -187,8 +205,11 @@ public class UkAssetPools : IAssetPools
             
             var pool = _pendingDisposalsByAge[i];
             var r = Math.Min(remainingAcquisitions, -pool.Quantity);
+            if (r == 0) 
+                continue;
             
-            _realisedGain += r*(pool.AverageCost - sameDayAcquisitionsAverageCost);
+            _realisedGains[pool.TaxYear] += r*(pool.AverageCost - sameDayAcquisitionsAverageCost);
+            //_realisedGain += r*(pool.AverageCost - sameDayAcquisitionsAverageCost);
             
             remainingAcquisitions -= r;
             pool.Cost += r*pool.AverageCost;
@@ -196,7 +217,7 @@ public class UkAssetPools : IAssetPools
         }
         
         // age the pending disposals
-        var lastDisposalPool = new Pool(_pendingDisposalsByAge.LastOrDefault() ?? new Pool() { Quantity = remainingDisposals, Cost = remainingDisposals*sameDayDisposalsAverageCost });
+        var lastDisposalPool = new Pool(_pendingDisposalsByAge.LastOrDefault() ?? new Pool() { Quantity = remainingDisposals, Cost = remainingDisposals*sameDayDisposalsAverageCost, Date = _sameDayDisposals.Date });
         for(var i = _pendingDisposalsByAge.Count - 1; i > 0; i--)
         {
             var nextPool = _pendingDisposalsByAge[i];
@@ -204,11 +225,13 @@ public class UkAssetPools : IAssetPools
             
             nextPool.Quantity = pool.Quantity;
             nextPool.Cost = pool.Cost;
+            nextPool.Date = pool.Date;
         }
         
         // move remaining same-day disposals to zero age pending pool
         if (_pendingDisposalsByAge.Count > 0)
         {
+            _pendingDisposalsByAge[0].Date = remainingDisposals != 0 ? _sameDayDisposals.Date : DateTime.MinValue;
             _pendingDisposalsByAge[0].Quantity = remainingDisposals;
             _pendingDisposalsByAge[0].Cost = remainingDisposals*sameDayDisposalsAverageCost;
         }
@@ -216,7 +239,9 @@ public class UkAssetPools : IAssetPools
         // remaining disposals come from S104
         if (lastDisposalPool.Quantity < 0)
         {
-            _realisedGain += -lastDisposalPool.Quantity*(lastDisposalPool.AverageCost - section104AverageCost);
+            //_realisedGain += -lastDisposalPool.Quantity*(lastDisposalPool.AverageCost - section104AverageCost);
+            _realisedGains[lastDisposalPool.TaxYear] += -lastDisposalPool.Quantity*(lastDisposalPool.AverageCost - section104AverageCost);
+            _section104Pool.Date = lastDisposalPool.Date;
             _section104Pool.Cost += lastDisposalPool.Quantity*section104AverageCost;
             _section104Pool.Quantity += lastDisposalPool.Quantity;
         }
@@ -224,6 +249,7 @@ public class UkAssetPools : IAssetPools
         // remaining acquisitions go to section 104
         if (remainingAcquisitions > 0)
         {
+            _section104Pool.Date = _sameDayAcquisitions.Date;
             _section104Pool.Cost += remainingAcquisitions*sameDayAcquisitionsAverageCost;
             _section104Pool.Quantity += remainingAcquisitions;
         }
@@ -242,22 +268,28 @@ public class UkAssetPools : IAssetPools
     private void ClosePendingPools()
     {
         var section104AverageCost = _section104Pool.AverageCost;
+
+        if (_sameDayAcquisitions.Quantity != 0)
+        {
+            _section104Pool.Cost += _sameDayAcquisitions.Cost;
+            _section104Pool.Quantity += _sameDayAcquisitions.Quantity;
         
-        _section104Pool.Cost += _sameDayAcquisitions.Cost;
-        _section104Pool.Quantity += _sameDayAcquisitions.Quantity;
-        
-        _sameDayAcquisitions.Quantity = 0;
-        _sameDayAcquisitions.Cost = 0;
-        
-        _realisedGain += -_sameDayDisposals.Quantity*(_sameDayDisposals.AverageCost - section104AverageCost); 
-        _section104Pool.Cost += _sameDayDisposals.Quantity*_section104Pool.AverageCost;
-        _section104Pool.Quantity += _sameDayDisposals.Quantity;
-        _sameDayDisposals.Quantity = 0;
-        _sameDayDisposals.Cost = 0;
+            _sameDayAcquisitions.Quantity = 0;
+            _sameDayAcquisitions.Cost = 0;
+        }
+
+        if (_sameDayDisposals.Quantity != 0)
+        {
+            _realisedGains[_sameDayDisposals.TaxYear] += -_sameDayDisposals.Quantity*(_sameDayDisposals.AverageCost - section104AverageCost); 
+            _section104Pool.Cost += _sameDayDisposals.Quantity*_section104Pool.AverageCost;
+            _section104Pool.Quantity += _sameDayDisposals.Quantity;
+            _sameDayDisposals.Quantity = 0;
+            _sameDayDisposals.Cost = 0;
+        }
         
         foreach (var pool in _pendingDisposalsByAge.Where(pool => pool.Quantity != 0))
         {
-            _realisedGain += -pool.Quantity*(pool.AverageCost - section104AverageCost);
+            _realisedGains[pool.TaxYear] += -pool.Quantity*(pool.AverageCost - section104AverageCost);
             _section104Pool.Cost += pool.Quantity*section104AverageCost;
             _section104Pool.Quantity += pool.Quantity;
             pool.Quantity = 0;
@@ -271,11 +303,26 @@ public class UkAssetPools : IAssetPools
         public double Cost { get; set; }
         public double AverageCost => Quantity == 0 ? 0.0 : Cost / Quantity;
 
+        public DateTime Date { get; set; } = DateTime.MinValue;
+        public int TaxYear => GetTaxYear(Date);
+        
+        private static int GetTaxYear(DateTime date)
+        {
+            if(date == DateTime.MinValue)
+                return 0;
+            
+            var year = date.Year;
+            if (date.Month < 4 || date is { Month: 4, Day: < 6 })
+                return year - 1;
+            return year;
+        }
+        
         public Pool(Pool other)
         {
             if (other == null)
                 return;
             
+            Date = other.Date;
             Quantity = other.Quantity;
             Cost = other.Cost;
         }
