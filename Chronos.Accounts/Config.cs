@@ -247,7 +247,7 @@ namespace Chronos.Accounts
                     : Resolve(new DepositAsset(name, new Quantity(amount, asset)) {Guid = guid});
             }
 
-            public bool CreateTransaction(string txId, string assetId, double amount, string transactionType, string date,string comment, string guid, string relatedAssetId = null)
+            public bool CreateTransaction(string txId, string assetId, double amount, string transactionType, string date,string comment, string guid, string relatedAssetId = null, string account = null)
             {
                 if(relatedAssetId == string.Empty)
                     relatedAssetId = null;
@@ -260,8 +260,12 @@ namespace Chronos.Accounts
                     return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
                 });
                 
-                return time != null ? Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment, relatedAssetId), time) {Guid = guid}) :
-                    Resolve(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment, relatedAssetId) {Guid = guid});
+                var res = time != null ? Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment, relatedAssetId), time) {Guid = txId }) :
+                    Resolve(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment, relatedAssetId) { Guid = txId });
+                
+                if(account != null)
+                    res &= AddTransaction(account, txId, date, guid); 
+                return res;
             }
 
             public bool AddTransaction(string account, string txId, string date, string guid)

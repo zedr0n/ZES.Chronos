@@ -11,6 +11,13 @@ export async function guid() : Promise<any> {
   return guid;
 }
 
+function OptionalString(value : string) : string | null {
+  if (value == '' || value === null || value === undefined)
+    return null;
+  
+  return `"${value}"`;
+}
+
 function OptionalExcelNumber(value: any): number {
   if (value === null || value === undefined || value === "")
     return null;
@@ -246,12 +253,13 @@ export async function addTransaction(account: string, txId: string, date : numbe
  * @param {string} [comment] - An optional comment or description for the transaction.
  * @param {string} [guid] - A globally unique identifier for the transaction.
  * @param {string} [relatedAssetId] - Related asset id
+ * @param {string} [account] - The account associated with the transaction.
  * @return {Promise<any>} A promise that resolves with the result of the transaction creation.
  */
-export async function createTransaction(txId : string, transactionType : string, assetId : string, amount : number, date : number, comment? : string, guid? : string, relatedAssetId? : string) : Promise<any>
+export async function createTransaction(txId : string, transactionType : string, assetId : string, amount : number, date : number, comment? : string, guid? : string, relatedAssetId? : string, account? : string) : Promise<any>
 {
   const mutation = `mutation {
-    createTransaction( txId : "${txId}", assetId : "${assetId}", amount : ${amount}, date : ${ExcelDateToISO(date)}, transactionType : "${transactionType}", comment : "${comment}", guid : "${guid}" ${relatedAssetId != undefined ? `, relatedAssetId : "${relatedAssetId}"` : ``} )
+    createTransaction( txId : "${txId}", assetId : "${assetId}", amount : ${amount}, date : ${ExcelDateToISO(date)}, transactionType : "${transactionType}", comment : "${comment}", guid : "${guid}" ${relatedAssetId != undefined ? `, relatedAssetId : "${relatedAssetId}"` : ``}, account: ${OptionalString(account)} )
   }`
   
   let result = await SingleQuery(mutation, getIdOrError(txId, data => data.createTransaction.toString()))
