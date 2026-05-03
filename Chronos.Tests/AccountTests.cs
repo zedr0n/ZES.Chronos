@@ -54,22 +54,55 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var manager = container.GetInstance<IBranchManager>();
 
             var usd = new Currency("USD");
             await bus.Command(new CreateAccount("Account", AccountType.Saving));
             await bus.Command(new CreateAccount("OtherAccount", AccountType.Saving));
 
-            await bus.Command(new StartTransfer("Transfer", "Account", "OtherAccount", new Quantity(100, usd)));
-            await manager.Ready;
+            await bus.Command(new StartTransfer("Transfer", "Account", "OtherAccount", new Quantity(100, usd)) { Fee = new Quantity(1, usd) });
             
             await bus.Equal(new AccountStatsQuery("Account", usd), a => a.Balance, new Quantity(-100, usd));
-            await bus.Equal(new AccountStatsQuery("OtherAccount", usd), a => a.Balance, new Quantity(100, usd));
+            await bus.Equal(new AccountStatsQuery("OtherAccount", usd), a => a.Balance, new Quantity(99, usd));
 
             await bus.IsTrue(new TransactionListQuery("Account"), l => l.TxId.Contains("Transfer[From]"));
             await bus.IsTrue(new TransactionListQuery("OtherAccount"), l => l.TxId.Contains("Transfer[To]"));
         }
 
+        [Fact]
+        public async Task CanCreateTransferWithOtherCurrencyFee()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, true);
+
+            var usd = new Currency("USD");
+            var gbp = new Currency("GBP");
+            await connector.SetAsync(webSearchApi.GetUrl(fxQuoteApi.GetSearchTicker(gbp, usd)),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3537,\"previousCloseDate\":\"2026-04-27\"}]");
+            
+            await bus.Command(new RegisterAssetPair(gbp, usd));
+
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)));
+            var ticker = assetPairInfo.Ticker;
+            Assert.Equal("GBPUSD.FOREX", ticker);
+
+            await connector.SetAsync(fxQuoteApi.GetUrl(ticker),
+                "{\"code\":\"GBPUSD.FOREX\",\"timestamp\":1777767960,\"gmtoffset\":0,\"open\":1.3576,\"high\":1.3576,\"low\":1.3576,\"close\":1.3576,\"volume\":0,\"previousClose\":1.3576,\"change\":0,\"change_p\":0}");
+            
+            await bus.Command(new CreateAccount("Account", AccountType.Saving));
+            await bus.Command(new CreateAccount("OtherAccount", AccountType.Saving));
+            await bus.Command(new StartTransfer("Transfer", "Account", "OtherAccount", new Quantity(100, usd)) { Fee = new Quantity(1, gbp) });
+           
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { QueryNet = true, EnforceCache = true });
+            Assert.Equal(-100-1.3576, stats.Balance.Amount);
+           
+            var otherStats = await bus.QueryAsync(new AccountStatsQuery("OtherAccount", usd) { QueryNet = true, EnforceCache = true });
+            Assert.Equal(100, otherStats.Balance.Amount);
+        }        
+        
         [Fact]
         public async Task CanTrackWallet()
         {
@@ -237,6 +270,66 @@ namespace Chronos.Tests
             Assert.Equal(0.00114549*(4065-241.58/0.06)/1.2867, stats.RealisedGains[0].Amount, 6);
             Assert.Equal(0.06-0.00114549, stats.Positions[0].Amount, 6);
             Assert.Equal((241.58 - 0.00114549 * (241.58 / 0.06))/1.2867, stats.CostBasis[0].Amount, 6);
+        }
+
+        [Fact]
+        public async Task CanCreateTransferWithAssetFee()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false); 
+           
+            var date = new LocalDateTime(2017, 8, 16, 12, 30).InUtc().ToInstant().ToTime();
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), Time.MinValue));
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("OtherAccount", AccountType.Trading), Time.MinValue));
+            
+            var btc = new Asset("BTC", AssetType.Coin);
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+
+            await connector.SetAsync(webSearchApi.GetUrl(fxQuoteApi.GetSearchTicker(gbp, usd)),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3537,\"previousCloseDate\":\"2026-04-27\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(btc, usd)),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":76734.7109375,\"previousCloseDate\":\"2026-04-28\"}]");
+ 
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue)); 
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue)); 
+
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var btcTicker = assetPairInfo.Ticker;
+            
+            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            var gbpTicker = assetPairInfo.Ticker;
+
+            await connector.SetAsync(coinQuoteApi.GetPreciseUrl(btcTicker, date),
+                "[{\"timestamp\":1502886600,\"gmtoffset\":0,\"datetime\":\"2017-08-16 12:30:00\",\"open\":4082.9,\"high\":4109.154,\"low\":4062.45,\"close\":4065,\"volume\":27.95}]");
+            await connector.SetAsync(fxQuoteApi.GetUrl(gbpTicker, date),
+                "[{\"date\":\"2017-08-16\",\"open\":1.2868,\"high\":1.2903,\"low\":1.2845,\"close\":1.2867,\"adjusted_close\":1.2867,\"volume\":474}]");
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Account",new Quantity(0.06, btc), new Quantity(241.58, usd)), date.StartOfDay()));
+            //await bus.Command(new RetroactiveCommand<SpendAsset>(new SpendAsset("Account",new Quantity(0.00114549, btc), new Quantity(double.NaN, usd)), date));
+            await bus.Command(new RetroactiveCommand<StartTransfer>(new StartTransfer("Transfer", "Account", "OtherAccount", new Quantity(0.06, btc)) { Fee =  new Quantity(0.00114549, btc) }, date));
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("OtherAccount", gbp) { QueryNet = true, Timestamp = date });
+            Assert.Equal(0.00114549*(4065-241.58/0.06)/1.2867, stats.RealisedGains[0].Amount, 6);
+            Assert.Equal(0.06-0.00114549, stats.Positions[0].Amount, 6);
+            Assert.Equal((241.58 - 0.00114549 * (241.58 / 0.06))/1.2867, stats.CostBasis[0].Amount, 6);
+            
+            stats = await bus.QueryAsync(new AccountStatsQuery("Account", gbp) { QueryNet = true, Timestamp = date });
+            Assert.Equal(-241.58/1.2867, stats.CashBalance.Amount, 6);
+            Assert.Equal(0.0, stats.Positions[0].Amount, 6);
+           
+            var combinedStats = await bus.QueryAsync(new CombinedAccountStatsQuery(["Account", "OtherAccount"], gbp) { QueryNet = true, Timestamp = date });
+            Assert.Equal(-241.58/1.2867, combinedStats.CashBalance.Amount, 6);
+            Assert.Equal(0.06-0.00114549, combinedStats.Positions[0].Amount, 6);
+            Assert.Equal(0.00114549*(4065-241.58/0.06)/1.2867, combinedStats.RealisedGains[0].Amount, 6);
+            Assert.Equal((241.58 - 0.00114549 * (241.58 / 0.06))/1.2867, combinedStats.CostBasis[0].Amount, 6);
         }
 
         [Fact]
@@ -636,6 +729,12 @@ namespace Chronos.Tests
             Assert.Equal(0.06, intIrr.Irr, 1e-3);
         }
 
+        [Fact]
+        public async Task CanComputeIrrWithTransfers()
+        {
+            
+        }
+        
         [Fact]
         public async Task CanComputeIrrForAssetTransfers()
         {

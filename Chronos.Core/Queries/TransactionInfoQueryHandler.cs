@@ -56,6 +56,8 @@ namespace Chronos.Core.Queries
                 {
                     Timestamp = query.ConvertToDenominatorAtTxDate ? state.Date.ToTime() : query.Timestamp,
                     Timeline = query.Timeline,
+                    UpdateQuote = query.QueryNet,
+                    EnforceCache = query.EnforceCache,
                 });
 
                 if (fxResult == default)

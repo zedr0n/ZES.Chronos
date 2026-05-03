@@ -166,6 +166,32 @@ export async function depositAsset(name : string, amount : number, assetId : str
 
 /**
  * @customfunction
+ * @param {string} txId - The unique identifier of the transaction.
+ * @param {string} fromAccount - The account initiating the transfer.
+ * @param {string} toAccount - The account receiving the transfer.
+ * @param {number} amount - The amount to be transferred.
+ * @param {string} assetId - The identifier of the asset being transferred.
+ * @param {number} [date] - The date of the transaction in Excel date format. If not provided, the current date is used.
+ */
+export async function createTransfer(txId : string, fromAccount : string, toAccount : string, amount : number, assetId : string, date? : number)
+{
+  const mutation = `mutation {
+    createTransfer(
+      txId : "${txId}",
+      fromAccount: "${fromAccount}",
+      toAccount: "${toAccount}",
+      amount: ${amount},
+      assetId: "${assetId}",
+      date: ${ExcelDateToISO(date)}
+    )
+  }`;
+
+  let result = await SingleQuery(mutation, getIdOrError(txId, data => data.createTransfer.toString()))
+  return result 
+}
+
+/**
+ * @customfunction
  * @param {string} account - The account identifier associated with the transaction.
  * @param {string} assetId - The unique identifier of the asset being transacted.
  * @param {number} amount - The quantity of the asset being transacted.

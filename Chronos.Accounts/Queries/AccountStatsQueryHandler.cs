@@ -107,7 +107,8 @@ namespace Chronos.Accounts.Queries
                     var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
                     {
                         Timestamp = query.Timestamp,
-                        UpdateQuote = query.QueryNet
+                        UpdateQuote = query.QueryNet,
+                        EnforceCache = query.EnforceCache
                     });
                     if (queryResult != null)
                         price = queryResult.Quantity.Amount;
@@ -139,6 +140,8 @@ namespace Chronos.Accounts.Queries
                 var tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, denominator)
                 {
                     ConvertToDenominatorAtTxDate = query.ConvertToDenominatorAtTxDate,
+                    QueryNet = query.QueryNet,
+                    EnforceCache = query.EnforceCache,
                     //Timestamp = query.Timestamp,
                 });
                 if (tx == null)
@@ -186,6 +189,7 @@ namespace Chronos.Accounts.Queries
                         {
                             Timestamp = timestamp,
                             UpdateQuote = query.QueryNet,
+                            EnforceCache = query.EnforceCache,
                         });
                         if (assetQuote != null)
                             quote = assetQuote.Quantity.Amount;
@@ -229,8 +233,9 @@ namespace Chronos.Accounts.Queries
 
             var assetTransferIn = state.GetAssetTransfersIn();
             var assetTransfersOut = state.GetAssetTransfersOut();
-            
-            var allTimestamps = state.Costs.Keys?.Union(assetTransferIn.Select(x => x.Key)).Union(assetTransfersOut.Select(x => x.Key)) ?? [];
+            var feeDisposals = state.FeeDisposals;
+
+            var allTimestamps = state.Costs.Keys?.Union(assetTransferIn.Select(x => x.Key)).Union(assetTransfersOut.Select(x => x.Key)).Union(feeDisposals.Keys) ?? [];
             
             // we now need to sort all the costs by timestamp so that asset-asset swaps can be handled correctly
             foreach (var t in allTimestamps.OrderBy(x => x))
@@ -281,6 +286,7 @@ namespace Chronos.Accounts.Queries
                             {
                                 Timestamp = t,
                                 UpdateQuote = query.QueryNet,
+                                EnforceCache = query.EnforceCache
                             });
                             if (assetQuote != null)
                                 quote = assetQuote.Quantity.Amount;
@@ -306,6 +312,7 @@ namespace Chronos.Accounts.Queries
                             {
                                 Timestamp = t,
                                 UpdateQuote = query.QueryNet,
+                                EnforceCache = query.EnforceCache
                             });
                             if (assetQuote != null)
                                 quote = assetQuote.Quantity.Amount;
@@ -330,11 +337,27 @@ namespace Chronos.Accounts.Queries
                 {
                     if(t == query.Timestamp && !query.IncludeTransfersOutAtQueryDate)
                         continue;
-                    
+
                     var pools = poolsDictionary.GetValueOrDefault(q.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays));
                     pools.EndOfDay(t);
                     pools.TransferOut(q.Amount);
                     poolsDictionary[q.Denominator] = pools;
+                }
+
+                // handle fee disposals
+                foreach (var fee in feeDisposals.GetValueOrDefault(t, []))
+                {
+                    var pools = poolsDictionary.GetValueOrDefault(fee.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays));
+                    pools.EndOfDay(t);
+                    var assetQuote = await _handler.Handle(new AssetQuoteQuery(fee.Denominator, denominator)
+                    {
+                        Timestamp = t,
+                        UpdateQuote = query.QueryNet,
+                        EnforceCache = query.EnforceCache
+                    });
+                    if (assetQuote != null)
+                        pools.Dispose(t, fee.Amount, fee.Amount * assetQuote.Quantity.Amount);
+                    poolsDictionary[fee.Denominator] = pools;
                 }
             }
 

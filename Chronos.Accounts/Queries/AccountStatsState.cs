@@ -18,11 +18,17 @@ namespace Chronos.Accounts.Queries
         private readonly Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>> _transfers = new();
         private readonly Dictionary<string, Dictionary<Time, double>> _quotes = new();
         private readonly HashSet<string> _accountNames = [];
+        private readonly Dictionary<Time, List<(string fromAccount, Quantity fee)>> _feeDisposals = new();
        
-        private Dictionary<Asset, double> _positions = new();
+        private readonly Dictionary<Asset, double> _positions = new();
 
         public ReadOnlyDictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> Costs =>
             _costs.AsReadOnly();
+
+        public Dictionary<Time, List<Quantity>> FeeDisposals => _feeDisposals
+            .ToDictionary(t => t.Key, t => t.Value.Where(v => IsIncludedAccount(v.fromAccount)).Select(v => v.fee).ToList())
+            .Where(kv => kv.Value.Count > 0)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AccountStatsState"/> class.
@@ -44,6 +50,7 @@ namespace Chronos.Accounts.Queries
             _costs = other._costs.ToDictionary(x => x.Key, x => x.Value.ToList());
             _transfers = other._transfers.ToDictionary(x => x.Key, x => x.Value.ToList());
             _quotes = other._quotes.ToDictionary(x => x.Key, x => new Dictionary<Time, double>(x.Value));
+            _feeDisposals = other._feeDisposals.ToDictionary(x => x.Key, x => x.Value.ToList());
             _accountNames = new HashSet<string>(other.GetAccountNames());
             Transactions = new HashSet<string>(other.Transactions);
         }
@@ -62,6 +69,7 @@ namespace Chronos.Accounts.Queries
             AddDistinctRange(_splits, other._splits);
             AddRange(_costs, other._costs);
             AddDistinctRange(_transfers, other._transfers);
+            AddDistinctRange(_feeDisposals, other._feeDisposals);
             MergeQuotes(other._quotes);
            
             RemoveInternalTransfers();
@@ -112,25 +120,30 @@ namespace Chronos.Accounts.Queries
         /// Gets transfers associated with the account over time.
         /// </summary>
         public Dictionary<Time, List<Quantity>> AssetTransfers => _transfers
-            .Where(t => t.Value.Count > 0)
             .ToDictionary(t => t.Key, t => 
                 t.Value.Where(v => IsIncludedAccount(v.toAccount) || IsIncludedAccount(v.fromAccount))
-                    .Select(v => v.quantity * ( IsIncludedAccount(v.toAccount) ? 1 : -1 )).ToList());
+                    .Select(v => v.quantity * ( IsIncludedAccount(v.toAccount) ? 1 : -1 )).ToList())
+            .Where(kv => kv.Value.Count > 0)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
 
         public Dictionary<Time, List<(string fromAccount, Quantity quantity)>> GetAssetTransfersIn()
         {
-            return _transfers.Where(t => t.Value.Count > 0)
+            return _transfers
                 .ToDictionary(t => t.Key, t => 
                     t.Value.Where(v => IsIncludedAccount(v.toAccount))
-                        .Select(v => (v.fromAccount, v.quantity)).ToList());
+                        .Select(v => (v.fromAccount, v.quantity)).ToList())
+                .Where(kv => kv.Value.Count > 0)
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
         }
         
         public Dictionary<Time, List<Quantity>> GetAssetTransfersOut()
         {
-            return _transfers.Where(t => t.Value.Count > 0)
+            return _transfers
                 .ToDictionary(t => t.Key, t => 
                     t.Value.Where(v => IsIncludedAccount(v.fromAccount))
-                        .Select(v => v.quantity).ToList());
+                        .Select(v => v.quantity).ToList())
+                .Where(kv => kv.Value.Count > 0)
+                .ToDictionary(kv => kv.Key, kv => kv.Value);
         }
         
         /// <summary>
@@ -209,12 +222,23 @@ namespace Chronos.Accounts.Queries
             }
         }
 
-        public void AddAssetTransfer(string fromAccount, string toAccount, Quantity quantity, Time timestamp)
+        public void AddAssetTransfer(string fromAccount, string toAccount, Quantity quantity, Quantity fee, Time timestamp)
         {
            if(!_transfers.ContainsKey(timestamp))
-               _transfers[timestamp] = new List<(string, string, Quantity)>(); 
+               _transfers[timestamp] = new List<(string, string, Quantity)>();
+
+           var transferQuantity = quantity.Copy();
+           if (fee != null && fee.IsValid() && fee.Amount != 0 && fee.Denominator == quantity.Denominator)
+               transferQuantity -= fee;
            
-           _transfers[timestamp].Add((fromAccount, toAccount, quantity));
+           _transfers[timestamp].Add((fromAccount, toAccount, transferQuantity));
+        }
+
+        public void AddFeeDisposal(string fromAccount, Quantity fee, Time timestamp)
+        {
+            if (!_feeDisposals.ContainsKey(timestamp))
+                _feeDisposals[timestamp] = new List<(string, Quantity)>();
+            _feeDisposals[timestamp].Add((fromAccount, fee));
         }
 
         private IEnumerable<string> GetAccountNames()

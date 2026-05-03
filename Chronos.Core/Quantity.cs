@@ -41,5 +41,11 @@ namespace Chronos.Core
         /// </summary>
         /// <returns>True if the Quantity instance is valid, otherwise false.</returns>
         public bool IsValid() => !double.IsNaN(Amount) && Denominator.IsValid();
+
+        /// <summary>
+        /// Creates a deep copy of the current Quantity instance, maintaining the same amount and denominator.
+        /// </summary>
+        /// <returns>A new Quantity instance with identical properties to the current instance.</returns>
+        public Quantity Copy() => new Quantity(Amount, Denominator);
     }
 }

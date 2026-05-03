@@ -11,15 +11,12 @@ namespace Chronos.Accounts.Sagas
     /// </summary>
     public class AccountTransferSaga : StatelessSaga<AccountTransferSaga.State, AccountTransferSaga.Trigger>
     {
-        private int _accountsCompleted;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="AccountTransferSaga"/> class.
         /// </summary>
         public AccountTransferSaga()
         {
             RegisterWithParameters<TransferStarted>(e => e.TxId, Trigger.TransferStarted);
-            RegisterWithParameters<TransactionAdded>(Trigger.AccountUpdated);
         }
         
         /// <summary>
@@ -28,8 +25,6 @@ namespace Chronos.Accounts.Sagas
         public enum Trigger
         {
             TransferStarted,
-            AccountUpdated,
-            TransferCompleted,
         }
 
         /// <summary>
@@ -39,7 +34,6 @@ namespace Chronos.Accounts.Sagas
         {
             Open, 
             Processing,
-            Completed,
         }
 
         /// <inheritdoc/>
@@ -48,43 +42,50 @@ namespace Chronos.Accounts.Sagas
             base.ConfigureStateMachine();
 
             var transferTrigger = GetTrigger<TransferStarted>();
-            var txTrigger = GetTrigger<TransactionAdded>();
             
             StateMachine.Configure(State.Open)
                 .Permit(Trigger.TransferStarted, State.Processing);
             StateMachine.Configure(State.Processing)
-                .Permit(Trigger.TransferCompleted, State.Completed)
-                .PermitReentry(Trigger.AccountUpdated)
-                .OnEntryFrom(transferTrigger, Handle)
-                .OnEntryFrom(txTrigger, Handle);
+                .OnEntryFrom(transferTrigger, Handle);
         }
 
         private void Handle(TransferStarted e)
         {
+            var feeTxId = $"{e.TxId}[Fee]";
             var fromTxId = $"{e.TxId}[From]";
             var toTxId = $"{e.TxId}[To]";
 
+            var transferQuantity = e.Amount.Copy();
+            
+            if (e.Fee != null && e.Fee.IsValid() && e.Fee.Amount != 0)
+            {
+                if (e.Fee.Denominator.AssetType == AssetType.Currency)
+                {
+                    SendCommand(new CreateTransaction(feeTxId, e.Fee with { Amount = -e.Fee.Amount }, Transaction.TransactionType.Fee, $"Fee for transfer to {e.ToAccount}", e.Amount.Denominator.AssetId, e.ToAccount));
+                    SendCommand(new AddTransaction(e.FromAccount, feeTxId));
+                }
+                else
+                {
+                    SendCommand(new DepositAsset(e.FromAccount, e.Fee with { Amount = -e.Fee.Amount }));
+                }
+                
+                // subtract fee from transfer amount if it's the same asset/currency
+                if (e.Fee.Denominator == e.Amount.Denominator)
+                    transferQuantity -= e.Fee;
+            }
+
             if (e.Amount.Denominator.AssetType == AssetType.Currency)
             {
-                SendCommand(new CreateTransaction(fromTxId, new Quantity(-e.Amount.Amount, e.Amount.Denominator), Transaction.TransactionType.Transfer, $"Transfer to {e.ToAccount}",null, e.ToAccount));
+                SendCommand(new CreateTransaction(fromTxId, transferQuantity*(-1), Transaction.TransactionType.Transfer, $"Transfer to {e.ToAccount}",null, e.ToAccount));
                 SendCommand(new AddTransaction(e.FromAccount, fromTxId));
-                SendCommand(new CreateTransaction(toTxId, new Quantity(e.Amount.Amount, e.Amount.Denominator), Transaction.TransactionType.Transfer, $"Transfer from {e.FromAccount}", null, e.FromAccount));
+                SendCommand(new CreateTransaction(toTxId, transferQuantity, Transaction.TransactionType.Transfer, $"Transfer from {e.FromAccount}", null, e.FromAccount));
                 SendCommand(new AddTransaction(e.ToAccount, toTxId));
             }
             else
             {
-                SendCommand(new DepositAsset(e.FromAccount, new Quantity(-e.Amount.Amount, e.Amount.Denominator)));
-                SendCommand(new DepositAsset(e.ToAccount, new Quantity(e.Amount.Amount, e.Amount.Denominator)));
+                SendCommand(new DepositAsset(e.FromAccount, transferQuantity with { Amount = -transferQuantity.Amount } ));
+                SendCommand(new DepositAsset(e.ToAccount, transferQuantity));
             }
-        }
-
-        private void Handle(TransactionAdded e)
-        {
-            _accountsCompleted++;
-            Log.Info($"Transaction added: {e.TxId}, total : {_accountsCompleted}");
-
-            if (_accountsCompleted == 2)
-                StateMachine.Fire(Trigger.TransferCompleted);
         }
     }
 }

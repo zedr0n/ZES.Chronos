@@ -249,6 +249,9 @@ namespace Chronos.Accounts
 
             public bool CreateTransaction(string txId, string assetId, double amount, string transactionType, string date,string comment, string guid, string relatedAssetId = null, string account = null)
             {
+                if (account != null && !Guid.TryParse(txId, out var _))
+                    throw new InvalidOperationException("Invalid txId, should be a guid");
+                
                 if(relatedAssetId == string.Empty)
                     relatedAssetId = null;
                 
@@ -260,8 +263,8 @@ namespace Chronos.Accounts
                     return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
                 });
                 
-                var res = time != null ? Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment, relatedAssetId), time) {Guid = txId }) :
-                    Resolve(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment, relatedAssetId) { Guid = txId });
+                var res = time != null ? Resolve(new RetroactiveCommand<CreateTransaction>(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment, relatedAssetId), time) { Guid = account != null ? txId : guid }) :
+                    Resolve(new CreateTransaction(txId, new Quantity(amount, asset), Enum.Parse<Transaction.TransactionType>(transactionType), comment, relatedAssetId) { Guid = account != null ? txId : guid });
                 
                 if(account != null)
                     res &= AddTransaction(account, txId, date, guid); 
@@ -312,16 +315,31 @@ namespace Chronos.Accounts
                 return true;
             }
             
-            public bool AddTransfer(string txId, string fromAccount, string toAccount, string assetId, double amount, string date = null)
+            public bool CreateTransfer(string txId, string fromAccount, string toAccount, string assetId, double amount, double? fee, string feeCostId = null, string date = null)
             {
-                var assetsList = _bus.QueryAsync(new AssetPairsInfoQuery()).Result;
-                var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == assetId);
+                if (!Guid.TryParse(txId, out var _))
+                    throw new InvalidOperationException("Invalid txId, should be a guid");
+                
+                var asset = _assets.GetOrAdd(assetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
+                
+                var feeAsset = feeCostId == null ? asset : _assets.GetOrAdd(feeCostId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
+                
                 var time = date?.ToTime();
-                if (asset == null)
-                    throw new InvalidOperationException($"Asset {assetId} not registered");
 
-                var command = new StartTransfer(txId, fromAccount, toAccount, new Quantity(amount, asset));
-                var result = time != null ? Resolve(new RetroactiveCommand<StartTransfer>(command, time)) : Resolve(command);
+                var feeQuantity = fee != null ? new Quantity(fee.Value, asset) : null;
+                
+                var result = time != null ? Resolve(new RetroactiveCommand<StartTransfer>(new StartTransfer(txId, fromAccount, toAccount, new Quantity(amount, asset)) { Fee = feeQuantity }, time) { Guid = txId})
+                    : Resolve(new StartTransfer(txId, fromAccount, toAccount, new Quantity(amount, asset)) { Guid = txId, Fee = feeQuantity });
 
                 return result;
             }

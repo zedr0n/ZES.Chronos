@@ -24,6 +24,13 @@ namespace Chronos.Accounts.Queries
     public bool ConvertToDenominatorAtTxDate { get; set; } = true;
     
     public bool QueryNet { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the cache should be enforced during the execution of the update quote command.
+    /// When set to true, cached data will be prioritised and utilized if available; otherwise, the update
+    /// operation may fetch fresh data regardless of any existing cached entries.
+    /// </summary>
+    public bool EnforceCache { get; set; }
     
     public bool ComputeIrr { get; set; } = true;
     

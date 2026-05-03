@@ -56,8 +56,16 @@ namespace Chronos.Accounts.Queries
 
         public AccountStatsState Handle(TransferStarted e, AccountStatsState state)
         {
+            var hasFeeDisposal = e.Fee != null && e.Fee.IsValid() && e.Fee.Amount != 0 && e.Fee.Denominator.AssetType != AssetType.Currency;
+
+            if (e.Amount.Denominator.AssetType == AssetType.Currency && !hasFeeDisposal)
+                return state;
+
             var newState = new AccountStatsState(state);
-            newState.AddAssetTransfer(e.FromAccount, e.ToAccount, e.Amount, e.Timestamp);
+            if (e.Amount.Denominator.AssetType != AssetType.Currency)
+                newState.AddAssetTransfer(e.FromAccount, e.ToAccount, e.Amount, e.Fee, e.Timestamp);
+            if (hasFeeDisposal)
+                newState.AddFeeDisposal(e.FromAccount, e.Fee, e.Timestamp);
             return newState;
         }
     }
