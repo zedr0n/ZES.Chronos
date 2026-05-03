@@ -114,6 +114,13 @@ public class UkAssetPools : IAssetPools
         {
             targetPool.Quantity += ratio * sourcePool.Quantity;
             targetPool.Cost += ratio * sourcePool.Cost;
+            targetPool.Date = sourcePool.Date;
+        }
+
+        foreach (var v in s._realisedGains)
+        {
+            _realisedGains.TryAdd(v.Key, 0.0);
+            _realisedGains[v.Key] += v.Value;
         }
     }
 
