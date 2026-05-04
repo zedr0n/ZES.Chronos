@@ -220,7 +220,7 @@ export async function spendAsset(account: string, assetId : string, amount : num
     )
   }`;  
   
-  let result = await SingleQuery(mutation, getIdOrError(account, data => data.spendAsset.toString()))
+  let result = await SingleQuery(mutation, getIdOrError(guid, data => data.spendAsset.toString()))
   return result
 }
 /**

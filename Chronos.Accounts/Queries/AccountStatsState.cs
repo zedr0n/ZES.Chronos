@@ -223,15 +223,31 @@ namespace Chronos.Accounts.Queries
         }
 
         public void AddAssetTransfer(string fromAccount, string toAccount, Quantity quantity, Quantity fee, Time timestamp)
-        {
-           if(!_transfers.ContainsKey(timestamp))
-               _transfers[timestamp] = new List<(string, string, Quantity)>();
+        { 
+            if (!_transfers.TryGetValue(timestamp, out var transfers))
+            {
+                transfers = new List<(string fromAccount, string toAccount, Quantity quantity)>();
+                _transfers[timestamp] = transfers;
+            }
+            
+            var transferQuantity = quantity.Copy();
+            if (fee != null && fee.IsValid() && fee.Amount != 0 && fee.Denominator == quantity.Denominator)
+                transferQuantity -= fee;
 
-           var transferQuantity = quantity.Copy();
-           if (fee != null && fee.IsValid() && fee.Amount != 0 && fee.Denominator == quantity.Denominator)
-               transferQuantity -= fee;
-           
-           _transfers[timestamp].Add((fromAccount, toAccount, transferQuantity));
+            var existingTransfer = transfers.FirstOrDefault(t =>
+                t.fromAccount == fromAccount &&
+                t.toAccount == toAccount &&
+                transferQuantity.Denominator == t.quantity.Denominator);
+
+            if (existingTransfer.quantity != null)
+            {
+                transfers.Remove(existingTransfer);
+                transfers.Add((fromAccount, toAccount, transferQuantity + existingTransfer.quantity));
+            }
+            else
+            {
+                transfers.Add((fromAccount, toAccount, transferQuantity));
+            }
         }
 
         public void AddFeeDisposal(string fromAccount, Quantity fee, Time timestamp)
