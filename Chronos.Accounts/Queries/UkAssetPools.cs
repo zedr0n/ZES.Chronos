@@ -120,7 +120,7 @@ public class UkAssetPools : IAssetPools
         foreach (var v in s._realisedGains)
         {
             _realisedGains.TryAdd(v.Key, 0.0);
-            _realisedGains[v.Key] += v.Value;
+            _realisedGains[v.Key] += ratio * v.Value;
         }
     }
 
@@ -134,6 +134,9 @@ public class UkAssetPools : IAssetPools
             pool.Quantity -= ratio * pool.Quantity;
             pool.Cost -= ratio * pool.Cost;
         }
+        
+        foreach (var key in _realisedGains.Keys.ToList())
+            _realisedGains[key] -= ratio * _realisedGains[key];        
     }
 
     public void Acquire(Time time, double quantity, double cost)

@@ -8,7 +8,9 @@ using ZES.Interfaces.Domain;
 namespace Chronos.Accounts.Queries;
 
 [Transient]
-public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler)
+public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
+    IQueryHandler<CombinedAccountStateQuery, AccountStatsState> accountStatsStateHandler,
+    IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler)
     : DefaultQueryHandler<CombinedAccountStatsQuery, AccountStats, NullState>(manager, activeTimeline)
 {
     // do not read any streams for the query itself
@@ -21,22 +23,12 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
     protected override async Task<AccountStats> Handle(IProjection<NullState> projection, CombinedAccountStatsQuery query)
     {
         var accounts = query.Accounts;
-        AccountStatsState state = null;
-        
-        foreach(var account in accounts)
+        var state = await accountStatsStateHandler.Handle(new CombinedAccountStateQuery(accounts)
         {
-            var accountStats = await accountStatsHandler.Handle(new AccountStatsQuery(account, query.Denominator)
-            {
-                Timeline = query.Timeline,
-                Timestamp = query.Timestamp,
-                QueryNet = query.QueryNet,
-                NumberOfMatchingDays = query.NumberOfMatchingDays
-            });
-
-            state = state == null ? accountStats.State.Copy() : state.CombineWith(accountStats.State);
-        }
-        state?.AccountName = "Combined";
-
+            Timeline = query.Timeline,
+            Timestamp = query.Timestamp,
+        });
+        
         return await accountStatsHandler.Handle(state, new AccountStatsQuery("Combined", query.Denominator)
         {
             Timeline = query.Timeline,

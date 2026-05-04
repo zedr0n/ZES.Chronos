@@ -171,9 +171,11 @@ export async function depositAsset(name : string, amount : number, assetId : str
  * @param {string} toAccount - The account receiving the transfer.
  * @param {number} amount - The amount to be transferred.
  * @param {string} assetId - The identifier of the asset being transferred.
+ * @param {number} fee - The fee amount for the transfer.
+ * @param {string} feeAssetId - The identifier of the asset used for the fee.
  * @param {number} [date] - The date of the transaction in Excel date format. If not provided, the current date is used.
  */
-export async function createTransfer(txId : string, fromAccount : string, toAccount : string, amount : number, assetId : string, date? : number)
+export async function createTransfer(txId : string, fromAccount : string, toAccount : string, amount : number, assetId : string, fee? : number, feeAssetId? : string, date? : number)
 {
   const mutation = `mutation {
     createTransfer(
@@ -182,7 +184,9 @@ export async function createTransfer(txId : string, fromAccount : string, toAcco
       toAccount: "${toAccount}",
       amount: ${amount},
       assetId: "${assetId}",
-      date: ${ExcelDateToISO(date)}
+      date: ${ExcelDateToISO(date)},
+      fee: ${OptionalExcelNumber(fee)},
+      feeAssetId: ${OptionalString(feeAssetId)},
     )
   }`;
 

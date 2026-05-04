@@ -315,7 +315,7 @@ namespace Chronos.Accounts
                 return true;
             }
             
-            public bool CreateTransfer(string txId, string fromAccount, string toAccount, string assetId, double amount, double? fee, string feeCostId = null, string date = null)
+            public bool CreateTransfer(string txId, string fromAccount, string toAccount, string assetId, double amount, double? fee, string feeAssetId = null, string date = null)
             {
                 if (!Guid.TryParse(txId, out var _))
                     throw new InvalidOperationException("Invalid txId, should be a guid");
@@ -327,7 +327,7 @@ namespace Chronos.Accounts
                     return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
                 });
                 
-                var feeAsset = feeCostId == null ? asset : _assets.GetOrAdd(feeCostId, x =>
+                var feeAsset = feeAssetId == null ? asset : _assets.GetOrAdd(feeAssetId, x =>
                 {
                     var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master }); 
                     var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
@@ -336,7 +336,7 @@ namespace Chronos.Accounts
                 
                 var time = date?.ToTime();
 
-                var feeQuantity = fee != null ? new Quantity(fee.Value, asset) : null;
+                var feeQuantity = fee != null ? new Quantity(fee.Value, feeAsset) : null;
                 
                 var result = time != null ? Resolve(new RetroactiveCommand<StartTransfer>(new StartTransfer(txId, fromAccount, toAccount, new Quantity(amount, asset)) { Fee = feeQuantity }, time) { Guid = txId})
                     : Resolve(new StartTransfer(txId, fromAccount, toAccount, new Quantity(amount, asset)) { Guid = txId, Fee = feeQuantity });

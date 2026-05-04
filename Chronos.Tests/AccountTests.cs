@@ -50,6 +50,18 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public async Task CanGetAccountState()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+
+            await bus.Command(new CreateAccount("Account", AccountType.Saving));
+
+            var state = await bus.QueryAsync(new AccountStatsStateQuery("Account"));
+            Assert.NotNull(state);
+        }
+
+        [Fact]
         public async Task CanCreateTransfer()
         {
             var container = CreateContainer();
@@ -579,7 +591,7 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async Task CanComputeCostBasisWithTransfers()
+        public async Task CanComputeCostBasisWithSameDayTransfer()
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
@@ -639,7 +651,202 @@ namespace Chronos.Tests
             stats = await bus.QueryAsync(new AccountStatsQuery("New", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
             // the transferred disposals (-25) will match with current acquisitions (50 - 25 = 25) so we'll be left just with section 104 cost basis
             Assert.Equal(50*7.519, stats.CostBasis[0].Amount, 1e-4);
+        }       
+        
+        [Fact]
+        public async Task CanInvalidateCostBasisWithSameDayTransfer()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var equityQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
+
+            var iukd = new Asset("IUKD", AssetType.Equity);
+            var gbp = new Currency("GBP");
+            var gbx = new Currency("GBX");
+
+            await connector.SetAsync(webSearchApi.GetUrl(iukd.AssetId),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+           
+            var date0 = new LocalDateTime(2021, 8, 16, 12, 30).InUtc().ToInstant().ToTime();
+            var date = new LocalDateTime(2021, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2022, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+           
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, gbx), date0));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(iukd, gbx), date0));
             
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date0));
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date0));
+           
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date0));
+            var ticker = assetPairInfo.Ticker;
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date0),
+                "[{\"date\":\"2021-08-16\",\"open\":759.8,\"high\":759.8,\"low\":752.212,\"close\":756.5,\"adjusted_close\":581.2255,\"volume\":293663}]");
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date2),
+                "[{\"date\":\"2022-08-26\",\"open\":724.1,\"high\":729.7,\"low\":720.1,\"close\":720.1,\"adjusted_close\":589.2986,\"volume\":97436}]");
+           
+            var price0 = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date0 });
+            var price = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date });
+            var price2 = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date2 });
+          
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(50, iukd), price0.Quantity*50), date0));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(100, iukd), price.Quantity*100), date));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(-60, iukd), price2.Quantity*(-60)), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(10, iukd), price2.Quantity*10), date2));
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(-25, iukd), price0.Quantity*(-25)), date0));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(50, iukd), price2.Quantity*50), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(-25, iukd), price2.Quantity*(-25)), date2));
+            
+            await bus.Command(new RetroactiveCommand<StartTransfer>(new StartTransfer("Transfer", "Old", "New", new Quantity(25, iukd)), date2));
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("New", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
+            Assert.Null(stats.CostBasis[0]);
+            Assert.Null(stats.RealisedGains[0]);
+        }        
+
+        [Fact]
+        public async Task CanComputeCostBasisWithTransfersWithin30Days()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var equityQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
+
+            var iukd = new Asset("IUKD", AssetType.Equity);
+            var gbp = new Currency("GBP");
+            var gbx = new Currency("GBX");
+
+            await connector.SetAsync(webSearchApi.GetUrl(iukd.AssetId),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+            
+            var date = new LocalDateTime(2021, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2022, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date3 = new LocalDateTime(2022, 9, 1, 12, 30).InUtc().ToInstant().ToTime();
+           
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, gbx), date));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(iukd, gbx), date));
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date));
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date));
+           
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date));
+            var ticker = assetPairInfo.Ticker;
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date2),
+                "[{\"date\":\"2022-08-26\",\"open\":724.1,\"high\":729.7,\"low\":720.1,\"close\":720.1,\"adjusted_close\":589.2986,\"volume\":97436}]");
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date3),
+                "[{\"date\":\"2022-09-01\",\"open\":706,\"high\":706.6001,\"low\":693.6001,\"close\":694.6,\"adjusted_close\":568.4305,\"volume\":638245}]");
+            
+            var price = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date });
+            var price2 = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date2 });
+            var price3 = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date3 });
+           
+            await bus.Command(new RetroactiveCommand<CreateTransaction>( new CreateTransaction("Tx", price.Quantity*100, Transaction.TransactionType.Transfer, "Transfer"), date));
+            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Old", "Tx"), date));
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(100, iukd), price.Quantity*100), date));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(-60, iukd), price2.Quantity*(-60)), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(10, iukd), price2.Quantity*10), date2));
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
+            Assert.Equal(price.Quantity.Amount*100 -  price.Quantity.Amount*50, stats.CostBasis[0].Amount, 1e-4);
+            Assert.Equal(price2.Quantity.Amount*50 - price.Quantity.Amount*50, stats.RealisedGains[0].Amount, 1e-4);
+
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(50, iukd), price2.Quantity*50), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(-25, iukd), price2.Quantity*(-25)), date2));
+            
+            stats = await bus.QueryAsync(new AccountStatsQuery("New", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
+            Assert.Equal(price2.Quantity.Amount*25, stats.CostBasis[0].Amount, 1e-4);
+            
+            await bus.Command(new RetroactiveCommand<StartTransfer>(new StartTransfer("Transfer", "Old", "New", new Quantity(50, iukd)), date3));
+            stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date3 });
+            Assert.Equal(0, stats.CostBasis[0].Amount, 1e-4);
+            Assert.Equal(0, stats.RealisedGains[0].Amount, 1e-4);
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(100, iukd), price3.Quantity*100), date3));
+            
+            stats = await bus.QueryAsync(new AccountStatsQuery("New", new Currency("GBP")) { QueryNet = true, Timestamp = date3 });
+           
+            Assert.Equal(100*price.Quantity.Amount + 75*price3.Quantity.Amount, stats.CostBasis[0].Amount, 1e-4);
+            Assert.Equal(25*(price2.Quantity.Amount - price3.Quantity.Amount), stats.RealisedGains[0].Amount, 1e-4);
+        }
+        
+        [Fact]
+        public async Task CanComputeCostBasisWithTransfers()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var equityQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
+
+            var iukd = new Asset("IUKD", AssetType.Equity);
+            var gbp = new Currency("GBP");
+            var gbx = new Currency("GBX");
+
+            await connector.SetAsync(webSearchApi.GetUrl(iukd.AssetId),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+            
+            var date = new LocalDateTime(2021, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2022, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date3 = new LocalDateTime(2022, 10, 26, 12, 30).InUtc().ToInstant().ToTime();
+           
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, gbx), date));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(iukd, gbx), date));
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date));
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date));
+           
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date));
+            var ticker = assetPairInfo.Ticker;
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
+                "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date2),
+                "[{\"date\":\"2022-08-26\",\"open\":724.1,\"high\":729.7,\"low\":720.1,\"close\":720.1,\"adjusted_close\":589.2986,\"volume\":97436}]");
+            await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date3),
+                "[{\"date\":\"2022-10-26\",\"open\":654.2,\"high\":659.4,\"low\":650.5,\"close\":659.1,\"adjusted_close\":551.1333,\"volume\":248162}]");
+            
+            var price = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date });
+            var price2 = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date2 });
+            var price3 = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { UpdateQuote = true, Timestamp = date3 });
+           
+            await bus.Command(new RetroactiveCommand<CreateTransaction>( new CreateTransaction("Tx", price.Quantity*100, Transaction.TransactionType.Transfer, "Transfer"), date));
+            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Old", "Tx"), date));
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(100, iukd), price.Quantity*100), date));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(-60, iukd), price2.Quantity*(-60)), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("Old", new Quantity(10, iukd), price2.Quantity*10), date2));
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
+            Assert.Equal(price.Quantity.Amount*100 -  price.Quantity.Amount*50, stats.CostBasis[0].Amount, 1e-4);
+            Assert.Equal(price2.Quantity.Amount*50 - price.Quantity.Amount*50, stats.RealisedGains[0].Amount, 1e-4);
+
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(50, iukd), price2.Quantity*50), date2));
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(-25, iukd), price2.Quantity*(-25)), date2));
+            
+            stats = await bus.QueryAsync(new AccountStatsQuery("New", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
+            Assert.Equal(price2.Quantity.Amount*25, stats.CostBasis[0].Amount, 1e-4);
+            
+            await bus.Command(new RetroactiveCommand<StartTransfer>(new StartTransfer("Transfer", "Old", "New", new Quantity(50, iukd)), date3));
+            stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date3 });
+            Assert.Equal(0, stats.CostBasis[0].Amount, 1e-4);
+            Assert.Equal(0, stats.RealisedGains[0].Amount, 1e-4);
+            
+            await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(100, iukd), price3.Quantity*100), date3));
+            
+            stats = await bus.QueryAsync(new AccountStatsQuery("New", new Currency("GBP")) { QueryNet = true, Timestamp = date3 });
+           
+            Assert.Equal(75 * price.Quantity.Amount + 100 * price3.Quantity.Amount, stats.CostBasis[0].Amount, 1e-4);
+            Assert.Equal(25 * (price2.Quantity.Amount - price.Quantity.Amount), stats.RealisedGains[0].Amount, 1e-4);
         }
 
         [Fact]
@@ -688,7 +895,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(50, iukd), price2.Quantity*50), date2));
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(-25, iukd), price2.Quantity*(-25)), date2));
             await bus.Command(new RetroactiveCommand<StartTransfer>(new StartTransfer("Transfer", "Old", "New", new Quantity(25, iukd)), date2));
-            
+           
             var stats = await bus.QueryAsync(new CombinedAccountStatsQuery(["Old", "New"], new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
             Assert.Equal(75*7.519, stats.CostBasis[0].Amount, 1e-4);
         }
