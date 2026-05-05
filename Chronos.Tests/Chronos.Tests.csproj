@@ -34,7 +34,7 @@
                 </Reference>
                 <PackageReference Include="NeoSmart.AsyncLock" Version="3.2.1" />
                 <PackageReference Include="HotChocolate" Version="12.16.0" />
-                <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+                <PackageReference Include="QuickGraph.NETStandard" Version="4.0.0" />
                 <PackageReference Include="System.Reactive" Version="4.1.2" />
                 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0" />
                 <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
@@ -88,8 +88,8 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.927" />
-                <PackageReference Include="ZES.TestBase" Version="1.0.927" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.930" />
+                <PackageReference Include="ZES.TestBase" Version="1.0.930" />
             </ItemGroup>
         </Otherwise>
     </Choose>

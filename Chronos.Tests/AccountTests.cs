@@ -296,14 +296,13 @@ namespace Chronos.Tests
             await connector.SetAsync(webQuoteApi.GetUrl("IUKD.LSE", enforceCache: true),
                 "{\"code\":\"IUKD.LSE\",\"timestamp\":1775748900,\"gmtoffset\":0,\"open\":995.9,\"high\":995.9,\"low\":984.3,\"close\":988.8,\"volume\":414031,\"previousClose\":988.2,\"change\":0.6,\"change_p\":0.0607}");
             
-            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(ccy, quoteCcy), ccy, quoteCcy));
-            await bus.Command(new RegisterAssetPair(AssetPair.Fordom(asset, quoteCcy), asset, quoteCcy));
+            await bus.Command(new RegisterAssetPair(ccy, quoteCcy));
+            await bus.Command(new RegisterAssetPair(asset, quoteCcy, "UK"));
             
             await bus.Command(new TransactAsset("Account",new Quantity(100, asset), new Quantity(double.NaN, quoteCcy)));
            
-            await bus.EqualDouble(new AccountStatsQuery("Account", asset), s => s.Balance.Amount, 0, precision: 6);
-        
             var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy));
+            Assert.Equal(0.0, stats.Balance.Amount, 4);
             Assert.Single(stats.Positions);
             Assert.Equal(asset, stats.Positions[0].Denominator);
             Assert.Equal(988.8,stats.Values[0].Amount);

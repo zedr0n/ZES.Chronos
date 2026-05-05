@@ -20,15 +20,15 @@ public class AssetPairInfoHandler : IProjectionHandler<AssetPairInfo>
         Handle((dynamic)e, state);
 
     public AssetPairInfo Handle(AssetPairRegistered e, AssetPairInfo state) =>
-        new(e.ForAsset, e.DomAsset, [], state.Ticker, e.SupportsIntraday); 
+        new(e.ForAsset, e.DomAsset, [], state.Ticker, e.HolidayCalendar, e.SupportsIntraday); 
 
     public AssetPairInfo Handle(QuoteTickerAdded e, AssetPairInfo state) =>
-        new(state.ForAsset, state.DomAsset, state.QuoteDates, e.Ticker, state.SupportsIntraday);
+        new(state.ForAsset, state.DomAsset, state.QuoteDates, e.Ticker, state.HolidayCalendar, state.SupportsIntraday);
 
     public AssetPairInfo Handle(QuoteAdded e, AssetPairInfo state)
     {
         var dates = new HashSet<Instant>(state.QuoteDates) { e.Date };
-        var newState = new AssetPairInfo(state.ForAsset, state.DomAsset, dates.ToArray(), state.Ticker, state.SupportsIntraday);
+        var newState = new AssetPairInfo(state.ForAsset, state.DomAsset, dates.ToArray(), state.Ticker, state.HolidayCalendar, state.SupportsIntraday);
         return newState;
     }
 }

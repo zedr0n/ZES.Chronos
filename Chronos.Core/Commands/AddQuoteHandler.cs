@@ -15,7 +15,7 @@ namespace Chronos.Core.Commands
     }  
     protected override void Act (AssetPair assetPair, AddQuote command)
     {
-      assetPair.AddQuote(command.Date, command.Close, command.Open, command.Low, command.High, command.IsFallback);
+      assetPair.AddQuote(command.Date, command.Close, command.Open, command.Low, command.High);
     }
   }
 }

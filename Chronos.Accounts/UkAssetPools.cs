@@ -4,7 +4,7 @@ using System.Linq;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Clocks;
 
-namespace Chronos.Accounts.Queries;
+namespace Chronos.Accounts;
 
 public class UkAssetPools : IAssetPools
 {

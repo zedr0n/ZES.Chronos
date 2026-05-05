@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using ZES.Interfaces.Clocks;
 
-namespace Chronos.Accounts.Queries;
+namespace Chronos.Accounts;
 
 public interface IAssetPools
 {

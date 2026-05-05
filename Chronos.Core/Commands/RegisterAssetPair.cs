@@ -12,7 +12,7 @@ namespace Chronos.Core.Commands;
  /// into an asset pair, with an identifier comprising the combination of these assets.
  /// </remarks>
  [method: JsonConstructor]
- public class RegisterAssetPair(string fordom, Asset forAsset, Asset domAsset, bool supportsIntraday = true) : Command, ICreateCommand
+ public class RegisterAssetPair(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true) : Command, ICreateCommand
  {
      /// <summary>
      /// Initializes a new instance of the <see cref="RegisterAssetPair"/> class.
@@ -20,13 +20,15 @@ namespace Chronos.Core.Commands;
      /// </summary>
      /// <param name="forAsset">Foreign asset in the pair</param>
      /// <param name="domAsset">Domestic asset in the pair</param>
+     /// <param name="holidayCalendar">Holiday calendar for the asset pair</param>
+     /// <param name="supportsIntraday">Indicates if the asset pair supports intraday trading</param>
      /// <remarks>
      /// This command creates an association between two assets, referred to as the "for" asset and
      /// the "dom" (dominant) asset. The combination of these assets creates a unique identifier
      /// for the asset pair, known as "fordom".
      /// </remarks>
-     public RegisterAssetPair(Asset forAsset, Asset domAsset)
-         : this(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset) { }
+     public RegisterAssetPair(Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true)
+         : this(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset, holidayCalendar, supportsIntraday) { }
      
      /// <summary>
      /// Gets the combined identifier for the asset pair, which is typically
@@ -58,6 +60,12 @@ namespace Chronos.Core.Commands;
      /// related to short-term financial operations.
      /// </remarks>
      public bool SupportsIntraday => supportsIntraday;
+
+     /// <summary>
+     /// Gets the holiday calendar associated with the asset pair, allowing for the definition
+     /// of non-trading days or market-specific holidays that affect operations related to this asset pair.
+     /// </summary>
+     public string HolidayCalendar => holidayCalendar;
      
      /// <inheritdoc/>
      public override string Target => fordom;

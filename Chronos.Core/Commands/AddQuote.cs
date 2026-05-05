@@ -62,13 +62,6 @@
      /// </summary>
      public double High => high;
 
-     /// <summary>
-     /// Gets or sets a value indicating whether the quote is considered a fallback.
-     /// Represents a scenario where the quote was not derived from primary or preferred data sources
-     /// and is instead sourced as a backup or alternative value.
-     /// </summary>
-     public bool IsFallback { get; set; } = false;
-     
     /// <inheritdoc/>
      public override string Target => fordom;
  }

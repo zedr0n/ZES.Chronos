@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Newtonsoft.Json;
 using NodaTime;
 using ZES.Interfaces.Domain;
@@ -10,7 +9,7 @@ namespace Chronos.Core.Queries;
 /// involved, relevant quote dates, and associated ticker information.
 /// </summary>
 [method: JsonConstructor]
-public class AssetPairInfo(Asset forAsset, Asset domAsset, Instant[] quoteDates, string ticker, bool supportsIntraday = true) : ISingleState
+public class AssetPairInfo(Asset forAsset, Asset domAsset, Instant[] quoteDates, string ticker, string holidayCalendar = null, bool supportsIntraday = true) : ISingleState
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetPairInfo"/> class.
@@ -64,4 +63,15 @@ public class AssetPairInfo(Asset forAsset, Asset domAsset, Instant[] quoteDates,
     /// the span of a single trading day; otherwise, it does not.
     /// </remarks>
     public bool SupportsIntraday => supportsIntraday;
+
+    /// <summary>
+    /// Gets the name of the holiday calendar associated with the asset pair.
+    /// </summary>
+    /// <remarks>
+    /// The property specifies the holiday calendar used to define non-working days
+    /// or holidays that impact the trading or settlement of the asset pair.
+    /// This may be particularly relevant for financial calculations involving
+    /// schedules or date adjustments.
+    /// </remarks>
+    public string HolidayCalendar { get; } = holidayCalendar;
 }

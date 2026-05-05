@@ -39,7 +39,7 @@
                 <PackageReference Include="SimpleInjector" Version="4.4.2" />
                 <PackageReference Include="Stateless" Version="3.0.0" />
                 <PackageReference Include="Crc32.NET" Version="1.2.0" />
-                <PackageReference Include="QuickGraph.NETStandard" Version="3.8.0" />
+                <PackageReference Include="QuickGraph.NETStandard" Version="4.0.0" />
                 <PackageReference Include="NLog" Version="4.6.8" />
                 <PackageReference Include="JsonDiffPatch.Net" Version="2.1.0" />
                 <PackageReference Include="HotChocolate.Stitching" Version="10.3.5" />
@@ -97,7 +97,7 @@
         </When>
         <Otherwise>
             <ItemGroup>
-                <PackageReference Include="ZES.GraphQL" Version="1.0.927" />
+                <PackageReference Include="ZES.GraphQL" Version="1.0.930" />
             </ItemGroup>
         </Otherwise>
     </Choose>

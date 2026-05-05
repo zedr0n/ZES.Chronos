@@ -34,15 +34,16 @@ namespace Chronos.Core
         /// <param name="forAsset">Foreign asset in the pair</param>
         /// <param name="domAsset">Domestic asset in the pair</param>
         /// <param name="supportsIntraday">Indicates whether intraday trading or quoting is supported</param>
+        /// <param name="holidayCalendar">Holiday calendar for the asset pair</param>
         /// <remarks>
         /// An AssetPair consists of a "foreign" asset and a "domestic" asset, representing
         /// a trading pair or a conversion relationship. The class provides functionality to
         /// register asset pairs, add quotes, and associate a URL for quote information.
         /// </remarks>
-        public AssetPair(string fordom, Asset forAsset, Asset domAsset, bool supportsIntraday)
+        public AssetPair(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar, bool supportsIntraday)
             : this()
         {
-            When(new AssetPairRegistered(fordom, forAsset, domAsset, supportsIntraday));
+            When(new AssetPairRegistered(fordom, forAsset, domAsset, holidayCalendar, supportsIntraday));
         }
 
         /// <summary>
@@ -84,6 +85,13 @@ namespace Chronos.Core
         public bool SupportsIntraday { get; private set; }
 
         /// <summary>
+        /// Gets or sets the identifier for the holiday calendar associated with the asset pair.
+        /// This calendar defines the holidays or non-trading days that can affect trading or
+        /// settlement operations related to the pair.
+        /// </summary>
+        public string HolidayCalendar { get; set; }
+
+        /// <summary>
         /// Combines the asset identifiers of the given "for" asset and "dom" asset into a single string.
         /// </summary>
         /// <param name="forAsset">The asset representing the "for" currency or instrument.</param>
@@ -113,10 +121,9 @@ namespace Chronos.Core
         /// <param name="open">The opening price of the quote.</param>
         /// <param name="low">The lowest price of the quote.</param>
         /// <param name="high">The highest price of the quote.</param>
-        /// <param name="isFallback">Indicates whether the quote is a fallback value.</param>
-        public void AddQuote(Instant date, double close, double open, double low, double high, bool isFallback)
+        public void AddQuote(Instant date, double close, double open, double low, double high)
         {
-            When(new QuoteAdded(date, close, open, low, high, isFallback));
+            When(new QuoteAdded(date, close, open, low, high));
         }
 
         /// <summary>
@@ -152,7 +159,8 @@ namespace Chronos.Core
             ForAsset = e.ForAsset;
             DomAsset = e.DomAsset;
             SupportsIntraday = e.SupportsIntraday;
-        }  
+            HolidayCalendar = e.HolidayCalendar;
+        }
 
         private void ApplyEvent (QuoteAdded e)
         {

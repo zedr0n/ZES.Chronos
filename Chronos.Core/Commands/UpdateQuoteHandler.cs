@@ -15,30 +15,6 @@ using IClock = ZES.Interfaces.Clocks.IClock;
 
 namespace Chronos.Core.Commands
 {
-  /// <summary>
-  /// Exception thrown when required data is missing or unavailable during processing.
-  /// </summary>
-  /// <remarks>
-  /// This exception is typically used in scenarios where an operation cannot be
-  /// completed due to missing or incomplete data, such as an inability to calculate
-  /// a value from a web API response or other required sources.
-  /// </remarks>
-  public class MissingDataException : ZesException
-  {
-      /// <summary>
-      /// Initializes a new instance of the <see cref="MissingDataException"/> class.
-      /// Represents an exception thrown when essential data is missing or unavailable during the execution
-      /// of an operation or process.
-      /// </summary>
-      /// <remarks>
-      /// This exception is used to indicate that the required data to complete a task or operation
-      /// could not be retrieved or was incomplete. It is commonly utilized in scenarios such as missing
-      /// responses from APIs or failures in data extraction from external sources.
-      /// </remarks>
-      public MissingDataException()
-        : base(true) { }
-  }
-  
   /// <inheritdoc />
   public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote, AssetPair>
   {
@@ -76,18 +52,22 @@ namespace Chronos.Core.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
 
+      var holidayCalendar = root.HolidayCalendar;
+      
       var timestamp = command.Timestamp;
       var now = _clock.GetCurrentInstant();
       var intraday = timestamp.ToDateTime().Date == now.ToDateTime().Date;
       
+      // handle intraday
       if (intraday && !root.SupportsIntraday)
       {
         intraday = false;
         timestamp = timestamp.PreviousWorkingDay().CloseOfDay(); 
-        
-        command = (UpdateQuote)command.Copy();
-        command.Timestamp = timestamp;
       }
+
+      // handle holidays
+      if (holidayCalendar != null && !timestamp.IsWorkingDay())
+        timestamp = timestamp.PreviousWorkingDay().CloseOfDay();
       
       var hasExplicitTime = timestamp != timestamp.StartOfDay();
       
@@ -100,19 +80,8 @@ namespace Chronos.Core.Commands
           $"Quote already added for {timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
       }
       
-      var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
+      var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, timestamp, intraday);
       await handler.Handle(commandT);
-      
-      var error = _errorLog.PastErrors.FirstOrDefault(e => e?.OriginatingMessage == commandT);
-      if (error != null)
-      {
-        var newCommand = (UpdateQuote)command.Copy();
-        newCommand.ForFallback = true;
-        newCommand.Timestamp = timestamp.PreviousWorkingDay().CloseOfDay();
-        
-        (commandT, handler) = _factory.CreateUpdateQuote(newCommand, root.ForAsset.AssetType, root.DomAsset.AssetType, false);
-        await handler.Handle(commandT);
-      }
     }
     
     /// <inheritdoc/>
@@ -218,8 +187,6 @@ namespace Chronos.Core.Commands
           break;
         default:
         {
-          // if (!command.Timestamp.ToInstant().IsWorkingDay())
-          //  throw new MissingDataException();
           var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
           obs.Connect();
 
@@ -242,8 +209,6 @@ namespace Chronos.Core.Commands
 
           var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == command.Target).Timeout(Configuration.Timeout);
           value = webQuoteApi.GetValue(res.Data);
-          if (double.IsNaN(value))
-            throw new MissingDataException();
           
           break;
         }
@@ -254,7 +219,6 @@ namespace Chronos.Core.Commands
         StoreInLog = false,
         CorrelationId = command.CorrelationId,
         AncestorId = command.AncestorId ?? command.MessageId,
-        IsFallback = command.ForFallback,
       };
       
       if (command.Ephemeral)

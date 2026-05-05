@@ -5,7 +5,7 @@ using ZES.Infrastructure.Utils;
 
 namespace Chronos.Accounts.Queries
 {
-    public class AccountStatsHandler : ZES.Interfaces.Domain.IProjectionHandler<AccountStatsState>
+    public class AccountStatsStateHandler : ZES.Interfaces.Domain.IProjectionHandler<AccountStatsState>
     {
         public AccountStatsState Handle (ZES.Interfaces.IEvent e, AccountStatsState state)
         {

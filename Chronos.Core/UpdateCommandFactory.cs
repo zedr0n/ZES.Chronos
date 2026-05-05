@@ -3,15 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using Chronos.Core.Commands;
 using Chronos.Core.Net;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Core;
 
 /// <inheritdoc />
-public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> updateQuoteHandlers, ICollection<ICommandHandler<UpdateTicker>> updateTickerHandlers, IWebApiProvider webApiProvider) : IUpdateCommandFactory
+public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> updateQuoteHandlers, ICollection<ICommandHandler<UpdateTicker>> updateTickerHandlers, IWebApiProvider webApiProvider) 
+    : IUpdateCommandFactory
 {
     /// <inheritdoc/>
-    public (ICommand Command, ICommandHandler Handler) CreateUpdateQuote(UpdateQuote command, AssetType forAssetType, AssetType domAssetType, bool intraday)
+    public (ICommand Command, ICommandHandler Handler) CreateUpdateQuote(UpdateQuote command, AssetType forAssetType, AssetType domAssetType, Time timestamp, bool intraday)
     {
         var webApi = webApiProvider.GetQuoteApi(forAssetType, domAssetType, intraday);
         if (webApi == null)
@@ -23,6 +25,7 @@ public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> upda
         var tSearch = webSearchApi.GetJsonResultType();
         var commandT = (ICommand)Activator.CreateInstance(typeof(UpdateQuote<,>).MakeGenericType(t, tSearch), command);
         commandT?.StoreInLog = false;
+        commandT?.Timestamp = timestamp;
         var handler = updateQuoteHandlers.SingleOrDefault(h => h.CanHandle(commandT));
         return (commandT, handler);
     }

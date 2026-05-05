@@ -16,14 +16,15 @@ namespace Chronos.Core.Queries
       return Handle((dynamic) e, state);;
     }
 
-    public SingleAssetQuote Handle(Chronos.Core.Events.AssetPairRegistered e, SingleAssetQuote state)
+    public SingleAssetQuote Handle(Events.AssetPairRegistered e, SingleAssetQuote state)
     {
-      return state.Timestamp == default ? new SingleAssetQuote(double.NaN, Instant.MinValue, false, e.SupportsIntraday) : state;
+      return state.Timestamp == default ? new SingleAssetQuote(double.NaN, Instant.MinValue, e.HolidayCalendar, e.SupportsIntraday) : 
+          new SingleAssetQuote(state.Price, state.Timestamp, e.HolidayCalendar, e.SupportsIntraday);
     }
     
-    public SingleAssetQuote Handle (Chronos.Core.Events.QuoteAdded e, SingleAssetQuote state)
+    public SingleAssetQuote Handle (Events.QuoteAdded e, SingleAssetQuote state)
     {
-      return e.Timestamp >= state.Timestamp.ToTime() ? new SingleAssetQuote(e.Close, e.Timestamp.ToInstant(), e.IsFallback, state.SupportsIntraday) : state;
+      return e.Timestamp >= state.Timestamp.ToTime() ? new SingleAssetQuote(e.Close, e.Timestamp.ToInstant(), state.HolidayCalendar, state.SupportsIntraday) : state;
     }
   }
 }

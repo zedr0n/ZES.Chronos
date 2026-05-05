@@ -1,6 +1,4 @@
-﻿using Chronos.Accounts.Queries;
-
-namespace Chronos.Accounts;
+﻿namespace Chronos.Accounts;
 
 public class AssetPoolFactory
 {

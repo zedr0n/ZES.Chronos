@@ -11,7 +11,7 @@ namespace Chronos.Core.Events;
 /// This event contains the asset pair identifier and its associated assets.
 /// </remarks>
 [method: JsonConstructor]
-public class AssetPairRegistered(string fordom, Asset forAsset, Asset domAsset, bool supportsIntraday = true) : Event
+public class AssetPairRegistered(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true) : Event
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetPairRegistered"/> class.
@@ -59,5 +59,17 @@ public class AssetPairRegistered(string fordom, Asset forAsset, Asset domAsset, 
     /// activities, enabling more granular interactions such as real-time updates, analytics, and short-term
     /// trades. This can be a practical feature for markets or assets with high volatility or frequent market movement.
     /// </remarks>
-    public bool SupportsIntraday => supportsIntraday; 
+    public bool SupportsIntraday => supportsIntraday;
+
+    /// <summary>
+    /// Gets the name or identifier of the holiday calendar associated with the asset pair.
+    /// The holiday calendar defines non-trading days based on regional, market, or asset-specific
+    /// holidays, ensuring accurate scheduling for trading, settlement, or other time-sensitive processes.
+    /// </summary>
+    /// <remarks>
+    /// This property is utilized to enforce business rules that vary based on holidays specific to
+    /// the region or market of the asset. It supports scenarios such as adjusting trading schedules,
+    /// computing delivery dates, and aligning with market conventions.
+    /// </remarks>
+    public string HolidayCalendar => holidayCalendar;
 }
