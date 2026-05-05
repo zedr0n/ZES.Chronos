@@ -12,7 +12,7 @@ namespace Chronos.Core.Commands;
  /// into an asset pair, with an identifier comprising the combination of these assets.
  /// </remarks>
  [method: JsonConstructor]
- public class RegisterAssetPair(string fordom, Asset forAsset, Asset domAsset) : Command, ICreateCommand
+ public class RegisterAssetPair(string fordom, Asset forAsset, Asset domAsset, bool supportsIntraday = true) : Command, ICreateCommand
  {
      /// <summary>
      /// Initializes a new instance of the <see cref="RegisterAssetPair"/> class.
@@ -49,6 +49,16 @@ namespace Chronos.Core.Commands;
      /// </remarks>
      public Asset DomAsset => domAsset;
 
+     /// <summary>
+     /// Gets a value indicating whether indicates whether intraday trading or operations are supported for the asset pair.
+     /// </summary>
+     /// <remarks>
+     /// This property determines if the asset pair allows actions or transactions to be performed
+     /// within the same trading day. It is typically used to configure or limit functionality
+     /// related to short-term financial operations.
+     /// </remarks>
+     public bool SupportsIntraday => supportsIntraday;
+     
      /// <inheritdoc/>
      public override string Target => fordom;
  }

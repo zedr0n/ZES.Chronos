@@ -28,15 +28,22 @@ namespace Chronos.Core
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AssetPair"/> class.
+        /// Represents a pair of assets.
         /// </summary>
-        /// <param name="fordom">ForDom identifier</param>
-        /// <param name="forAsset">Foreign asset</param>
-        /// <param name="domAsset">Domestic asset</param>
-        public AssetPair(string fordom, Asset forAsset, Asset domAsset)
+        /// <param name="fordom">Unique identifier for the asset pair</param>
+        /// <param name="forAsset">Foreign asset in the pair</param>
+        /// <param name="domAsset">Domestic asset in the pair</param>
+        /// <param name="supportsIntraday">Indicates whether intraday trading or quoting is supported</param>
+        /// <remarks>
+        /// An AssetPair consists of a "foreign" asset and a "domestic" asset, representing
+        /// a trading pair or a conversion relationship. The class provides functionality to
+        /// register asset pairs, add quotes, and associate a URL for quote information.
+        /// </remarks>
+        public AssetPair(string fordom, Asset forAsset, Asset domAsset, bool supportsIntraday)
             : this()
         {
-            When(new AssetPairRegistered(fordom, forAsset, domAsset));
-        }  
+            When(new AssetPairRegistered(fordom, forAsset, domAsset, supportsIntraday));
+        }
 
         /// <summary>
         /// Gets or sets the asset that is being quoted in the asset pair.
@@ -68,6 +75,13 @@ namespace Chronos.Core
         /// quotes were added.
         /// </summary>
         public HashSet<Instant> QuoteDates { get; } = new();
+
+        /// <summary>
+        /// Gets a value indicating whether intraday trading or quoting is supported for this asset pair.
+        /// Intraday support typically signifies that quotes and trades can occur within the same day,
+        /// allowing for more granular and frequent updates to the asset pair's data.
+        /// </summary>
+        public bool SupportsIntraday { get; private set; }
 
         /// <summary>
         /// Combines the asset identifiers of the given "for" asset and "dom" asset into a single string.
@@ -137,6 +151,7 @@ namespace Chronos.Core
             Id = e.Fordom;
             ForAsset = e.ForAsset;
             DomAsset = e.DomAsset;
+            SupportsIntraday = e.SupportsIntraday;
         }  
 
         private void ApplyEvent (QuoteAdded e)

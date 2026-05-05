@@ -15,7 +15,7 @@ namespace Chronos.Core.Commands
     }  
     protected override AssetPair Create (RegisterAssetPair command)
     {
-      return new AssetPair(command.Fordom, command.ForAsset, command.DomAsset);
+      return new AssetPair(command.Fordom, command.ForAsset, command.DomAsset, command.SupportsIntraday);
     }
   }
 }

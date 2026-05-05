@@ -4,8 +4,6 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Core.Net;
-using NodaTime;
-using PublicHoliday;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Net;
@@ -78,37 +76,45 @@ namespace Chronos.Core.Commands
       if (root == null)
         throw new ArgumentNullException(nameof(AssetPair));
 
+      var timestamp = command.Timestamp;
       var now = _clock.GetCurrentInstant();
-      var intraday = command.Timestamp.ToDateTime().Date == now.ToDateTime().Date;
-      var hasExplicitTime = command.Timestamp != null && command.Timestamp != command.Timestamp.StartOfDay();
+      var intraday = timestamp.ToDateTime().Date == now.ToDateTime().Date;
       
-      if (!intraday && !hasExplicitTime && root.QuoteDates.Any(d => d.IsWithinPriorWorkingDays(command.Timestamp.ToInstant())))
+      if (intraday && !root.SupportsIntraday)
+      {
+        intraday = false;
+        timestamp = timestamp.PreviousWorkingDay().CloseOfDay(); 
+        
+        command = (UpdateQuote)command.Copy();
+        command.Timestamp = timestamp;
+      }
+      
+      var hasExplicitTime = timestamp != timestamp.StartOfDay();
+      
+      if (timestamp == null)
+        throw new InvalidOperationException("Timestamp cannot be null");
+
+      if (!intraday && !hasExplicitTime && root.QuoteDates.Any(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant())))
       {
         throw new InvalidOperationException(
-          $"Quote already added for {command.Timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
+          $"Quote already added for {timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
       }
       
       var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
       await handler.Handle(commandT);
+      
       var error = _errorLog.PastErrors.FirstOrDefault(e => e?.OriginatingMessage == commandT);
       if (error != null)
       {
-        var zone = DateTimeZoneProviders.Tzdb["Europe/London"];
-        var date = command.Timestamp.ToInstant().InZone(zone).Date;
-        var uk = new UKBankHoliday();
-        date = date.PlusDays(-1);
-        while (!uk.IsWorkingDay(date.ToDateTimeUnspecified()))
-          date = date.PlusDays(-1);
-        
         var newCommand = (UpdateQuote)command.Copy();
         newCommand.ForFallback = true;
-        newCommand.Timestamp = date.At(new LocalTime(16, 30)).InZoneLeniently(zone).ToInstant().ToTime();
+        newCommand.Timestamp = timestamp.PreviousWorkingDay().CloseOfDay();
         
         (commandT, handler) = _factory.CreateUpdateQuote(newCommand, root.ForAsset.AssetType, root.DomAsset.AssetType, false);
         await handler.Handle(commandT);
       }
     }
-
+    
     /// <inheritdoc/>
     protected override void Act(AssetPair root, UpdateQuote command)
     {

@@ -25,12 +25,14 @@ namespace Chronos.Core.Queries
        set;
     }  
     public bool IsFallback { get; set; }
-    
-    public SingleAssetQuote(double price, Instant timestamp, bool isFallback = false) 
+    public bool SupportsIntraday { get; }
+
+    public SingleAssetQuote(double price, Instant timestamp, bool isFallback = false, bool supportsIntraday = true) 
     {
       Price = price; 
       Timestamp = timestamp;
       IsFallback = isFallback;
+      SupportsIntraday = supportsIntraday;
     }
     
     /// <summary>
@@ -43,7 +45,7 @@ namespace Chronos.Core.Queries
     /// <remarks>
     /// If the quote is a fallback quote, it is considered valid if it is within the last 2 working days ( inclusive ).
     /// </remarks>
-    public bool IsValid(Instant currentTimestamp, bool intraday = false) => !double.IsNaN(Price) && Timestamp.IsWithinPriorWorkingDays(currentTimestamp, intraday && IsFallback ? 2 : 1);
+    public bool IsValid(Instant currentTimestamp, bool intraday = false) => !double.IsNaN(Price) && Timestamp.IsWithinPriorWorkingDays(currentTimestamp, intraday && (IsFallback || !SupportsIntraday) ? 2 : 1);
   }
 }
 

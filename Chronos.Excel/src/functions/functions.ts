@@ -82,7 +82,7 @@ export async function updateQuotes(account: string, denominator: string, date?: 
 export async function registerCurrencyPair(forCcy: string, domCcy: string)
 {
   const mutation = `mutation {
-    registerCurrencyPair( forCcy : "${forCcy}", domCcy : "${domCcy}" )
+    registerCurrencyPair( forCcy : "${forCcy}", domCcy : "${domCcy}", supportsIntraday :  )
   }`
   
   let result = await MutationWithId(forCcy, mutation)
@@ -96,11 +96,22 @@ export async function registerCurrencyPair(forCcy: string, domCcy: string)
  * @param domAssetId Domestic asset id
  * @param domAssetType Domestic asset type
  * @param guid Command guid
+ * @param {boolean} [supportsIntraday] Whether this asset pair supports intraday quoting
+ * @param supportsIntraday
  */
-export async function registerAssetPair(forAssetId : string, forAssetType : string, domAssetId : string, domAssetType : string, guid: string) : Promise<any>
+export async function registerAssetPair(forAssetId : string, forAssetType : string, domAssetId : string, domAssetType : string, guid: string, supportsIntraday? : boolean) : Promise<any>
 {
+  if(supportsIntraday === undefined || supportsIntraday == null)
+    supportsIntraday = true
+  
   const mutation = `mutation {
-    registerAssetPair( forAsset : {assetId : "${forAssetId}", assetType : ${forAssetType.toUpperCase()}}, domAsset : {assetId : "${domAssetId}", assetType : ${domAssetType.toUpperCase()}}, guid : "${guid}" )
+    registerAssetPair( 
+      forAsset : {assetId : "${forAssetId}",
+      assetType : ${forAssetType.toUpperCase()}},
+      domAsset : {assetId : "${domAssetId}",
+      assetType : ${domAssetType.toUpperCase()}},
+      guid : "${guid}",
+      supportsIntraday : ${supportsIntraday})
   }`
  
   const fordom = forAssetId + domAssetId;

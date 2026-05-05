@@ -151,10 +151,10 @@ namespace Chronos.Core
                 return result;
             }
 
-            public bool RegisterAssetPair(Asset forAsset, Asset domAsset, string guid)
+            public bool RegisterAssetPair(Asset forAsset, Asset domAsset, string guid, bool supportsIntraday = true)
             {
                 var fordom = AssetPair.Fordom(forAsset, domAsset);
-                var command = new RegisterAssetPair(fordom, forAsset, domAsset);
+                var command = new RegisterAssetPair(fordom, forAsset, domAsset, supportsIntraday);
                 var result = Resolve(new RetroactiveCommand<RegisterAssetPair>(command, Time.MinValue) { Guid = guid });
                 return result;
             }
