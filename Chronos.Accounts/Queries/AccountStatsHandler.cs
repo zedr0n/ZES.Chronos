@@ -43,7 +43,7 @@ namespace Chronos.Accounts.Queries
         public AccountStatsState Handle(AssetTransactionStarted e, AccountStatsState state)
         {
             var newState = new AccountStatsState(state);
-            newState.AddCost(e.Asset, e.Cost, e.Fee, e.Timestamp);
+            newState.AddCost(e.Asset, e.Cost, e.Fee, e.Timestamp, e.RetroactiveId?.Id ?? e.CommandId?.Id);
             return newState;
         }
 
@@ -65,7 +65,7 @@ namespace Chronos.Accounts.Queries
             if (e.Amount.Denominator.AssetType != AssetType.Currency)
                 newState.AddAssetTransfer(e.FromAccount, e.ToAccount, e.Amount, e.Fee, e.Timestamp);
             if (hasFeeDisposal)
-                newState.AddFeeDisposal(e.FromAccount, e.Fee, e.Timestamp);
+                newState.AddFeeDisposal(e.FromAccount, e.Fee, e.Timestamp, e.RetroactiveId?.Id ?? e.CommandId?.Id);
             return newState;
         }
     }

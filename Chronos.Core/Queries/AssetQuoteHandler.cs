@@ -43,13 +43,16 @@ namespace Chronos.Core.Queries
         timestamp = branchManager.GetTime(query.Timeline);
       else if (timestamp == null)
         timestamp = branchManager.GetTime(branchManager.ActiveBranch);
+    
+      if(TryGetOverride(query, query.ForAsset, query.DomAsset, out var priceOverride))
+        return new AssetQuote(new Quantity(priceOverride, query.DomAsset), timestamp.ToInstant());
       
       var now = clock.GetCurrentInstant();
       var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
       
       if (info.Pairs.ToList().Contains(fordom))
       {
-        var result = await GetSingleQuote(query, fordom, intraday);
+        var result = await GetSingleQuote(query, query.ForAsset, query.DomAsset, intraday);
         price = result.Price;
       }
       else 
@@ -61,12 +64,12 @@ namespace Chronos.Core.Queries
 
         foreach (var (forAsset, domAsset) in path)
         {
-          var pathForDom = AssetPair.Fordom(forAsset, domAsset);
           var isInverse = info.Pairs.Contains(AssetPair.Fordom(domAsset, forAsset));
-          if (isInverse)
-            pathForDom = AssetPair.Fordom(domAsset,forAsset);
-
-          var pathResult = await GetSingleQuote(query, pathForDom, intraday);
+          
+          var pathResult = isInverse ? 
+            await GetSingleQuote(query, domAsset, forAsset, intraday) 
+            : await GetSingleQuote(query, forAsset, domAsset, intraday);
+          
           var pathPrice = pathResult.Price;
 
           if (isInverse && pathPrice != 0.0)
@@ -79,7 +82,34 @@ namespace Chronos.Core.Queries
       return new AssetQuote(new Quantity(price, query.DomAsset), timestamp.ToInstant()); 
     }
     
-    private async Task<SingleAssetQuote> GetSingleQuote(AssetQuoteQuery query, string fordom, bool intraday)
+    private static bool TryGetOverride(AssetQuoteQuery query, Asset forAsset, Asset domAsset, out double price)
+    {
+      price = 0.0;
+
+      var fordom = AssetPair.Fordom(forAsset, domAsset);
+      var direct = query.AssetQuoteOverrides?.SingleOrDefault(o =>
+        string.Equals(o.SourceOperationId, query.SourceOperationId, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(o.Fordom, fordom, StringComparison.OrdinalIgnoreCase));
+
+      if (direct != null)
+      {
+        price = direct.Price;
+        return true;
+      }
+
+      var inverseFordom = AssetPair.Fordom(domAsset, forAsset);
+      var inverse = query.AssetQuoteOverrides?.SingleOrDefault(o =>
+        string.Equals(o.SourceOperationId, query.SourceOperationId, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(o.Fordom, inverseFordom, StringComparison.OrdinalIgnoreCase));
+
+      if (inverse == null || inverse.Price == 0.0)
+        return false;
+
+      price = 1.0 / inverse.Price;
+      return true;
+    }
+    
+    private async Task<SingleAssetQuote> GetSingleQuote(AssetQuoteQuery query, Asset forAsset, Asset domAsset, bool intraday)
     {
       var timestamp = query.Timestamp;
       if (query.Timeline != "")
@@ -87,6 +117,10 @@ namespace Chronos.Core.Queries
       else if (timestamp == null)
         timestamp = branchManager.GetTime(branchManager.ActiveBranch);
 
+      if(TryGetOverride(query, forAsset, domAsset, out var price))
+        return new SingleAssetQuote(price, timestamp.ToInstant());
+      
+      var fordom = AssetPair.Fordom(forAsset, domAsset);
       if (query.UpdateQuote)
       {
         var quoteDates = (await pairInfoHandler.Handle(new AssetPairInfoQuery(fordom)))?.QuoteDates;

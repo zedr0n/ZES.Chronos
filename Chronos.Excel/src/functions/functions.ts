@@ -611,23 +611,67 @@ export async function blendedIrr(accounts: string[][], asOfDate : number, startD
  * @param {string[][]} accounts account name
  * @param {number} asOfDate as of date
  * @param {string} assetId denominator asset
- * @param {boolean} immediate convert to asset at tx date
+ * @param quoteOverrides
  */
-export async function accountStats(accounts : string[][], asOfDate : number, assetId? : string, immediate? : boolean) : Promise<any> {
+export async function accountStats(accounts : string[][], asOfDate : number, assetId? : string, quoteOverrides?: string[][]) : Promise<any> {
   if(assetId == undefined || assetId == "")
     assetId = "GBP"
 
+  let assetQuoteOverrides = null
+  if(quoteOverrides !== undefined && quoteOverrides != null) {
+    assetQuoteOverrides = quoteOverrides.filter(a =>
+            a !== undefined &&
+            a !== null &&
+            a[0] !== undefined && a[0] !== null && a[0] !== "" &&
+            a[1] !== undefined && a[1] !== null && a[1] !== "" &&
+            a[2] !== undefined && a[2] !== null && a[2] !== ""
+        ).map(a => `{
+      sourceOperationId: "${a[0]}",
+      fordom: "${a[1]}",
+      price: ${a[2]}
+    }`).join(', ')
+    assetQuoteOverrides = `[${assetQuoteOverrides}]`
+  }
+  
   let query = ''
   if(accounts.length == 1)
   {
-    query = `{
-      stats: accountStats(  accountName : "${accounts[0][0]}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY }, immediate : ${immediate} ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } realisedGains { amount denominator { assetId } } irr }
+    query = `{ stats: accountStats(  
+      accountName : "${accounts[0][0]}",
+      date : "${ExcelDateToJSDate(asOfDate).toISOString()}",
+      denominator : { assetId : "${assetId}", assetType : CURRENCY },
+      assetQuoteOverrides : ${assetQuoteOverrides})
+      {
+        balance { amount denominator { assetId } } 
+        cashBalance { amount denominator { assetId } } 
+        totalDividend { amount denominator { assetId } } 
+        positions { amount denominator { assetId } } 
+        values { amount denominator { assetId } } 
+        dividends { amount denominator { assetId } } 
+        costBasis { amount denominator { assetId } } 
+        realisedGains { amount denominator { assetId } } 
+        irr 
+      }
     }`;
   }
   else 
   {
-    query = `{
-      stats: combinedAccountStats(  accounts:[${accounts.map(a => `"${a}"`).join(', ')}], date : "${ExcelDateToJSDate(asOfDate).toISOString()}", denominator : { assetId : "${assetId}", assetType : CURRENCY } ) { balance { amount denominator { assetId } } cashBalance { amount denominator { assetId } } totalDividend { amount denominator { assetId } } positions { amount denominator { assetId } } values { amount denominator { assetId } } dividends { amount denominator { assetId } } costBasis { amount denominator { assetId } } realisedGains { amount denominator { assetId } } irr }
+    query = `{ stats: combinedAccountStats(
+      accounts:[${accounts.map(a => `"${a}"`).join(', ')}],
+      date : "${ExcelDateToJSDate(asOfDate).toISOString()}",
+      denominator : { assetId : "${assetId}", assetType : CURRENCY },
+      assetQuoteOverrides : ${assetQuoteOverrides} ) 
+      { 
+        balance { amount denominator { assetId } } 
+        cashBalance { amount denominator { assetId } } 
+        totalDividend { amount denominator { assetId } } 
+        positions { amount denominator { assetId } } 
+        values { amount denominator { assetId } } 
+        dividends { amount denominator { assetId } } 
+        costBasis { amount denominator { assetId } } 
+        realisedGains { amount denominator { assetId } } 
+        irr
+      }
     }`;
   }
   

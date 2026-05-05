@@ -66,7 +66,7 @@ namespace Chronos.Accounts
             /// <returns>Account stats</returns>
             public Stats AccountStats() => Resolve(new StatsQuery());
 
-            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, bool? immediate = null)
+            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool? immediate = null)
             {
                 var time = date?.ToTime();
 
@@ -77,16 +77,18 @@ namespace Chronos.Accounts
                     ConvertToDenominatorAtTxDate = immediate ?? true,
                     Timestamp = time,
                     QueryNet = true,
+                    AssetQuoteOverrides = assetQuoteOverrides
                 });  
             }
 
-            public AccountStats CombinedAccountStats(string[] accounts, Asset denominator = null, string date = null)
+            public AccountStats CombinedAccountStats(string[] accounts, Asset denominator = null, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null)
             {
                 var time = date?.ToTime();
                 return Resolve(new CombinedAccountStatsQuery(accounts.ToList(), denominator)
                 {
                     Timestamp = time,
                     QueryNet = true,
+                    AssetQuoteOverrides = assetQuoteOverrides
                 }); 
             }
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Chronos.Core;
@@ -14,22 +15,43 @@ namespace Chronos.Accounts.Queries
     {
         private readonly Dictionary<Asset, List<(Quantity quantity, Time timestamp)>> _deposits = new();
         private readonly Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> _costs = new();
+        private readonly Dictionary<Time, List<Guid?>> _costCommandIds = new();
         private readonly Dictionary<Asset, List<(Time timestamp, double ratio)>> _splits = new();
         private readonly Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>> _transfers = new();
         private readonly Dictionary<string, Dictionary<Time, double>> _quotes = new();
         private readonly HashSet<string> _accountNames = [];
         private readonly Dictionary<Time, List<(string fromAccount, Quantity fee)>> _feeDisposals = new();
+        private readonly Dictionary<Time, List<Guid?>> _feeDisposalCommandIds = new();
        
         private readonly Dictionary<Asset, double> _positions = new();
 
         public ReadOnlyDictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> Costs =>
             _costs.AsReadOnly();
 
+        public IEnumerable<(Quantity assetQuantity, Quantity costQuantity, Guid? commandId)> GetCosts(Time time)
+        {
+            var costs = _costs.GetValueOrDefault(time, []);
+            var ids = _costCommandIds.GetValueOrDefault(time, []);
+            
+            return costs.Select((c, i) => (c.assetQuantity, c.costQuantity, i < ids.Count ? ids[i] : null));        
+        }
+
         public Dictionary<Time, List<Quantity>> FeeDisposals => _feeDisposals
             .ToDictionary(t => t.Key, t => t.Value.Where(v => IsIncludedAccount(v.fromAccount)).Select(v => v.fee).ToList())
             .Where(kv => kv.Value.Count > 0)
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
+        public IEnumerable<(Quantity feeQuantity, Guid? commandId)> GetFeeDisposals(Time time)
+        {
+            var feeDisposals = _feeDisposals.GetValueOrDefault(time, []);
+            var ids = _feeDisposalCommandIds.GetValueOrDefault(time, []);
+
+            return feeDisposals
+                .Select((f, i) => (f.fromAccount, f.fee, commandId: i < ids.Count ? ids[i] : null))
+                .Where(x => IsIncludedAccount(x.fromAccount))
+                .Select(x => (x.fee, x.commandId));
+        }
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="AccountStatsState"/> class.
         /// </summary>
@@ -48,9 +70,11 @@ namespace Chronos.Accounts.Queries
             _deposits = other._deposits.ToDictionary(x => x.Key, x => x.Value.ToList());
             _splits = other._splits.ToDictionary(x => x.Key, x => x.Value.ToList());
             _costs = other._costs.ToDictionary(x => x.Key, x => x.Value.ToList());
+            _costCommandIds = other._costCommandIds.ToDictionary(x => x.Key, x => x.Value.ToList());
             _transfers = other._transfers.ToDictionary(x => x.Key, x => x.Value.ToList());
             _quotes = other._quotes.ToDictionary(x => x.Key, x => new Dictionary<Time, double>(x.Value));
             _feeDisposals = other._feeDisposals.ToDictionary(x => x.Key, x => x.Value.ToList());
+            _feeDisposalCommandIds = other._feeDisposalCommandIds.ToDictionary(x => x.Key, x => x.Value.ToList());
             _accountNames = new HashSet<string>(other.GetAccountNames());
             Transactions = new HashSet<string>(other.Transactions);
         }
@@ -68,8 +92,10 @@ namespace Chronos.Accounts.Queries
             AddRange(_deposits, other._deposits);
             AddDistinctRange(_splits, other._splits);
             AddRange(_costs, other._costs);
+            AddRange(_costCommandIds, other._costCommandIds);
             AddDistinctRange(_transfers, other._transfers);
             AddDistinctRange(_feeDisposals, other._feeDisposals);
+            AddRange(_feeDisposalCommandIds, other._feeDisposalCommandIds);
             MergeQuotes(other._quotes);
            
             RemoveInternalTransfers();
@@ -185,11 +211,11 @@ namespace Chronos.Accounts.Queries
             _positions.Clear();
         }
 
-        public void AddCost(Quantity assetQuantity, Quantity costQuantity, Quantity feeQuantity, Time timestamp)
+        public void AddCost(Quantity assetQuantity, Quantity costQuantity, Quantity feeQuantity, Time timestamp, Guid? commandId = null)
         {
-            if(!_costs.ContainsKey(timestamp))
-                _costs[timestamp] = new List<(Quantity assetQuantity, Quantity costQuantity)>();
-          
+            _costs.TryAdd(timestamp, []);
+            _costCommandIds.TryAdd(timestamp, []);
+
             if (double.IsNaN(costQuantity.Amount))
             {
                 var fordom = AssetPair.Fordom(assetQuantity.Denominator, costQuantity.Denominator);
@@ -201,6 +227,7 @@ namespace Chronos.Accounts.Queries
                 costQuantity += feeQuantity;
             
             _costs[timestamp].Add((assetQuantity, costQuantity));
+            _costCommandIds[timestamp].Add(commandId);
         }
 
         public void AddQuote(string fordom, double quote, Time timestamp)
@@ -250,11 +277,13 @@ namespace Chronos.Accounts.Queries
             }
         }
 
-        public void AddFeeDisposal(string fromAccount, Quantity fee, Time timestamp)
+        public void AddFeeDisposal(string fromAccount, Quantity fee, Time timestamp, Guid? commandId)
         {
-            if (!_feeDisposals.ContainsKey(timestamp))
-                _feeDisposals[timestamp] = new List<(string, Quantity)>();
+            _feeDisposals.TryAdd(timestamp, []);
+            _feeDisposalCommandIds.TryAdd(timestamp, []);
+
             _feeDisposals[timestamp].Add((fromAccount, fee));
+            _feeDisposalCommandIds[timestamp].Add(commandId);
         }
 
         private IEnumerable<string> GetAccountNames()

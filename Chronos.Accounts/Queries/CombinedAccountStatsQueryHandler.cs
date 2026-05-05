@@ -34,7 +34,8 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
             Timeline = query.Timeline,
             Timestamp = query.Timestamp,
             QueryNet = query.QueryNet,
-            NumberOfMatchingDays = query.NumberOfMatchingDays
+            NumberOfMatchingDays = query.NumberOfMatchingDays,
+            AssetQuoteOverrides = query.AssetQuoteOverrides
         }); 
     }
 }

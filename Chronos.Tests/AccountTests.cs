@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Chronos.Accounts;
@@ -197,6 +199,80 @@ namespace Chronos.Tests
             await bus.Equal(new AccountStatsQuery("Account", asset), s => s.Balance, new Quantity(0, asset));
             await bus.Equal(new AccountStatsQuery("Account", ccy), s => s.Balance, new Quantity(0, ccy));
         }
+        
+        [Fact]
+        public async Task CanApplyAssetQuoteOverride()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, true);
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, true);
+            
+            await bus.Command(new CreateAccount("Account", AccountType.Trading));
+           
+            var btc = new Asset("BTC", AssetType.Coin);
+            var eth = new Asset("ETH", AssetType.Coin);
+            var usd = new Currency("USD");
+            var gbp = new Currency("GBP");
+           
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(btc, usd)),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":76734.7109375,\"previousCloseDate\":\"2026-04-28\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(eth, usd)),
+                "[{\"Code\":\"ETH-USD\",\"Exchange\":\"CC\",\"Name\":\"Ethereum\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":2381.8898925781,\"previousCloseDate\":\"2026-05-04\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl(fxQuoteApi.GetSearchTicker(gbp, usd)),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3581,\"previousCloseDate\":\"2026-05-03\"}]");
+           
+            await bus.Command(new RegisterAssetPair(btc, usd));
+            await bus.Command(new RegisterAssetPair(eth, usd));
+            await bus.Command(new RegisterAssetPair(gbp, usd));
+         
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)));
+            var btcTicker = assetPairInfo.Ticker;
+
+            await connector.SetAsync(coinQuoteApi.GetUrl(btcTicker),
+                "{\"code\":\"BTC-USD.CC\",\"timestamp\":1777915320,\"gmtoffset\":0,\"open\":78543.4296875,\"high\":80526.875,\"low\":78270.7578125,\"close\":80485.609375,\"volume\":53754380288,\"previousClose\":78538.22338525,\"change\":1947.386,\"change_p\":2.4795}");
+            
+            assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(eth, usd)));
+            var ethTicker = assetPairInfo.Ticker;
+
+            await connector.SetAsync(coinQuoteApi.GetUrl(ethTicker),
+                "{\"code\":\"ETH-USD.CC\",\"timestamp\":1777915320,\"gmtoffset\":0,\"open\":2322.4875488281,\"high\":2394.8642578125,\"low\":2310.7431640625,\"close\":2368.5600585938,\"volume\":26065965056,\"previousClose\":2321.6357023947,\"change\":46.9244,\"change_p\":2.0212}"); 
+            
+            var btcPrice = await bus.QueryAsync(new AssetQuoteQuery(btc, usd) { UpdateQuote = true, EnforceCache = true });
+            var price = await bus.QueryAsync(new AssetQuoteQuery(eth, btc) { UpdateQuote = true, EnforceCache = true });
+
+            var btcAmount = price.Quantity.Amount * 100;
+            var originalUsdCost = btcAmount * btcPrice.Quantity.Amount;            
+            
+            var operationId = Guid.NewGuid().ToString();
+            var assetQuoteOverrides = new List<AssetQuoteOverride> { new(operationId, AssetPair.Fordom(btc, usd), btcPrice.Quantity.Amount) };
+
+            await bus.Command(new CreateTransaction("Tx", new Quantity(originalUsdCost, usd), Transaction.TransactionType.Transfer, ""));
+            await bus.Command(new AddTransaction("Account", "Tx"));
+            
+            await bus.Command(new TransactAsset("Account", price.Quantity*100, new Quantity(originalUsdCost, usd)));
+            await bus.Command(new TransactAsset("Account",new Quantity(100, eth), price.Quantity*100) { Guid = operationId });
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { QueryNet = true, EnforceCache = true }); 
+            Assert.Equal(price.Quantity.Amount*100*btcPrice.Quantity.Amount, stats.Balance.Amount, 4);
+            Assert.Equal(0.0, stats.Positions[0].Amount, 4);
+            Assert.Equal(100.0, stats.Positions[1].Amount, 4);
+            Assert.Equal(0.0, stats.RealisedGains[0].Amount, 4);
+            Assert.Equal(0.0, stats.RealisedGains[1].Amount, 4);
+            Assert.Equal(originalUsdCost, stats.CostBasis[1].Amount, 4);
+            
+            stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { AssetQuoteOverrides = assetQuoteOverrides, QueryNet = true, EnforceCache = true });
+            Assert.Equal(0.0, stats.RealisedGains[0].Amount, 4);
+            
+            var otherQuoteOverrides = new List<AssetQuoteOverride> { new(operationId, AssetPair.Fordom(btc, usd), btcPrice.Quantity.Amount*1.01) };
+            stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { AssetQuoteOverrides = otherQuoteOverrides, QueryNet = true, EnforceCache = true });
+            Assert.Equal(1.01*originalUsdCost, stats.CostBasis[1].Amount, 4);
+            Assert.Equal(0.01*originalUsdCost, stats.RealisedGains[0].Amount, 4);
+        }    
         
         [Fact]
         public async Task CanPurchaseAsset()

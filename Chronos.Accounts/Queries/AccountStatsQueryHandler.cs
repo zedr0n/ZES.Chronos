@@ -253,7 +253,7 @@ namespace Chronos.Accounts.Queries
             var assetsWithCrossAccountMatching = new HashSet<Asset>();
             foreach (var t in allTimestamps.OrderBy(x => x))
             {
-                var costs = state.Costs.GetValueOrDefault(t, []);
+                var costs = state.GetCosts(t).ToList(); //state.Costs.GetValueOrDefault(t, []);
                 var transfersIn = assetTransferIn.GetValueOrDefault(t, []);
                 var transfersOut = assetTransfersOut.GetValueOrDefault(t, []);
                 
@@ -293,7 +293,8 @@ namespace Chronos.Accounts.Queries
                             QueryNet = query.QueryNet,
                             EnforceCache = query.EnforceCache,
                             IncludeTransfersOutAtQueryDate = false,
-                            NumberOfMatchingDays = query.NumberOfMatchingDays
+                            NumberOfMatchingDays = query.NumberOfMatchingDays,
+                            AssetQuoteOverrides = query.AssetQuoteOverrides
                         });
                         if(!pools.TryGetValue(q.Denominator, out var joinedPool))
                             throw new InvalidOperationException($"Asset {q.Denominator} not found in joined pool");
@@ -336,7 +337,7 @@ namespace Chronos.Accounts.Queries
                     pools.EndOfDay(t);
                     
                     // process all purchases first 
-                    foreach (var (q,c) in costs.Where(x => (x.assetQuantity.Denominator == asset && x.assetQuantity.Amount > 0) || (x.costQuantity.Denominator == asset && x.costQuantity.Amount < 0)) )
+                    foreach (var (q,c, sourceOperationId) in costs.Where(x => (x.assetQuantity.Denominator == asset && x.assetQuantity.Amount > 0) || (x.costQuantity.Denominator == asset && x.costQuantity.Amount < 0)) )
                     {
                         var quote = 1.0;
                         if(c.Denominator != denominator)
@@ -345,7 +346,9 @@ namespace Chronos.Accounts.Queries
                             {
                                 Timestamp = t,
                                 UpdateQuote = query.QueryNet,
-                                EnforceCache = query.EnforceCache
+                                EnforceCache = query.EnforceCache,
+                                SourceOperationId = sourceOperationId?.ToString(),
+                                AssetQuoteOverrides = query.AssetQuoteOverrides
                             });
                             if (assetQuote != null)
                                 quote = assetQuote.Quantity.Amount;
@@ -360,7 +363,7 @@ namespace Chronos.Accounts.Queries
                     } 
                     
                     // process all disposals
-                    foreach (var (q, c) in costs.Where(x =>
+                    foreach (var (q, c, sourceOperationId) in costs.Where(x =>
                                  (x.assetQuantity.Denominator == asset && x.assetQuantity.Amount < 0) ||
                                  (x.costQuantity.Denominator == asset && x.costQuantity.Amount > 0)))
                     {
@@ -371,7 +374,9 @@ namespace Chronos.Accounts.Queries
                             {
                                 Timestamp = t,
                                 UpdateQuote = query.QueryNet,
-                                EnforceCache = query.EnforceCache
+                                EnforceCache = query.EnforceCache,
+                                SourceOperationId = sourceOperationId?.ToString(),
+                                AssetQuoteOverrides = query.AssetQuoteOverrides
                             });
                             if (assetQuote != null)
                                 quote = assetQuote.Quantity.Amount;
@@ -409,7 +414,7 @@ namespace Chronos.Accounts.Queries
                 }
 
                 // handle fee disposals
-                foreach (var fee in feeDisposals.GetValueOrDefault(t, []))
+                foreach (var (fee, sourceOperationId) in state.GetFeeDisposals(t))
                 {
                     if (assetsHandledByFullTransfer.Contains(fee.Denominator))
                         continue;
@@ -420,7 +425,9 @@ namespace Chronos.Accounts.Queries
                     {
                         Timestamp = t,
                         UpdateQuote = query.QueryNet,
-                        EnforceCache = query.EnforceCache
+                        EnforceCache = query.EnforceCache,
+                        SourceOperationId = sourceOperationId?.ToString(),
+                        AssetQuoteOverrides = query.AssetQuoteOverrides
                     });
                     if (assetQuote != null)
                         pools.Dispose(t, fee.Amount, fee.Amount * assetQuote.Quantity.Amount);
