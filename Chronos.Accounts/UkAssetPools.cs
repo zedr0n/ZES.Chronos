@@ -250,7 +250,7 @@ public class UkAssetPools : IAssetPools
                 MatchType = DisposalMatchType.SameDay
             });
             _disposalGains.AddRange(
-                _sameDayDisposals.GetDisposalGainItems(matched, sameDayAcquisitionsAverageCost, DisposalMatchType.SameDay));
+                _sameDayDisposals.GetDisposalGainItems(matched, sameDayDisposalsAverageCost, sameDayAcquisitionsAverageCost, DisposalMatchType.SameDay));
             
             remainingAcquisitions -= matched;
             remainingDisposals += matched;
@@ -279,7 +279,7 @@ public class UkAssetPools : IAssetPools
                 MatchType = DisposalMatchType.BedAndBreakfast
             });
             _disposalGains.AddRange(
-                pool.GetDisposalGainItems(r, sameDayAcquisitionsAverageCost, DisposalMatchType.BedAndBreakfast));
+                pool.GetDisposalGainItems(r, pool.AverageCost, sameDayAcquisitionsAverageCost, DisposalMatchType.BedAndBreakfast));
             
             remainingAcquisitions -= r;
             pool.Cost += r*pool.AverageCost;
@@ -322,7 +322,7 @@ public class UkAssetPools : IAssetPools
                 Proceeds = -lastDisposalPool.Quantity*lastDisposalPool.AverageCost,
                 MatchType = DisposalMatchType.Section104,
             });
-            _disposalGains.AddRange(lastDisposalPool.GetDisposalGainItems(-lastDisposalPool.Quantity, section104AverageCost, DisposalMatchType.Section104));
+            _disposalGains.AddRange(lastDisposalPool.GetDisposalGainItems(-lastDisposalPool.Quantity,  lastDisposalPool.AverageCost, section104AverageCost, DisposalMatchType.Section104));
             
             _section104Pool.Date = lastDisposalPool.Date;
             _section104Pool.Cost += lastDisposalPool.Quantity*section104AverageCost;
@@ -376,7 +376,7 @@ public class UkAssetPools : IAssetPools
                 MatchType = DisposalMatchType.Section104,
             });
             
-            _disposalGains.AddRange(_sameDayDisposals.GetDisposalGainItems(quantity, section104AverageCost, DisposalMatchType.Section104));
+            _disposalGains.AddRange(_sameDayDisposals.GetDisposalGainItems(quantity, _sameDayDisposals.AverageCost, section104AverageCost, DisposalMatchType.Section104));
 
             _section104Pool.Cost -= costBasis; 
             _section104Pool.Quantity -= quantity;
@@ -400,7 +400,7 @@ public class UkAssetPools : IAssetPools
                 Proceeds = proceeds, 
                 MatchType = DisposalMatchType.Section104,
             });
-            _disposalGains.AddRange(pool.GetDisposalGainItems(quantity, section104AverageCost, DisposalMatchType.Section104));
+            _disposalGains.AddRange(pool.GetDisposalGainItems(quantity, pool.AverageCost, section104AverageCost, DisposalMatchType.Section104));
             
             _section104Pool.Cost -= costBasis;// pool.Quantity*section104AverageCost;
             _section104Pool.Quantity -= quantity; //pool.Quantity;
@@ -493,7 +493,7 @@ public class UkAssetPools : IAssetPools
         public DateTime Date { get; set; } = DateTime.MinValue;
         public int TaxYear => GetTaxYear(Date);
 
-        public IEnumerable<DisposalGainItem> GetDisposalGainItems(double quantity, double costBasisPerUnit, DisposalMatchType matchType)
+        public IEnumerable<DisposalGainItem> GetDisposalGainItems(double quantity, double proceedsPerUnit, double costBasisPerUnit, DisposalMatchType matchType)
         {
             var disposalGains = new List<DisposalGainItem>();
             if (quantity == 0)
@@ -505,7 +505,7 @@ public class UkAssetPools : IAssetPools
                     break;
 
                 var q = Math.Min(quantity, lot.Quantity);
-                var proceeds = q * lot.AverageProceeds;
+                var proceeds = q * proceedsPerUnit; //lot.AverageProceeds;
                 
                 var item = new DisposalGainItem()
                 {
