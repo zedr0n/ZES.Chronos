@@ -1,4 +1,5 @@
-﻿using Chronos.Core;
+﻿using System.Collections.Generic;
+using Chronos.Core;
 using ZES.Infrastructure.Domain;
 
 namespace Chronos.Accounts.Queries;
@@ -18,4 +19,13 @@ public class RealisedGainsForTaxYearQuery(string account, int taxYear, Asset ass
     public Asset Asset => asset;
     public Asset Denominator => denominator;
     public bool QueryNet { get; set; }
+    
+    /// <summary>
+    /// Gets or sets operation-scoped asset quote overrides used while valuing account history.
+    /// </summary>
+    /// <remarks>
+    /// Overrides are passed through to asset quote resolution so transaction-specific prices can participate in normal
+    /// direct, inverse, or triangulated quote paths.
+    /// </remarks>
+    public List<AssetQuoteOverride> AssetQuoteOverrides { get; set; }    
 }

@@ -33,6 +33,13 @@ public class CombinedAccountStatsQuery(List<string> accounts, Asset denominator)
     public bool QueryNet { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the cache should be enforced during the execution of the update quote command.
+    /// When set to true, cached data will be prioritised and utilized if available; otherwise, the update
+    /// operation may fetch fresh data regardless of any existing cached entries.
+    /// </summary>
+    public bool EnforceCache { get; set; }
+    
+    /// <summary>
     /// Gets or sets the number of days used for matching disposals with future acquisitions in gains calculations.
     /// </summary>
     public int NumberOfMatchingDays { get; set; } = 30;
@@ -45,4 +52,9 @@ public class CombinedAccountStatsQuery(List<string> accounts, Asset denominator)
     /// direct, inverse, or triangulated quote paths.
     /// </remarks>
     public List<AssetQuoteOverride> AssetQuoteOverrides { get; set; }
+    
+    /// <summary>
+    /// Gets or sets a value indicating whether the disposal gains should be aggregated.
+    /// </summary>
+    public bool AggregateDisposalGains { get; set; } = true;
 }

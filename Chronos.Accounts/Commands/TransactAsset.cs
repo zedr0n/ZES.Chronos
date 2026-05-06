@@ -1,4 +1,5 @@
-﻿using Chronos.Core;
+﻿using System.Text.Json.Serialization;
+using Chronos.Core;
 using ZES.Infrastructure.Domain;
 
 namespace Chronos.Accounts.Commands;
@@ -17,6 +18,7 @@ namespace Chronos.Accounts.Commands;
 /// to request quote-based market valuation, zero for a zero-cost acquisition or zero-proceeds disposal,
 /// or an explicit amount when the transaction consideration is known.
 /// </param>
+[method: JsonConstructor]
 public class TransactAsset(string account, Quantity asset, Quantity cost) : Command
 {
     /// <summary>

@@ -58,6 +58,42 @@ function JSDateToExcelDate(date : Date) : number {
   return converted
 }
 
+function CleanNumber(value : number, decimals : number = 10) : number {
+  if(value === null || value === undefined)
+    return 0
+
+  const threshold = Math.pow(10, -decimals)
+  if(Math.abs(value) < threshold)
+    return 0
+
+  const factor = Math.pow(10, decimals)
+  return Math.round(value * factor) / factor
+}
+
+function CleanMoney(value : number) : number {
+  return CleanNumber(value, 8)
+}
+
+function SerialisedTimeToExcelDate(value : string) : number {
+  if(value === null || value === undefined || value === "")
+    return null
+
+  const ticks = value.toString().split(';')[0]
+  if(/^-?\d+$/.test(ticks)) {
+    const milliseconds = Number(ticks) / 10000
+    return JSDateToExcelDate(new Date(milliseconds))
+  }
+
+  return JSDateToExcelDate(new Date(value))
+}
+
+function DateTimeToExcelDate(value : string) : number {
+  if(value === null || value === undefined || value === "")
+    return null
+
+  return JSDateToExcelDate(new Date(value))
+}
+
 /**
  * @customfunction
  * @param account Account name
@@ -619,6 +655,24 @@ export async function blendedIrr(accounts: string[][], asOfDate : number, startD
   return result
 }
 
+function FormatAssetQuoteOverrides(quoteOverrides?: string[][]): string {
+  if(quoteOverrides === undefined || quoteOverrides == null)
+    return null
+
+  let assetQuoteOverrides = quoteOverrides.filter(a =>
+          a !== undefined &&
+          a !== null &&
+          a[0] !== undefined && a[0] !== null && a[0] !== "" &&
+          a[1] !== undefined && a[1] !== null && a[1] !== "" &&
+          a[2] !== undefined && a[2] !== null && a[2] !== ""
+      ).map(a => `{
+      sourceOperationId: "${a[0]}",
+      fordom: "${a[1]}",
+      price: ${a[2]}
+    }`).join(', ')
+  return `[${assetQuoteOverrides}]`
+}
+
 /**
  * @customfunction
  * @param {string[][]} accounts account name
@@ -630,21 +684,7 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
   if(assetId == undefined || assetId == "")
     assetId = "GBP"
 
-  let assetQuoteOverrides = null
-  if(quoteOverrides !== undefined && quoteOverrides != null) {
-    assetQuoteOverrides = quoteOverrides.filter(a =>
-            a !== undefined &&
-            a !== null &&
-            a[0] !== undefined && a[0] !== null && a[0] !== "" &&
-            a[1] !== undefined && a[1] !== null && a[1] !== "" &&
-            a[2] !== undefined && a[2] !== null && a[2] !== ""
-        ).map(a => `{
-      sourceOperationId: "${a[0]}",
-      fordom: "${a[1]}",
-      price: ${a[2]}
-    }`).join(', ')
-    assetQuoteOverrides = `[${assetQuoteOverrides}]`
-  }
+  let assetQuoteOverrides = FormatAssetQuoteOverrides(quoteOverrides)
   
   let query = ''
   if(accounts.length == 1)
@@ -873,6 +913,128 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
               }
             }]
       },
+    }
+  }
+  return myEntity
+}
+
+/**
+ * @customfunction
+ * @param {string[][]} accounts account names
+ * @param {number} asOfDate as of date
+ * @param {string} assetId disposed asset id
+ * @param {string} denominatorAssetId denominator asset
+ * @param quoteOverrides
+ */
+export async function disposalGainItems(accounts : string[][], asOfDate : number, assetId : string, denominatorAssetId? : string, quoteOverrides?: string[][]) : Promise<any> {
+  if(denominatorAssetId == undefined || denominatorAssetId == "")
+    denominatorAssetId = "GBP"
+
+  let assetQuoteOverrides = FormatAssetQuoteOverrides(quoteOverrides)
+  let query = `{ disposalGains: accountDisposalGainItems(
+      accounts:[${accounts.map(a => `"${a}"`).join(', ')}],
+      assetId : "${assetId}",
+      denominatorAssetId : "${denominatorAssetId}",
+      date : "${ExcelDateToJSDate(asOfDate).toISOString()}",
+      assetQuoteOverrides : ${assetQuoteOverrides})
+      {
+        items {
+          date
+          quantity
+          proceeds
+          costBasis
+          gain
+          taxYear
+          matchType
+        }
+      }
+    }`;
+
+  window.console.log(query)
+
+  let result = await SingleQuery(query, data => data.disposalGains.items)
+  if(typeof(result)  === "string")
+    return result
+
+  const myEntity : Excel.EntityCellValue = {
+    type : Excel.CellValueType.entity,
+    text : `${accounts.map(a => `${a}`).join(', ')} ${assetId} disposals`,
+    properties : {
+      "Items" : {
+        type : Excel.CellValueType.array,
+        elements: (result && result.length > 0)
+          ? result
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                .map(item => ({
+              type: Excel.CellValueType.entity,
+              text: `${item.date ?? ""}`,
+              properties: {
+                "Disposal Date": {
+                  type: Excel.CellValueType.double,
+                  basicValue: DateTimeToExcelDate(item.date),
+                  numberFormat: "yyyy-mm-dd"
+                },
+                "Quantity": {
+                  type: Excel.CellValueType.double,
+                  basicValue: CleanNumber(item.quantity, 12)
+                },
+                "Proceeds": {
+                  type: Excel.CellValueType.double,
+                  basicValue: CleanMoney(item.proceeds)
+                },
+                "Cost Basis": {
+                  type: Excel.CellValueType.double,
+                  basicValue: CleanMoney(item.costBasis)
+                },
+                "Gain": {
+                  type: Excel.CellValueType.double,
+                  basicValue: CleanMoney(item.gain)
+                },
+                "Tax Year": {
+                  type: Excel.CellValueType.double,
+                  basicValue: item.taxYear ?? 0
+                },
+                "Match Type": {
+                  type: Excel.CellValueType.string,
+                  basicValue: item.matchType ?? ""
+                }
+              }
+            }))
+          : [{
+              type: Excel.CellValueType.entity,
+              text: "No disposal gains",
+              properties: {
+                "Disposal Date": {
+                  type: Excel.CellValueType.string,
+                  basicValue: ""
+                },
+                "Quantity": {
+                  type: Excel.CellValueType.double,
+                  basicValue: 0
+                },
+                "Proceeds": {
+                  type: Excel.CellValueType.double,
+                  basicValue: 0
+                },
+                "Cost Basis": {
+                  type: Excel.CellValueType.double,
+                  basicValue: 0
+                },
+                "Gain": {
+                  type: Excel.CellValueType.double,
+                  basicValue: 0
+                },
+                "Tax Year": {
+                  type: Excel.CellValueType.double,
+                  basicValue: 0
+                },
+                "Match Type": {
+                  type: Excel.CellValueType.string,
+                  basicValue: ""
+                }
+              }
+            }]
+      }
     }
   }
   return myEntity

@@ -35,6 +35,31 @@ namespace Chronos.Tests
         {
         }
 
+        private static void AssertDisposalGainItems(
+            Dictionary<Asset, List<DisposalGainItem>> disposalGainItems,
+            Asset asset,
+            double expectedGain,
+            double expectedProceeds,
+            double expectedCostBasis,
+            double tolerance)
+        {
+            AssertDisposalGainItems(disposalGainItems.GetValueOrDefault(asset, []), expectedGain, expectedProceeds, expectedCostBasis, tolerance);
+        }
+
+        private static void AssertDisposalGainItems(
+            IEnumerable<DisposalGainItem> items,
+            double expectedGain,
+            double expectedProceeds,
+            double expectedCostBasis,
+            double tolerance)
+        {
+            items = items.ToList();
+            Assert.Equal(expectedGain, items.Sum(x => x.Gain), tolerance);
+            Assert.Equal(expectedProceeds, items.Sum(x => x.Proceeds), tolerance);
+            Assert.Equal(expectedCostBasis, items.Sum(x => x.CostBasis), tolerance);
+            Assert.Equal(expectedGain, items.Sum(x => x.Proceeds) - items.Sum(x => x.CostBasis), tolerance);
+        }
+
         [Fact]
         public async Task CanCreateAccount()
         {
@@ -268,10 +293,36 @@ namespace Chronos.Tests
             stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { AssetQuoteOverrides = assetQuoteOverrides, QueryNet = true, EnforceCache = true });
             Assert.Equal(0.0, stats.RealisedGains[0].Amount, 4);
             
+            var disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["Account"], btc, usd)
+            {
+                AssetQuoteOverrides = assetQuoteOverrides,
+                QueryNet = true,
+                EnforceCache = true
+            });
+            AssertDisposalGainItems(
+                disposalGains.Items,
+                stats.RealisedGains[0].Amount,
+                originalUsdCost,
+                originalUsdCost,
+                1e-4);
+            
             var otherQuoteOverrides = new List<AssetQuoteOverride> { new(operationId, AssetPair.Fordom(btc, usd), btcPrice.Quantity.Amount*1.01) };
             stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { AssetQuoteOverrides = otherQuoteOverrides, QueryNet = true, EnforceCache = true });
             Assert.Equal(1.01*originalUsdCost, stats.CostBasis[1].Amount, 4);
             Assert.Equal(0.01*originalUsdCost, stats.RealisedGains[0].Amount, 4);
+            
+            disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["Account"], btc, usd)
+            {
+                AssetQuoteOverrides = otherQuoteOverrides,
+                QueryNet = true,
+                EnforceCache = true
+            });
+            AssertDisposalGainItems(
+                disposalGains.Items,
+                stats.RealisedGains[0].Amount,
+                1.01 * originalUsdCost,
+                originalUsdCost,
+                1e-4);
         }    
         
         [Fact]
@@ -357,6 +408,13 @@ namespace Chronos.Tests
             Assert.Equal(0.00114549*(4065-241.58/0.06)/1.2867, stats.RealisedGains[0].Amount, 6);
             Assert.Equal(0.06-0.00114549, stats.Positions[0].Amount, 6);
             Assert.Equal((241.58 - 0.00114549 * (241.58 / 0.06))/1.2867, stats.CostBasis[0].Amount, 6);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                btc,
+                stats.RealisedGains[0].Amount,
+                0.00114549 * 4065 / 1.2867,
+                0.00114549 * (241.58 / 0.06) / 1.2867,
+                1e-6);
         }
 
         [Fact]
@@ -408,6 +466,16 @@ namespace Chronos.Tests
             Assert.Equal(0.06-0.00114549, stats.Positions[0].Amount, 6);
             Assert.Equal((241.58 - 0.00114549 * (241.58 / 0.06))/1.2867, stats.CostBasis[0].Amount, 6);
             
+            var disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["OtherAccount"], btc, gbp) { Timestamp = date, QueryNet = true });
+            Assert.Single(disposalGains.Items);
+            Assert.Equal(0.00114549, disposalGains.Items[0].Quantity, 6);
+            AssertDisposalGainItems(
+                disposalGains.Items,
+                stats.RealisedGains[0].Amount,
+                0.00114549 * 4065 / 1.2867,
+                0.00114549 * (241.58 / 0.06) / 1.2867,
+                1e-6);
+            
             stats = await bus.QueryAsync(new AccountStatsQuery("Account", gbp) { QueryNet = true, Timestamp = date });
             Assert.Equal(-241.58/1.2867, stats.CashBalance.Amount, 6);
             Assert.Equal(0.0, stats.Positions[0].Amount, 6);
@@ -417,6 +485,16 @@ namespace Chronos.Tests
             Assert.Equal(0.06-0.00114549, combinedStats.Positions[0].Amount, 6);
             Assert.Equal(0.00114549*(4065-241.58/0.06)/1.2867, combinedStats.RealisedGains[0].Amount, 6);
             Assert.Equal((241.58 - 0.00114549 * (241.58 / 0.06))/1.2867, combinedStats.CostBasis[0].Amount, 6);
+            
+            disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["Account","OtherAccount"], btc, gbp) { Timestamp = date, QueryNet = true });
+            Assert.Single(disposalGains.Items);
+            Assert.Equal(0.00114549, disposalGains.Items[0].Quantity, 6);
+            AssertDisposalGainItems(
+                disposalGains.Items,
+                combinedStats.RealisedGains[0].Amount,
+                0.00114549 * 4065 / 1.2867,
+                0.00114549 * (241.58 / 0.06) / 1.2867,
+                1e-6);
         }
 
         [Fact]
@@ -448,6 +526,13 @@ namespace Chronos.Tests
             
             var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy));
             Assert.Equal((-7.54+7.19)*50, stats.RealisedGains[0].Amount, 1e-6);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                asset,
+                stats.RealisedGains[0].Amount,
+                7.19 * 50,
+                7.54 * 50,
+                1e-6);
         }
 
         [Fact]
@@ -481,6 +566,13 @@ namespace Chronos.Tests
             
             var stats = await bus.QueryAsync(new CombinedAccountStatsQuery(["Account1","Account2"], ccy));
             Assert.Equal((-7.54+7.19)*50, stats.RealisedGains[0].Amount, 1e-6);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                asset,
+                stats.RealisedGains[0].Amount,
+                7.19 * 50,
+                7.54 * 50,
+                1e-6);
         }        
         
         [Fact]
@@ -517,9 +609,24 @@ namespace Chronos.Tests
             Assert.Equal(7.54*100 + 7.4*50, stats.CostBasis[0].Amount);
             Assert.Equal((7.19-7.4)*50, stats.RealisedGains[0].Amount, 1e-6); 
             
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                asset,
+                stats.RealisedGains[0].Amount,
+                7.19 * 50,
+                7.4 * 50,
+                1e-6);
+            
             var statsNoMatching = await bus.QueryAsync(new AccountStatsQuery("Account", ccy) { NumberOfMatchingDays = 0 });
             Assert.Equal(7.54*100 - 50*7.54 + 7.4*100, statsNoMatching.CostBasis[0].Amount);
             Assert.Equal((-7.54+7.19)*50, statsNoMatching.RealisedGains[0].Amount, 1e-6);
+            AssertDisposalGainItems(
+                statsNoMatching.DisposalGainItems,
+                asset,
+                statsNoMatching.RealisedGains[0].Amount,
+                7.19 * 50,
+                7.54 * 50,
+                1e-6);
         }
 
         [Fact]
@@ -558,6 +665,14 @@ namespace Chronos.Tests
             Assert.Equal(7.54*100 +7.4*50 - 50*(100*7.54+50*7.4)/150, stats.CostBasis[0].Amount);
             Assert.Equal((7.19-7.4)*50 + (7.4-(100*7.54+50*7.4)/150)*50, stats.RealisedGains[0].Amount, 1e-6);
 
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                asset,
+                stats.RealisedGains[0].Amount,
+                7.19 * 50 + 7.4 * 50,
+                7.4 * 50 + 50 * (100 * 7.54 + 50 * 7.4) / 150,
+                1e-6);
+            
             var realisedGains2020 = await bus.QueryAsync(new RealisedGainsForTaxYearQuery("Account", 2020, asset, ccy));
             Assert.Equal(-10.5, realisedGains2020.RealisedGain.Amount, 1e-6);
             var realisedGains2021 = await bus.QueryAsync(new RealisedGainsForTaxYearQuery("Account", 2021, asset, ccy));
@@ -598,6 +713,13 @@ namespace Chronos.Tests
             var stats = await bus.QueryAsync(new CombinedAccountStatsQuery(["Account1", "Account2"], ccy) );
             Assert.Equal(7.54*100 + 7.4*50, stats.CostBasis[0].Amount);
             Assert.Equal((7.19-7.4)*50, stats.RealisedGains[0].Amount, 1e-6); 
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                asset,
+                stats.RealisedGains[0].Amount,
+                7.19 * 50,
+                7.4 * 50,
+                1e-6);
         }        
 
         [Fact]
@@ -663,6 +785,13 @@ namespace Chronos.Tests
             Assert.Equal(0, stats.RealisedGains[0].Amount, 1e-6);
             Assert.Equal(0.025*4325.12988281251, stats.CostBasis[1].Amount, 1e-6);
             Assert.Equal(0, stats.RealisedGains[1].Amount);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                btc,
+                stats.RealisedGains[0].Amount,
+                0.025 * 4325.12988281251,
+                0.025 * 4325.12988281251,
+                1e-6);
         }
 
         [Fact]
@@ -711,6 +840,13 @@ namespace Chronos.Tests
             var stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
             Assert.Equal(price.Quantity.Amount*100 -  price.Quantity.Amount*50, stats.CostBasis[0].Amount, 1e-4);
             Assert.Equal(price2.Quantity.Amount*50 - price.Quantity.Amount*50, stats.RealisedGains[0].Amount, 1e-4);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                iukd,
+                stats.RealisedGains[0].Amount,
+                price2.Quantity.Amount * 60,
+                price.Quantity.Amount * 50 + price2.Quantity.Amount * 10,
+                1e-4);
 
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(50, iukd), price2.Quantity*50), date2));
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(-25, iukd), price2.Quantity*(-25)), date2));
@@ -722,6 +858,13 @@ namespace Chronos.Tests
             stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
             Assert.Equal(price.Quantity.Amount*25, stats.CostBasis[0].Amount, 1e-4);
             Assert.Equal((price2.Quantity.Amount - price.Quantity.Amount)*25, stats.RealisedGains[0].Amount, 1e-4);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                iukd,
+                stats.RealisedGains[0].Amount,
+                price2.Quantity.Amount * 30,
+                price.Quantity.Amount * 25 + price2.Quantity.Amount * 5,
+                1e-4);
             
             stats = await bus.QueryAsync(new AccountStatsQuery("New", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
             // the transferred disposals (-25) will match with current acquisitions (50 - 25 = 25) so we'll be left just with section 104 cost basis
@@ -834,6 +977,13 @@ namespace Chronos.Tests
             var stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
             Assert.Equal(price.Quantity.Amount*100 -  price.Quantity.Amount*50, stats.CostBasis[0].Amount, 1e-4);
             Assert.Equal(price2.Quantity.Amount*50 - price.Quantity.Amount*50, stats.RealisedGains[0].Amount, 1e-4);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                iukd,
+                stats.RealisedGains[0].Amount,
+                price2.Quantity.Amount * 60,
+                price.Quantity.Amount * 50 + price2.Quantity.Amount * 10,
+                1e-4);
 
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(50, iukd), price2.Quantity*50), date2));
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(-25, iukd), price2.Quantity*(-25)), date2));
@@ -845,6 +995,7 @@ namespace Chronos.Tests
             stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date3 });
             Assert.Equal(0, stats.CostBasis[0].Amount, 1e-4);
             Assert.Equal(0, stats.RealisedGains[0].Amount, 1e-4);
+            AssertDisposalGainItems(stats.DisposalGainItems, iukd, 0, 0, 0, 1e-4);
             
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(100, iukd), price3.Quantity*100), date3));
             
@@ -852,6 +1003,13 @@ namespace Chronos.Tests
            
             Assert.Equal(100*price.Quantity.Amount + 75*price3.Quantity.Amount, stats.CostBasis[0].Amount, 1e-4);
             Assert.Equal(25*(price2.Quantity.Amount - price3.Quantity.Amount), stats.RealisedGains[0].Amount, 1e-4);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                iukd,
+                stats.RealisedGains[0].Amount,
+                price2.Quantity.Amount * 85,
+                price2.Quantity.Amount * 60 + price3.Quantity.Amount * 25,
+                1e-4);
         }
         
         [Fact]
@@ -904,6 +1062,13 @@ namespace Chronos.Tests
             var stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date2 });
             Assert.Equal(price.Quantity.Amount*100 -  price.Quantity.Amount*50, stats.CostBasis[0].Amount, 1e-4);
             Assert.Equal(price2.Quantity.Amount*50 - price.Quantity.Amount*50, stats.RealisedGains[0].Amount, 1e-4);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                iukd,
+                stats.RealisedGains[0].Amount,
+                price2.Quantity.Amount * 60,
+                price.Quantity.Amount * 50 + price2.Quantity.Amount * 10,
+                1e-4);
 
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(50, iukd), price2.Quantity*50), date2));
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(-25, iukd), price2.Quantity*(-25)), date2));
@@ -915,6 +1080,7 @@ namespace Chronos.Tests
             stats = await bus.QueryAsync(new AccountStatsQuery("Old", new Currency("GBP")) { QueryNet = true, Timestamp = date3 });
             Assert.Equal(0, stats.CostBasis[0].Amount, 1e-4);
             Assert.Equal(0, stats.RealisedGains[0].Amount, 1e-4);
+            AssertDisposalGainItems(stats.DisposalGainItems, iukd, 0, 0, 0, 1e-4);
             
             await bus.Command(new RetroactiveCommand<TransactAsset>(new TransactAsset("New", new Quantity(100, iukd), price3.Quantity*100), date3));
             
@@ -922,6 +1088,13 @@ namespace Chronos.Tests
            
             Assert.Equal(75 * price.Quantity.Amount + 100 * price3.Quantity.Amount, stats.CostBasis[0].Amount, 1e-4);
             Assert.Equal(25 * (price2.Quantity.Amount - price.Quantity.Amount), stats.RealisedGains[0].Amount, 1e-4);
+            AssertDisposalGainItems(
+                stats.DisposalGainItems,
+                iukd,
+                stats.RealisedGains[0].Amount,
+                price2.Quantity.Amount * 85,
+                price2.Quantity.Amount * 60 + price.Quantity.Amount * 25,
+                1e-4);
         }
 
         [Fact]

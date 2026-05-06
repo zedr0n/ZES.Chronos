@@ -14,6 +14,8 @@ public interface IAssetPools
     /// </summary>
     /// <returns>A dictionary where the key represents the tax year and the value represents the realised gain for that year.</returns>
     public Dictionary<int, double> GetRealisedGainsPerTaxYear();
+
+    public IReadOnlyList<DisposalGainItem> GetDisposalGains(bool aggregated = true);
     
     void Acquire(Time time, double quantity, double cost);
     void Dispose(Time time, double quantity, double cost);

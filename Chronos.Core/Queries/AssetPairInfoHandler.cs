@@ -5,6 +5,8 @@ using NodaTime;
 using ZES.Interfaces;
 using ZES.Interfaces.Domain;
 
+#pragma warning disable SA1600
+
 namespace Chronos.Core.Queries;
 
 /// <summary>
@@ -20,7 +22,7 @@ public class AssetPairInfoHandler : IProjectionHandler<AssetPairInfo>
         Handle((dynamic)e, state);
 
     public AssetPairInfo Handle(AssetPairRegistered e, AssetPairInfo state) =>
-        new(e.ForAsset, e.DomAsset, [], state.Ticker, e.HolidayCalendar, e.SupportsIntraday); 
+        new(e.ForAsset, e.DomAsset, new Instant[] { }, state.Ticker, e.HolidayCalendar, e.SupportsIntraday); 
 
     public AssetPairInfo Handle(QuoteTickerAdded e, AssetPairInfo state) =>
         new(state.ForAsset, state.DomAsset, state.QuoteDates, e.Ticker, state.HolidayCalendar, state.SupportsIntraday);

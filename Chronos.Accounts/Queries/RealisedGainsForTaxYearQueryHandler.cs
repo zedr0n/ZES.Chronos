@@ -35,7 +35,8 @@ public class RealisedGainsForTaxYearQueryHandler(IProjectionManager manager, ITi
         {
             Timeline = query.Timeline,
             Timestamp = timestamp,
-            QueryNet = query.QueryNet
+            QueryNet = query.QueryNet,
+            AssetQuoteOverrides = query.AssetQuoteOverrides
         });
 
         var realisedGainsPerTaxYear = stats.RealisedGainsPerTaxYear.GetValueOrDefault(query.Asset, new Dictionary<int, Quantity>());

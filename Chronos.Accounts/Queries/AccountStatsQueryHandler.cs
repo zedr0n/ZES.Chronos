@@ -101,7 +101,7 @@ namespace Chronos.Accounts.Queries
             var positions = new Dictionary<string, PositionData>();
             var totalDividend = 0.0;
             
-            var (costBasis, realisedGains, pools, realisedGainsPerTaxYear) = await ComputeGains(state, query);
+            var (costBasis, realisedGains, pools, realisedGainsPerTaxYear, disposalGainItems) = await ComputeGains(state, query);
             var assets = new HashSet<Asset>();
 
             foreach (var (asset, amount) in state.Assets.Zip(state.Quantities, (asset, value) => (asset, value)))
@@ -224,6 +224,7 @@ namespace Chronos.Accounts.Queries
                 CashBalance = new Quantity(total - positions.Values.Sum(v => v.Value.Amount), denominator),
                 RealisedGains = positions.Values.Select(p => p.RealisedGain).ToList(),
                 RealisedGainsPerTaxYear = realisedGainsPerTaxYear,
+                DisposalGainItems = disposalGainItems,
                 TotalDividend = new Quantity(totalDividend, denominator),
                 ExternalCashflows = extCashflows.Take(extCashflows.Count - 1).Select( x => (x.time, new Quantity(x.amount, denominator))).ToList(),
                 Irr = irr,
@@ -232,7 +233,7 @@ namespace Chronos.Accounts.Queries
             };
         }
         
-        private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains, Dictionary<Asset, IAssetPools>, Dictionary<Asset, Dictionary<int, Quantity>> realisedGainsPerTaxYear)>
+        private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains, Dictionary<Asset, IAssetPools>, Dictionary<Asset, Dictionary<int, Quantity>> realisedGainsPerTaxYear, Dictionary<Asset, List<DisposalGainItem>>)>
             ComputeGains(AccountStatsState state, AccountStatsQuery query)
         {
             var denominator = query.Denominator;
@@ -241,6 +242,7 @@ namespace Chronos.Accounts.Queries
             var costBasisDictionary = new Dictionary<Asset, Quantity>();
             var realisedGainsDictionary = new Dictionary<Asset, Quantity>();
             var realisedGainsPerTaxYearDictionary = new Dictionary<Asset, Dictionary<int, Quantity>>();
+            var disposalGainItemsDictionary = new Dictionary<Asset, List<DisposalGainItem>>();
 
             var assetTransferIn = state.GetAssetTransfersIn();
             var assetTransfersOut = state.GetAssetTransfersOut();
@@ -268,7 +270,9 @@ namespace Chronos.Accounts.Queries
                         QueryNet = query.QueryNet,
                         Timestamp = t,
                         IncludeTransfersOutAtQueryDate = false,
-                        NumberOfMatchingDays = query.NumberOfMatchingDays
+                        NumberOfMatchingDays = query.NumberOfMatchingDays,
+                        AssetQuoteOverrides = query.AssetQuoteOverrides,
+                        AggregateDisposalGains = query.AggregateDisposalGains,
                     });
                     if (fromAccountStats == null)
                         throw new InvalidOperationException($"Account {fromAccount} not found");
@@ -286,7 +290,7 @@ namespace Chronos.Accounts.Queries
                         if (combinedState == null)
                             throw new InvalidOperationException($"Account {fromAccount} not found");
                         
-                        var (costBasis, realisedGains, pools, realisedGainsPerTaxYear) = await ComputeGains(combinedState, new AccountStatsQuery(query.Name, denominator)
+                        var (costBasis, realisedGains, pools, realisedGainsPerTaxYear, disposalGainItems) = await ComputeGains(combinedState, new AccountStatsQuery(query.Name, denominator)
                         {
                             Timeline = query.Timeline,
                             Timestamp = t,
@@ -294,7 +298,8 @@ namespace Chronos.Accounts.Queries
                             EnforceCache = query.EnforceCache,
                             IncludeTransfersOutAtQueryDate = false,
                             NumberOfMatchingDays = query.NumberOfMatchingDays,
-                            AssetQuoteOverrides = query.AssetQuoteOverrides
+                            AssetQuoteOverrides = query.AssetQuoteOverrides,
+                            AggregateDisposalGains = query.AggregateDisposalGains,
                         });
                         if(!pools.TryGetValue(q.Denominator, out var joinedPool))
                             throw new InvalidOperationException($"Asset {q.Denominator} not found in joined pool");
@@ -303,6 +308,7 @@ namespace Chronos.Accounts.Queries
                         costBasisDictionary[q.Denominator] = costBasis[q.Denominator];
                         realisedGainsDictionary[q.Denominator] = realisedGains[q.Denominator];
                         realisedGainsPerTaxYearDictionary[q.Denominator] = realisedGainsPerTaxYear[q.Denominator];
+                        disposalGainItemsDictionary[q.Denominator] = disposalGainItems[q.Denominator];
                         assetsHandledByFullTransfer.Add(q.Denominator);
                     }
                     else if(!assetsWithCrossAccountMatching.Contains(q.Denominator))
@@ -442,6 +448,7 @@ namespace Chronos.Accounts.Queries
                     costBasisDictionary[asset] = null;
                     realisedGainsDictionary[asset] = null;
                     realisedGainsPerTaxYearDictionary[asset] = null;
+                    disposalGainItemsDictionary[asset] = null;
                 }
                 else
                 {
@@ -449,10 +456,11 @@ namespace Chronos.Accounts.Queries
                     costBasisDictionary[asset] = new Quantity(pools.CostBasis, denominator);
                     realisedGainsDictionary[asset] = new Quantity(pools.RealisedGain, denominator);
                     realisedGainsPerTaxYearDictionary[asset] = pools.GetRealisedGainsPerTaxYear().ToDictionary(x => x.Key, x => new Quantity(x.Value, denominator));
+                    disposalGainItemsDictionary[asset] = pools.GetDisposalGains(query.AggregateDisposalGains).Select(x => new DisposalGainItem(x)).ToList();
                 }
             }
             
-            return (costBasisDictionary, realisedGainsDictionary, poolsDictionary, realisedGainsPerTaxYearDictionary);
+            return (costBasisDictionary, realisedGainsDictionary, poolsDictionary, realisedGainsPerTaxYearDictionary, disposalGainItemsDictionary);
         }
 
         private bool HasCrossAccountMatchingPair(AccountStatsState state, AccountStatsState other, Asset asset, Time before, int numberOfMatchingDays)

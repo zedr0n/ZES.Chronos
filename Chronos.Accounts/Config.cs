@@ -48,6 +48,7 @@ namespace Chronos.Accounts
         public class Query : GraphQlQuery
         {
             private readonly IBus _bus;
+            private readonly ConcurrentDictionary<string, Asset> _assets = new();
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Query"/> class.
@@ -66,6 +67,32 @@ namespace Chronos.Accounts
             /// <returns>Account stats</returns>
             public Stats AccountStats() => Resolve(new StatsQuery());
 
+            public DisposalGainItems AccountDisposalGainItems(string[] accounts, string assetId, string denominatorAssetId, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null)
+            {
+                var time = date?.ToTime();
+               
+                var asset = _assets.GetOrAdd(assetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() {Timeline = BranchManager.Master}); 
+                    var asset = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
+                
+                var denominator= _assets.GetOrAdd(denominatorAssetId, x =>
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() {Timeline = BranchManager.Master}); 
+                    var denominator = assetsList.Assets.SingleOrDefault(a => a.AssetId == x);
+                    return denominator ?? throw new InvalidOperationException($"Asset {x} not registered");
+                });
+                
+                return Resolve(new DisposalGainItemsQuery(accounts.ToList(), asset, denominator)
+                {
+                    Timestamp = time,
+                    QueryNet = true,
+                    AssetQuoteOverrides = assetQuoteOverrides
+                });
+            }
+            
             public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool? immediate = null)
             {
                 var time = date?.ToTime();

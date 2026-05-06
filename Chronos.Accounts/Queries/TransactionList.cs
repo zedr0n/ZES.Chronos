@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Chronos.Core;
 using Chronos.Core.Queries;
 
 namespace Chronos.Accounts.Queries;
