@@ -14,6 +14,7 @@ public enum DisposalMatchType
 public class DisposalGainItem
 {
     public DateTime Date { get; init; }
+    public DateTime? AcquisitionDate { get; init; }
     
     public double Gain => Proceeds - CostBasis;
     public double Quantity { get; init; }
@@ -27,6 +28,7 @@ public class DisposalGainItem
     public DisposalGainItem(DisposalGainItem other, double ratio = 1.0)
     {
         Date = other.Date;
+        AcquisitionDate = other.AcquisitionDate;
         Quantity = other.Quantity * ratio;
         Proceeds = other.Proceeds * ratio;
         CostBasis = other.CostBasis * ratio;
@@ -36,6 +38,6 @@ public class DisposalGainItem
     
     public override string ToString()
     {
-        return $"Date: {Date}, Quantity: {Quantity}, Proceeds: {Proceeds}, CostBasis: {CostBasis}, Gain: {Gain}, TaxYear: {TaxYear}, MatchType: {MatchType}";
+        return $"Date: {Date}, AcquisitionDate: {AcquisitionDate}, Quantity: {Quantity}, Proceeds: {Proceeds}, CostBasis: {CostBasis}, Gain: {Gain}, TaxYear: {TaxYear}, MatchType: {MatchType}";
     }
 }

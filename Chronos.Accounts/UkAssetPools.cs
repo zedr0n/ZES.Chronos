@@ -243,6 +243,7 @@ public class UkAssetPools : IAssetPools
             _aggregatedDisposalGains.Add(new DisposalGainItem()
             {
                 Date = _sameDayDisposals.Date,
+                AcquisitionDate = _sameDayAcquisitions.Date,
                 TaxYear = _sameDayDisposals.TaxYear,
                 Quantity = matched,
                 CostBasis = matched*sameDayAcquisitionsAverageCost, 
@@ -250,7 +251,7 @@ public class UkAssetPools : IAssetPools
                 MatchType = DisposalMatchType.SameDay
             });
             _disposalGains.AddRange(
-                _sameDayDisposals.GetDisposalGainItems(matched, sameDayDisposalsAverageCost, sameDayAcquisitionsAverageCost, DisposalMatchType.SameDay));
+                _sameDayDisposals.GetDisposalGainItems(matched, sameDayDisposalsAverageCost, sameDayAcquisitionsAverageCost, DisposalMatchType.SameDay, _sameDayAcquisitions.Date));
             
             remainingAcquisitions -= matched;
             remainingDisposals += matched;
@@ -272,6 +273,7 @@ public class UkAssetPools : IAssetPools
             _aggregatedDisposalGains.Add(new DisposalGainItem()
             {
                 Date = pool.Date,
+                AcquisitionDate = _sameDayAcquisitions.Date,
                 TaxYear = pool.TaxYear,
                 Quantity = r,
                 CostBasis = r*sameDayAcquisitionsAverageCost, 
@@ -279,7 +281,7 @@ public class UkAssetPools : IAssetPools
                 MatchType = DisposalMatchType.BedAndBreakfast
             });
             _disposalGains.AddRange(
-                pool.GetDisposalGainItems(r, pool.AverageCost, sameDayAcquisitionsAverageCost, DisposalMatchType.BedAndBreakfast));
+                pool.GetDisposalGainItems(r, pool.AverageCost, sameDayAcquisitionsAverageCost, DisposalMatchType.BedAndBreakfast, _sameDayAcquisitions.Date));
             
             remainingAcquisitions -= r;
             pool.Cost += r*pool.AverageCost;
@@ -493,7 +495,7 @@ public class UkAssetPools : IAssetPools
         public DateTime Date { get; set; } = DateTime.MinValue;
         public int TaxYear => GetTaxYear(Date);
 
-        public IEnumerable<DisposalGainItem> GetDisposalGainItems(double quantity, double proceedsPerUnit, double costBasisPerUnit, DisposalMatchType matchType)
+        public IEnumerable<DisposalGainItem> GetDisposalGainItems(double quantity, double proceedsPerUnit, double costBasisPerUnit, DisposalMatchType matchType, DateTime? acqusitionDate = null)
         {
             var disposalGains = new List<DisposalGainItem>();
             if (quantity == 0)
@@ -510,6 +512,7 @@ public class UkAssetPools : IAssetPools
                 var item = new DisposalGainItem()
                 {
                     Date = lot.Date,
+                    AcquisitionDate = acqusitionDate,
                     Quantity = q,
                     Proceeds = proceeds,
                     CostBasis = q*costBasisPerUnit,

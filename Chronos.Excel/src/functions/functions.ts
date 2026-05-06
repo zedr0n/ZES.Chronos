@@ -945,6 +945,7 @@ export async function disposalGainItems(accounts : string[][], asOfDate : number
       {
         items {
           date
+          acquisitionDate
           quantity
           proceeds
           costBasis
@@ -979,6 +980,16 @@ export async function disposalGainItems(accounts : string[][], asOfDate : number
                   basicValue: DateTimeToExcelDate(item.date),
                   numberFormat: "yyyy-mm-dd"
                 },
+                "Acquisition Date": item.acquisitionDate
+                  ? {
+                    type: Excel.CellValueType.double,
+                    basicValue: DateTimeToExcelDate(item.acquisitionDate),
+                    numberFormat: "yyyy-mm-dd"
+                  }
+                  : {
+                    type: Excel.CellValueType.string,
+                    basicValue: ""
+                  },
                 "Quantity": {
                   type: Excel.CellValueType.double,
                   basicValue: CleanNumber(item.quantity, 12)
@@ -1010,6 +1021,10 @@ export async function disposalGainItems(accounts : string[][], asOfDate : number
               text: "No disposal gains",
               properties: {
                 "Disposal Date": {
+                  type: Excel.CellValueType.string,
+                  basicValue: ""
+                },
+                "Acquisition Date": {
                   type: Excel.CellValueType.string,
                   basicValue: ""
                 },
