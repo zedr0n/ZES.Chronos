@@ -305,6 +305,20 @@ namespace Chronos.Tests
                 originalUsdCost,
                 originalUsdCost,
                 1e-4);
+
+            disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["Account"], btc, usd)
+            {
+                AssetQuoteOverrides = assetQuoteOverrides,
+                QueryNet = true,
+                EnforceCache = true,
+                AggregateDisposalGains = false
+            });
+            AssertDisposalGainItems(
+                disposalGains.Items,
+                stats.RealisedGains[0].Amount,
+                originalUsdCost,
+                originalUsdCost,
+                1e-4);
             
             var otherQuoteOverrides = new List<AssetQuoteOverride> { new(operationId, AssetPair.Fordom(btc, usd), btcPrice.Quantity.Amount*1.01) };
             stats = await bus.QueryAsync(new AccountStatsQuery("Account", usd) { AssetQuoteOverrides = otherQuoteOverrides, QueryNet = true, EnforceCache = true });
@@ -316,6 +330,20 @@ namespace Chronos.Tests
                 AssetQuoteOverrides = otherQuoteOverrides,
                 QueryNet = true,
                 EnforceCache = true
+            });
+            AssertDisposalGainItems(
+                disposalGains.Items,
+                stats.RealisedGains[0].Amount,
+                1.01 * originalUsdCost,
+                originalUsdCost,
+                1e-4);
+
+            disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["Account"], btc, usd)
+            {
+                AssetQuoteOverrides = otherQuoteOverrides,
+                QueryNet = true,
+                EnforceCache = true,
+                AggregateDisposalGains = false
             });
             AssertDisposalGainItems(
                 disposalGains.Items,
@@ -475,6 +503,16 @@ namespace Chronos.Tests
                 0.00114549 * 4065 / 1.2867,
                 0.00114549 * (241.58 / 0.06) / 1.2867,
                 1e-6);
+
+            disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["OtherAccount"], btc, gbp) { Timestamp = date, QueryNet = true, AggregateDisposalGains = false });
+            Assert.Single(disposalGains.Items);
+            Assert.Equal(0.00114549, disposalGains.Items[0].Quantity, 6);
+            AssertDisposalGainItems(
+                disposalGains.Items,
+                stats.RealisedGains[0].Amount,
+                0.00114549 * 4065 / 1.2867,
+                0.00114549 * (241.58 / 0.06) / 1.2867,
+                1e-6);
             
             stats = await bus.QueryAsync(new AccountStatsQuery("Account", gbp) { QueryNet = true, Timestamp = date });
             Assert.Equal(-241.58/1.2867, stats.CashBalance.Amount, 6);
@@ -487,6 +525,16 @@ namespace Chronos.Tests
             Assert.Equal((241.58 - 0.00114549 * (241.58 / 0.06))/1.2867, combinedStats.CostBasis[0].Amount, 6);
             
             disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["Account","OtherAccount"], btc, gbp) { Timestamp = date, QueryNet = true });
+            Assert.Single(disposalGains.Items);
+            Assert.Equal(0.00114549, disposalGains.Items[0].Quantity, 6);
+            AssertDisposalGainItems(
+                disposalGains.Items,
+                combinedStats.RealisedGains[0].Amount,
+                0.00114549 * 4065 / 1.2867,
+                0.00114549 * (241.58 / 0.06) / 1.2867,
+                1e-6);
+
+            disposalGains = await bus.QueryAsync(new DisposalGainItemsQuery(["Account","OtherAccount"], btc, gbp) { Timestamp = date, QueryNet = true, AggregateDisposalGains = false });
             Assert.Single(disposalGains.Items);
             Assert.Equal(0.00114549, disposalGains.Items[0].Quantity, 6);
             AssertDisposalGainItems(

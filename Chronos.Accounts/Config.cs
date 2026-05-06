@@ -67,7 +67,7 @@ namespace Chronos.Accounts
             /// <returns>Account stats</returns>
             public Stats AccountStats() => Resolve(new StatsQuery());
 
-            public DisposalGainItems AccountDisposalGainItems(string[] accounts, string assetId, string denominatorAssetId, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null)
+            public DisposalGainItems AccountDisposalGainItems(string[] accounts, string assetId, string denominatorAssetId, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool aggregateDisposalGains = true)
             {
                 var time = date?.ToTime();
                
@@ -89,7 +89,8 @@ namespace Chronos.Accounts
                 {
                     Timestamp = time,
                     QueryNet = true,
-                    AssetQuoteOverrides = assetQuoteOverrides
+                    AssetQuoteOverrides = assetQuoteOverrides,
+                    AggregateDisposalGains = aggregateDisposalGains
                 });
             }
             

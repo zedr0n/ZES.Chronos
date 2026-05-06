@@ -923,20 +923,25 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
  * @param {string[][]} accounts account names
  * @param {number} asOfDate as of date
  * @param {string} assetId disposed asset id
- * @param {string} denominatorAssetId denominator asset
- * @param quoteOverrides
+ * @param {string} [denominatorAssetId] denominator asset
+ * @param {string[][]} [quoteOverrides] Quote overrides
+ * @param {boolean} [aggregateDisposalGains] Aggregate disposal gains
  */
-export async function disposalGainItems(accounts : string[][], asOfDate : number, assetId : string, denominatorAssetId? : string, quoteOverrides?: string[][]) : Promise<any> {
+export async function disposalGainItems(accounts : string[][], asOfDate : number, assetId : string, denominatorAssetId? : string, quoteOverrides?: string[][], aggregateDisposalGains? : boolean) : Promise<any> {
   if(denominatorAssetId == undefined || denominatorAssetId == "")
     denominatorAssetId = "GBP"
 
+  if(aggregateDisposalGains === undefined || aggregateDisposalGains == null)
+    aggregateDisposalGains = true
+  
   let assetQuoteOverrides = FormatAssetQuoteOverrides(quoteOverrides)
   let query = `{ disposalGains: accountDisposalGainItems(
       accounts:[${accounts.map(a => `"${a}"`).join(', ')}],
       assetId : "${assetId}",
       denominatorAssetId : "${denominatorAssetId}",
       date : "${ExcelDateToJSDate(asOfDate).toISOString()}",
-      assetQuoteOverrides : ${assetQuoteOverrides})
+      assetQuoteOverrides : ${assetQuoteOverrides},
+      aggregateDisposalGains : ${aggregateDisposalGains})
       {
         items {
           date
