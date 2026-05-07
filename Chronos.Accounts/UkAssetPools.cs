@@ -32,7 +32,7 @@ public class UkAssetPools : IAssetPools
                 return 0.0;
             
             var pools = new UkAssetPools(this);
-            pools.EndOfDay(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+            pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
             return pools._pools.Sum(p => p.Cost);
         }
     }
@@ -45,7 +45,7 @@ public class UkAssetPools : IAssetPools
                 return 0.0;
             
             var pools = new UkAssetPools(this);
-            pools.EndOfDay(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+            pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
             return pools._disposalGains.Sum(g => g.Gain);
         }
     }
@@ -57,7 +57,7 @@ public class UkAssetPools : IAssetPools
             return new Dictionary<int, double>();
             
         var pools = new UkAssetPools(this);
-        pools.EndOfDay(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+        pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
 
         return pools._disposalGains.GroupBy(g => g.TaxYear).ToDictionary(g => g.Key, g => g.Sum(x => x.Gain)); 
     }
@@ -68,7 +68,7 @@ public class UkAssetPools : IAssetPools
             return []; 
             
         var pools = new UkAssetPools(this);
-        pools.EndOfDay(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime()); 
+        pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime()); 
         return pools._disposalGains;
     }
     
@@ -80,7 +80,7 @@ public class UkAssetPools : IAssetPools
                 return 0.0;
             
             var pools = new UkAssetPools(this);
-            pools.EndOfDay(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+            pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
             return pools._pools.Sum(p => p.Quantity);
         }
     }
@@ -125,9 +125,10 @@ public class UkAssetPools : IAssetPools
         _pools.Add(_section104Pool);
     }
 
-    public void TransferFrom(IAssetPools source, double quantity)
+    public void TransferFrom(Time time, IAssetPools source, double quantity)
     {
         var s = (UkAssetPools)source;
+        s.AdvanceTo(time);
         
         if(_pendingDisposalsByAge.Count != s._pendingDisposalsByAge.Count)
             throw new ArgumentException("Source and target asset pools must have the same number of pending disposals by age");
@@ -142,8 +143,9 @@ public class UkAssetPools : IAssetPools
             _disposalGains.Add(new DisposalGainItem(v, ratio));
     }
 
-    public void TransferOut(double quantity)
+    public void TransferOut(Time time, double quantity)
     {
+        AdvanceTo(time);
         var effectivePosition = _pools.Sum(p => p.Quantity); 
         var ratio = effectivePosition > 0 ? quantity / effectivePosition : 0;
 
@@ -157,17 +159,19 @@ public class UkAssetPools : IAssetPools
 
     public void Acquire(Time time, double quantity, double cost)
     {
+        AdvanceTo(time);
         _sameDayAcquisitions.Date = time.ToDateTime().Date;
         _sameDayAcquisitions.Add(quantity, cost);
     }
 
     public void Dispose(Time time, double quantity, double cost)
     {
+        AdvanceTo(time);
         _sameDayDisposals.Date = time.ToDateTime().Date; 
         _sameDayDisposals.RecordDisposal(++_disposalSequence, time, quantity, cost);
     }
 
-    public void EndOfDay(Time time)
+    public void AdvanceTo(Time time)
     {
         var date = time.ToDateTime().Date;
         if (_lastEndOfDay == default)
@@ -175,7 +179,6 @@ public class UkAssetPools : IAssetPools
         
         if (date == _lastEndOfDay) 
             return;
-
         
         // AccountStatsQueryHandler advances pools on every transaction date. If a later query skips
         // more than the matching window, no unprocessed acquisition can still match these
@@ -185,18 +188,15 @@ public class UkAssetPools : IAssetPools
             AdvanceToMatchingWindow(matchingStartDate);
 
         while (_lastEndOfDay < date)
-            EndSingleDay();
+            AdvanceOneDay();
     }
     
-    private void EndSingleDay()
+    private void AdvanceOneDay()
     {
-        var processSameDayPools = _sameDayAcquisitions.Date == _lastEndOfDay 
-                                  || _sameDayDisposals.Date == _lastEndOfDay;
-        
-        var remainingAcquisitions = processSameDayPools ? _sameDayAcquisitions.Quantity : 0;
-        var remainingDisposals = processSameDayPools ? _sameDayDisposals.Quantity : 0;
-        var sameDayDisposalsAverageCost = processSameDayPools ? _sameDayDisposals.AverageCost : 0;
-        var sameDayAcquisitionsAverageCost = processSameDayPools ? _sameDayAcquisitions.AverageCost : 0;
+        var remainingAcquisitions = _sameDayAcquisitions.Quantity;
+        var remainingDisposals = _sameDayDisposals.Quantity;
+        var sameDayDisposalsAverageCost = _sameDayDisposals.AverageCost;
+        var sameDayAcquisitionsAverageCost = _sameDayAcquisitions.AverageCost;
         var section104AverageCost = _section104Pool.AverageCost;
         
         // same-day matched gain
@@ -265,8 +265,8 @@ public class UkAssetPools : IAssetPools
 
         _lastEndOfDay = _lastEndOfDay.AddDays(1);
         
-        if (!processSameDayPools)
-            return;
+        //if (!processSameDayPools)
+        //    return;
         
         _sameDayDisposals.Clear();
         _sameDayAcquisitions.Clear();
@@ -274,7 +274,7 @@ public class UkAssetPools : IAssetPools
 
     private void AdvanceToMatchingWindow(DateTime matchingStartDate)
     {
-        EndSingleDay();
+        AdvanceOneDay();
         if (_lastEndOfDay >= matchingStartDate)
             return;
         

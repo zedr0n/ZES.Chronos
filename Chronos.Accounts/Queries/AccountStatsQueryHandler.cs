@@ -325,8 +325,8 @@ namespace Chronos.Accounts.Queries
                             foreach (var asset in fromPools.Keys)
                             {
                                 var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
-                                pools.EndOfDay(t);
-                                pools.TransferFrom(fromPools[asset], q.Amount);
+                                //pools.EndOfDay(t);
+                                pools.TransferFrom(t, fromPools[asset], q.Amount);
                                 poolsDictionary[asset] = pools;
                             }
                         } 
@@ -340,7 +340,6 @@ namespace Chronos.Accounts.Queries
                 foreach (var asset in assets)
                 {
                     var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
-                    pools.EndOfDay(t);
                     
                     // process all purchases first 
                     foreach (var (q,c, sourceOperationId) in costs.Where(x => (x.assetQuantity.Denominator == asset && x.assetQuantity.Amount > 0) || (x.costQuantity.Denominator == asset && x.costQuantity.Amount < 0)) )
@@ -409,13 +408,10 @@ namespace Chronos.Accounts.Queries
                     
                     // Even when excluding the transfer-out itself at the query date, advance the
                     // source pools to the transfer date so transfers-in receive a normalized state.                    
-                    pools.EndOfDay(t);
-                    poolsDictionary[q.Denominator] = pools;
-                    
                     if(t == query.Timestamp && !query.IncludeTransfersOutAtQueryDate)
-                        continue;
-
-                    pools.TransferOut(q.Amount);
+                        pools.AdvanceTo(t);
+                    else
+                        pools.TransferOut(t, q.Amount);
                     poolsDictionary[q.Denominator] = pools;
                 }
 
@@ -426,7 +422,6 @@ namespace Chronos.Accounts.Queries
                         continue;
                     
                     var pools = poolsDictionary.GetValueOrDefault(fee.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
-                    pools.EndOfDay(t);
                     var assetQuote = await _handler.Handle(new AssetQuoteQuery(fee.Denominator, denominator)
                     {
                         Timestamp = t,

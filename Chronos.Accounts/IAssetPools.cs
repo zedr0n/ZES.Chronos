@@ -19,8 +19,8 @@ public interface IAssetPools
     
     void Acquire(Time time, double quantity, double cost);
     void Dispose(Time time, double quantity, double cost);
-    void EndOfDay(Time time);
+    void AdvanceTo(Time time);
 
-    void TransferFrom(IAssetPools source, double quantity);
-    void TransferOut(double quantity);
+    void TransferFrom(Time time, IAssetPools source, double quantity);
+    void TransferOut(Time time, double quantity);
 }
