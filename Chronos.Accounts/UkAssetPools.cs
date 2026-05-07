@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Clocks;
 
@@ -265,9 +264,6 @@ public class UkAssetPools : IAssetPools
 
         _lastEndOfDay = _lastEndOfDay.AddDays(1);
         
-        //if (!processSameDayPools)
-        //    return;
-        
         _sameDayDisposals.Clear();
         _sameDayAcquisitions.Clear();
     }
@@ -482,12 +478,7 @@ public class UkAssetPools : IAssetPools
             return year;
         }
         
-        public Pool Copy()
-        {
-            if(this is PoolWithLots poolWithLots)
-                return new PoolWithLots(poolWithLots);
-            return new Pool(this);
-        }
+        public virtual Pool Copy() => new(this);
         
         protected Pool(Pool other)
         {
@@ -583,8 +574,10 @@ public class UkAssetPools : IAssetPools
             if (other is PoolWithLots otherPoolWithLots)
                 otherPoolWithLots._disposals.ReplaceWith(_disposals);
         }
-        
-        public PoolWithLots(PoolWithLots other)
+       
+        public override Pool Copy() => new PoolWithLots(this);
+
+        private PoolWithLots(PoolWithLots other)
             : base(other)
         {
             if(other == null)
