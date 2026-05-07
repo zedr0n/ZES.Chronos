@@ -42,7 +42,7 @@ public class DisposalGainItemsQueryHandler(IProjectionManager manager, ITimeline
                     Timestamp = timestamp,
                     QueryNet = query.QueryNet,
                     AssetQuoteOverrides = query.AssetQuoteOverrides,
-                    AggregateDisposalGains = query.AggregateDisposalGains,
+                    TrackDisposalLots = query.TrackDisposalLots,
                     EnforceCache = query.EnforceCache
                 });
                 break;
@@ -53,7 +53,7 @@ public class DisposalGainItemsQueryHandler(IProjectionManager manager, ITimeline
                     Timestamp = timestamp,
                     QueryNet = query.QueryNet,
                     AssetQuoteOverrides = query.AssetQuoteOverrides,
-                    AggregateDisposalGains = query.AggregateDisposalGains,
+                    TrackDisposalLots = query.TrackDisposalLots,
                     EnforceCache = query.EnforceCache
                 });
                 break;

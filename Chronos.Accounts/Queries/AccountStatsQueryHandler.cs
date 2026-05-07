@@ -272,7 +272,7 @@ namespace Chronos.Accounts.Queries
                         IncludeTransfersOutAtQueryDate = false,
                         NumberOfMatchingDays = query.NumberOfMatchingDays,
                         AssetQuoteOverrides = query.AssetQuoteOverrides,
-                        AggregateDisposalGains = query.AggregateDisposalGains,
+                        TrackDisposalLots = query.TrackDisposalLots,
                     });
                     if (fromAccountStats == null)
                         throw new InvalidOperationException($"Account {fromAccount} not found");
@@ -299,7 +299,7 @@ namespace Chronos.Accounts.Queries
                             IncludeTransfersOutAtQueryDate = false,
                             NumberOfMatchingDays = query.NumberOfMatchingDays,
                             AssetQuoteOverrides = query.AssetQuoteOverrides,
-                            AggregateDisposalGains = query.AggregateDisposalGains,
+                            TrackDisposalLots = query.TrackDisposalLots,
                         });
                         if(!pools.TryGetValue(q.Denominator, out var joinedPool))
                             throw new InvalidOperationException($"Asset {q.Denominator} not found in joined pool");
@@ -324,7 +324,7 @@ namespace Chronos.Accounts.Queries
                             var fromPools = fromAccountStats.AssetPools;
                             foreach (var asset in fromPools.Keys)
                             {
-                                var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays));
+                                var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
                                 pools.EndOfDay(t);
                                 pools.TransferFrom(fromPools[asset], q.Amount);
                                 poolsDictionary[asset] = pools;
@@ -339,7 +339,7 @@ namespace Chronos.Accounts.Queries
                     .Where(a => !assetsHandledByFullTransfer.Contains(a)).ToList();
                 foreach (var asset in assets)
                 {
-                    var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays));
+                    var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
                     pools.EndOfDay(t);
                     
                     // process all purchases first 
@@ -405,7 +405,7 @@ namespace Chronos.Accounts.Queries
                 
                 foreach (var q in transfersOut)
                 {
-                    var pools = poolsDictionary.GetValueOrDefault(q.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays));
+                    var pools = poolsDictionary.GetValueOrDefault(q.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
                     
                     // Even when excluding the transfer-out itself at the query date, advance the
                     // source pools to the transfer date so transfers-in receive a normalized state.                    
@@ -425,7 +425,7 @@ namespace Chronos.Accounts.Queries
                     if (assetsHandledByFullTransfer.Contains(fee.Denominator))
                         continue;
                     
-                    var pools = poolsDictionary.GetValueOrDefault(fee.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays));
+                    var pools = poolsDictionary.GetValueOrDefault(fee.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
                     pools.EndOfDay(t);
                     var assetQuote = await _handler.Handle(new AssetQuoteQuery(fee.Denominator, denominator)
                     {
@@ -456,7 +456,7 @@ namespace Chronos.Accounts.Queries
                     costBasisDictionary[asset] = new Quantity(pools.CostBasis, denominator);
                     realisedGainsDictionary[asset] = new Quantity(pools.RealisedGain, denominator);
                     realisedGainsPerTaxYearDictionary[asset] = pools.GetRealisedGainsPerTaxYear().ToDictionary(x => x.Key, x => new Quantity(x.Value, denominator));
-                    disposalGainItemsDictionary[asset] = pools.GetDisposalGains(query.AggregateDisposalGains).Select(x => new DisposalGainItem(x)).ToList();
+                    disposalGainItemsDictionary[asset] = pools.GetDisposalGains().Select(x => new DisposalGainItem(x)).ToList();
                 }
             }
             

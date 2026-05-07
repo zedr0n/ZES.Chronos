@@ -48,7 +48,7 @@ public class DisposalGainItemsQuery(List<string> accounts, Asset asset, Asset de
     public List<AssetQuoteOverride> AssetQuoteOverrides { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the disposal gains should be aggregated.
+    /// Gets or sets a value indicating whether disposal lots should be tracked.
     /// </summary>
-    public bool AggregateDisposalGains { get; set; } = true;
+    public bool TrackDisposalLots { get; set; }
 }

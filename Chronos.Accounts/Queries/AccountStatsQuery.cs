@@ -75,9 +75,9 @@ public class AccountStatsQuery(string name, Asset denominator) : Query<AccountSt
     /// direct, inverse, or triangulated quote paths.
     /// </remarks>
     public List<AssetQuoteOverride> AssetQuoteOverrides { get; set; }
-    
+
     /// <summary>
-    /// Gets or sets a value indicating whether the disposal gains should be aggregated.
+    /// Gets or sets a value indicating whether disposal lots should be tracked.
     /// </summary>
-    public bool AggregateDisposalGains { get; set; } = true;
+    public bool TrackDisposalLots { get; set; }
 }

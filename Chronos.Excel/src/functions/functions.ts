@@ -925,14 +925,14 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
  * @param {string} assetId disposed asset id
  * @param {string} [denominatorAssetId] denominator asset
  * @param {string[][]} [quoteOverrides] Quote overrides
- * @param {boolean} [aggregateDisposalGains] Aggregate disposal gains
+ * @param {boolean} [trackDisposalLots] Aggregate disposal gains
  */
-export async function disposalGainItems(accounts : string[][], asOfDate : number, assetId : string, denominatorAssetId? : string, quoteOverrides?: string[][], aggregateDisposalGains? : boolean) : Promise<any> {
+export async function disposalGainItems(accounts : string[][], asOfDate : number, assetId : string, denominatorAssetId? : string, quoteOverrides?: string[][], trackDisposalLots? : boolean) : Promise<any> {
   if(denominatorAssetId == undefined || denominatorAssetId == "")
     denominatorAssetId = "GBP"
 
-  if(aggregateDisposalGains === undefined || aggregateDisposalGains == null)
-    aggregateDisposalGains = true
+  if(trackDisposalLots === undefined || trackDisposalLots == null)
+    trackDisposalLots = false
   
   let assetQuoteOverrides = FormatAssetQuoteOverrides(quoteOverrides)
   let query = `{ disposalGains: accountDisposalGainItems(
@@ -941,7 +941,7 @@ export async function disposalGainItems(accounts : string[][], asOfDate : number
       denominatorAssetId : "${denominatorAssetId}",
       date : "${ExcelDateToJSDate(asOfDate).toISOString()}",
       assetQuoteOverrides : ${assetQuoteOverrides},
-      aggregateDisposalGains : ${aggregateDisposalGains})
+      trackDisposalLots : ${trackDisposalLots})
       {
         items {
           date

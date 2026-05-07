@@ -37,7 +37,7 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
             EnforceCache = query.EnforceCache,
             NumberOfMatchingDays = query.NumberOfMatchingDays,
             AssetQuoteOverrides = query.AssetQuoteOverrides,
-            AggregateDisposalGains = query.AggregateDisposalGains,
+            TrackDisposalLots = query.TrackDisposalLots,
         }); 
     }
 }
