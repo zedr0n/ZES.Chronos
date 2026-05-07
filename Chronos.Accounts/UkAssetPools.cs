@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Clocks;
 
@@ -175,36 +176,27 @@ public class UkAssetPools : IAssetPools
         if (date == _lastEndOfDay) 
             return;
 
-        var closeSameDay = true;
         
         // AccountStatsQueryHandler advances pools on every transaction date. If a later query skips
         // more than the matching window, no unprocessed acquisition can still match these
         // pending disposals, so they can be closed before jumping to the final ageing window.
-        if (_lastEndOfDay < date.AddDays(-_pendingDisposalsByAge.Count) && _pendingDisposalsByAge.Count > 0)
-        {
-            EndSingleDay(true);
-            closeSameDay = false;
-
-            if (_lastEndOfDay < date.AddDays(-_pendingDisposalsByAge.Count))
-            {
-                ClosePendingPools();
-                _lastEndOfDay = date.AddDays(-_pendingDisposalsByAge.Count);
-            }
-        }
+        var matchingStartDate = date.AddDays(-_pendingDisposalsByAge.Count);
+        if (_lastEndOfDay < matchingStartDate && _pendingDisposalsByAge.Count > 0)
+            AdvanceToMatchingWindow(matchingStartDate);
 
         while (_lastEndOfDay < date)
-        {
-            EndSingleDay(closeSameDay);
-            closeSameDay = false;
-        }
+            EndSingleDay();
     }
     
-    private void EndSingleDay(bool closeSameDay)
+    private void EndSingleDay()
     {
-        var remainingAcquisitions = closeSameDay ? _sameDayAcquisitions.Quantity : 0;
-        var remainingDisposals = closeSameDay ? _sameDayDisposals.Quantity : 0;
-        var sameDayDisposalsAverageCost = closeSameDay ? _sameDayDisposals.AverageCost : 0;
-        var sameDayAcquisitionsAverageCost = closeSameDay ? _sameDayAcquisitions.AverageCost : 0;
+        var processSameDayPools = _sameDayAcquisitions.Date == _lastEndOfDay 
+                                  || _sameDayDisposals.Date == _lastEndOfDay;
+        
+        var remainingAcquisitions = processSameDayPools ? _sameDayAcquisitions.Quantity : 0;
+        var remainingDisposals = processSameDayPools ? _sameDayDisposals.Quantity : 0;
+        var sameDayDisposalsAverageCost = processSameDayPools ? _sameDayDisposals.AverageCost : 0;
+        var sameDayAcquisitionsAverageCost = processSameDayPools ? _sameDayAcquisitions.AverageCost : 0;
         var section104AverageCost = _section104Pool.AverageCost;
         
         // same-day matched gain
@@ -273,15 +265,19 @@ public class UkAssetPools : IAssetPools
 
         _lastEndOfDay = _lastEndOfDay.AddDays(1);
         
-        if (!closeSameDay)
+        if (!processSameDayPools)
             return;
         
         _sameDayDisposals.Clear();
         _sameDayAcquisitions.Clear();
     }
 
-    private void ClosePendingPools()
+    private void AdvanceToMatchingWindow(DateTime matchingStartDate)
     {
+        EndSingleDay();
+        if (_lastEndOfDay >= matchingStartDate)
+            return;
+        
         var section104AverageCost = _section104Pool.AverageCost;
 
         if (_sameDayAcquisitions.Quantity != 0)
@@ -313,6 +309,8 @@ public class UkAssetPools : IAssetPools
             _section104Pool.Add(-quantity, -costBasis);
             pool.Clear();
         }
+        
+        _lastEndOfDay = matchingStartDate;
     }
 
     private class Disposal(long sequence, DateTime date, double quantity)
