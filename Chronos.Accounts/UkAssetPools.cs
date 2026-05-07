@@ -188,7 +188,7 @@ public class UkAssetPools : IAssetPools
         _sameDayDisposals.Date = time.ToDateTime().Date; 
         _realisedGains.TryAdd(_sameDayDisposals.TaxYear, 0.0);
         
-        _sameDayDisposals.Disposals.Add(++_disposalSequence, time, quantity, cost);
+        _sameDayDisposals.Disposals.Add(++_disposalSequence, time, quantity);
         _sameDayDisposals.Quantity -= quantity;
         _sameDayDisposals.Cost -= cost;
     }
@@ -410,20 +410,18 @@ public class UkAssetPools : IAssetPools
         }
     }
 
-    private class Disposal(long sequence, DateTime date, double quantity, double proceeds)
+    private class Disposal(long sequence, DateTime date, double quantity)
     {
         public long Sequence => sequence;
         public DateTime Date => date;
         public double Quantity { get; set; } = quantity;
-        public double Proceeds { get; set; } = proceeds;
-        public double AverageProceeds => Quantity == 0 ? 0.0 : Proceeds / Quantity;
-        
-        public Disposal(long sequence, Time disposalTime, double quantity, double proceeds)
-            : this(sequence, disposalTime.ToDateTime(), quantity, proceeds)
+
+        public Disposal(long sequence, Time disposalTime, double quantity)
+            : this(sequence, disposalTime.ToDateTime(), quantity)
         { }
 
         public Disposal(Disposal other, double ratio = 1.0)
-            : this(other.Sequence, other.Date, other.Quantity * ratio, other.Proceeds * ratio) 
+            : this(other.Sequence, other.Date, other.Quantity * ratio) 
         { }
     }
 
@@ -440,11 +438,11 @@ public class UkAssetPools : IAssetPools
         
         public void Clear() => _items.Clear();
         
-        public void Add(long sequence, Time disposalTime, double quantity, double proceeds)
+        public void Add(long sequence, Time disposalTime, double quantity)
         {
             if (quantity == 0)
                 return;
-            _items.Add(new Disposal(sequence, disposalTime, quantity, proceeds));
+            _items.Add(new Disposal(sequence, disposalTime, quantity));
         }
         
         public void Add(IEnumerable<Disposal> other)
@@ -522,7 +520,6 @@ public class UkAssetPools : IAssetPools
                 disposalGains.Add(item);
 
                 lot.Quantity -= q;
-                lot.Proceeds -= proceeds;
                 quantity -= q;
             }
             
