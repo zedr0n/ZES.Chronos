@@ -60,9 +60,6 @@ namespace Chronos.Accounts.Queries
         {
             Predicate = s => false;
             return await base.Handle(query);
-
-            //Predicate = s => (s.Type == nameof(Account) && s.SameId(query.Name)) || s.Type == nameof(AssetPair) || s.Type == nameof(Transfer);
-            //return await base.Handle(query, query.Name);
         }
 
         private class PositionData
