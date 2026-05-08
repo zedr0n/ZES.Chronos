@@ -7,23 +7,23 @@ using ZES.Interfaces.Domain;
 namespace Chronos.Accounts.Queries;
 
 [Transient]
-public class CombinedAccountStateQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AccountStatsStateQuery, AccountStatsState> accountStatsStateHandler)
-    : DefaultQueryHandler<CombinedAccountStateQuery, AccountStatsState, NullState>(manager, activeTimeline)
+public class CombinedAccountStateQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AccountStateQuery, AccountState> accountStatsStateHandler)
+    : DefaultQueryHandler<CombinedAccountStateQuery, AccountState, NullState>(manager, activeTimeline)
 {
-    protected override Task<AccountStatsState> Handle(CombinedAccountStateQuery query)
+    protected override Task<AccountState> Handle(CombinedAccountStateQuery query)
     {
         Predicate = s => false;
         return base.Handle(query);
     }
 
-    protected override async Task<AccountStatsState> Handle(IProjection<NullState> projection,
+    protected override async Task<AccountState> Handle(IProjection<NullState> projection,
         CombinedAccountStateQuery query)
     {
-        AccountStatsState state = null;
+        AccountState state = null;
 
         foreach (var account in query.Accounts)
         {
-            var accountStatsState = await accountStatsStateHandler.Handle(new AccountStatsStateQuery(account)
+            var accountStatsState = await accountStatsStateHandler.Handle(new AccountStateQuery(account)
             {
                 Timeline = query.Timeline,
                 Timestamp = query.Timestamp,

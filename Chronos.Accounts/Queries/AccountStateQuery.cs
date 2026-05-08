@@ -2,7 +2,7 @@
 
 namespace Chronos.Accounts.Queries;
 
-public class AccountStatsStateQuery(string account) : Query<AccountStatsState>
+public class AccountStateQuery(string account) : Query<AccountState>
 {
     public string Account => account;
 }

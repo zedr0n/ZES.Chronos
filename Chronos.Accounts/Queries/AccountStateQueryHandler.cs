@@ -8,10 +8,10 @@ using ZES.Interfaces.Domain;
 namespace Chronos.Accounts.Queries;
 
 [Transient]
-public class AccountStatsStateQueryHandler(IProjectionManager manager, ITimeline activeTimeline)
-    : DefaultQueryHandler<AccountStatsStateQuery, AccountStatsState>(manager, activeTimeline)
+public class AccountStateQueryHandler(IProjectionManager manager, ITimeline activeTimeline)
+    : DefaultQueryHandler<AccountStateQuery, AccountState>(manager, activeTimeline)
 {
-    protected override async Task<AccountStatsState> Handle(AccountStatsStateQuery query)
+    protected override async Task<AccountState> Handle(AccountStateQuery query)
     {
         Predicate = s => (s.Type == nameof(Account) && s.SameId(query.Account)) || s.Type == nameof(AssetPair) || s.Type == nameof(Transfer);
         return await base.Handle(query, query.Account);

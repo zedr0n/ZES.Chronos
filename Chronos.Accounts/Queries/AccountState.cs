@@ -11,7 +11,7 @@ namespace Chronos.Accounts.Queries
     /// <summary>
     /// State for account stats
     /// </summary>
-    public class AccountStatsState : IState
+    public class AccountState : IState
     {
         private readonly Dictionary<Asset, List<(Quantity quantity, Time timestamp)>> _deposits = new();
         private readonly Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> _costs = new();
@@ -53,17 +53,17 @@ namespace Chronos.Accounts.Queries
         }
         
         /// <summary>
-        /// Initializes a new instance of the <see cref="AccountStatsState"/> class.
+        /// Initializes a new instance of the <see cref="AccountState"/> class.
         /// </summary>
-        public AccountStatsState()
+        public AccountState()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AccountStatsState"/> class.
+        /// Initializes a new instance of the <see cref="AccountState"/> class.
         /// </summary>
         /// <param name="other">Source state</param>
-        public AccountStatsState(AccountStatsState other)
+        public AccountState(AccountState other)
         {
             AccountName = other.AccountName;
             _positions = new Dictionary<Asset, double>(other._positions);
@@ -79,9 +79,9 @@ namespace Chronos.Accounts.Queries
             Transactions = new HashSet<string>(other.Transactions);
         }
 
-        public AccountStatsState Copy() => new(this);
+        public AccountState Copy() => new(this);
         
-        public AccountStatsState CombineWith(AccountStatsState other)
+        public AccountState CombineWith(AccountState other)
         {
             if (other == null)
                 return this;

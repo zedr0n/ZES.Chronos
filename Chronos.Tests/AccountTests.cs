@@ -84,7 +84,7 @@ namespace Chronos.Tests
 
             await bus.Command(new CreateAccount("Account", AccountType.Saving));
 
-            var state = await bus.QueryAsync(new AccountStatsStateQuery("Account"));
+            var state = await bus.QueryAsync(new AccountStateQuery("Account"));
             Assert.NotNull(state);
         }
 

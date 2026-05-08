@@ -25,7 +25,7 @@ namespace Chronos.Accounts.Queries
     public class AccountStatsQueryHandler : DefaultQueryHandler<AccountStatsQuery, AccountStats, NullState>
     {
         private readonly ITimeline _timeline;
-        private readonly IQueryHandler<CombinedAccountStateQuery, AccountStatsState> _accountStateHandler;
+        private readonly IQueryHandler<CombinedAccountStateQuery, AccountState> _accountStateHandler;
         private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
         private readonly ILog _log;
@@ -40,7 +40,7 @@ namespace Chronos.Accounts.Queries
         /// This implementation processes the query by interacting with projection states and related handlers.
         /// </remarks>
         public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
-            IQueryHandler<CombinedAccountStateQuery, AccountStatsState> accountStateHandler,
+            IQueryHandler<CombinedAccountStateQuery, AccountState> accountStateHandler,
             IQueryHandler<AssetQuoteQuery, AssetQuote> handler,
             IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log,
             Func<IQueryHandler<AccountStatsQuery, AccountStats>> accountStatsHandlerFactory,
@@ -75,7 +75,7 @@ namespace Chronos.Accounts.Queries
         protected override async Task<AccountStats> Handle(IProjection<NullState> projection, AccountStatsQuery query)
         {
             if (projection == null)
-                throw new ArgumentNullException(nameof(projection), $"{typeof(IProjection<AccountStatsState>).Name}");
+                throw new ArgumentNullException(nameof(projection), $"{typeof(IProjection<AccountState>).Name}");
             var state = await _accountStateHandler.Handle(new CombinedAccountStateQuery([query.Name])
             {
                 Timeline = query.Timeline,
@@ -87,8 +87,8 @@ namespace Chronos.Accounts.Queries
 
         public override async Task<AccountStats> Handle<TState>(TState tState, AccountStatsQuery query)
         { 
-            if (tState is not AccountStatsState state)
-                throw new ArgumentException($"{nameof(AccountStatsState)} expected", nameof(tState));
+            if (tState is not AccountState state)
+                throw new ArgumentException($"{nameof(AccountState)} expected", nameof(tState));
             
             var total = 0.0;
             var denominator = query.Denominator;
@@ -231,7 +231,7 @@ namespace Chronos.Accounts.Queries
         }
         
         private async Task<(Dictionary<Asset, Quantity> costBasis, Dictionary<Asset, Quantity> realisedGains, Dictionary<Asset, IAssetPools>, Dictionary<Asset, Dictionary<int, Quantity>> realisedGainsPerTaxYear, Dictionary<Asset, List<DisposalGainItem>>)>
-            ComputeGains(AccountStatsState state, AccountStatsQuery query)
+            ComputeGains(AccountState state, AccountStatsQuery query)
         {
             var denominator = query.Denominator;
             
@@ -455,7 +455,7 @@ namespace Chronos.Accounts.Queries
             return (costBasisDictionary, realisedGainsDictionary, poolsDictionary, realisedGainsPerTaxYearDictionary, disposalGainItemsDictionary);
         }
 
-        private bool HasCrossAccountMatchingPair(AccountStatsState state, AccountStatsState other, Asset asset, Time before, int numberOfMatchingDays)
+        private bool HasCrossAccountMatchingPair(AccountState state, AccountState other, Asset asset, Time before, int numberOfMatchingDays)
         {
             var these = GetAssetMovements(state, asset, before).ToList();
             var others = GetAssetMovements(other, asset, before).ToList();
@@ -472,7 +472,7 @@ namespace Chronos.Accounts.Queries
         }
         
         private static IEnumerable<(Time Time, double Amount)> GetAssetMovements(
-            AccountStatsState state,
+            AccountState state,
             Asset asset,
             Time before)
         {

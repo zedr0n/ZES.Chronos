@@ -80,7 +80,7 @@ public class AccountStats(Quantity balance)
     /// Gets or sets the underlying account statistics state used to produce this result.
     /// </summary>
     [JsonIgnore]
-    public AccountStatsState State { get; set; }
+    public AccountState State { get; set; }
 
     /// <summary>
     /// Gets or sets the internal rate of return for the account.

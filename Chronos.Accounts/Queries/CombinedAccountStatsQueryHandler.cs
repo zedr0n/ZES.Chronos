@@ -9,7 +9,7 @@ namespace Chronos.Accounts.Queries;
 
 [Transient]
 public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
-    IQueryHandler<CombinedAccountStateQuery, AccountStatsState> accountStatsStateHandler,
+    IQueryHandler<CombinedAccountStateQuery, AccountState> accountStatsStateHandler,
     IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler)
     : DefaultQueryHandler<CombinedAccountStatsQuery, AccountStats, NullState>(manager, activeTimeline)
 {
