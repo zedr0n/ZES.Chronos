@@ -24,6 +24,7 @@ using ZES.Interfaces.Infrastructure;
 using ZES.Interfaces.Net;
 using ZES.TestBase;
 using ZES.Utils;
+using IClock = ZES.Interfaces.Clocks.IClock;
 using StatsQuery = Chronos.Accounts.Queries.StatsQuery;
 
 namespace Chronos.Tests
@@ -360,10 +361,11 @@ namespace Chronos.Tests
             var bus = container.GetInstance<IBus>();
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var clock = container.GetInstance<IClock>();
             
             var webSearchApi = webApiProvider.GetSearchApi();
             var webQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, true);
-            
+
             await bus.Command(new CreateAccount("Account", AccountType.Trading));
             
             var asset = new Asset("IUKD", AssetType.Equity);
@@ -375,12 +377,22 @@ namespace Chronos.Tests
             await connector.SetAsync(webQuoteApi.GetUrl("IUKD.LSE", enforceCache: true),
                 "{\"code\":\"IUKD.LSE\",\"timestamp\":1775748900,\"gmtoffset\":0,\"open\":995.9,\"high\":995.9,\"low\":984.3,\"close\":988.8,\"volume\":414031,\"previousClose\":988.2,\"change\":0.6,\"change_p\":0.0607}");
             
+            var date = clock.GetCurrentInstant();
+            if (!date.IsWorkingDay())
+            {
+                date = date.PreviousWorkingDay().CloseOfDay();
+                var eodWebQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
+
+                await connector.SetAsync(eodWebQuoteApi.GetUrl("IUKD.LSE", date, enforceCache: true),
+                    "[{\"date\":\"2026-05-08\",\"open\":955.9,\"high\":995.9,\"low\":984.3,\"close\":988.8,\"adjusted_close\":988.8,\"volume\":175735}]");
+            }
+
             await bus.Command(new RegisterAssetPair(ccy, quoteCcy));
             await bus.Command(new RegisterAssetPair(asset, quoteCcy, "UK"));
             
             await bus.Command(new TransactAsset("Account",new Quantity(100, asset), new Quantity(double.NaN, quoteCcy)));
            
-            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy));
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy) { EnforceCache = true });
             Assert.Equal(0.0, stats.Balance.Amount, 4);
             Assert.Single(stats.Positions);
             Assert.Equal(asset, stats.Positions[0].Denominator);
@@ -443,6 +455,56 @@ namespace Chronos.Tests
                 0.00114549 * 4065 / 1.2867,
                 0.00114549 * (241.58 / 0.06) / 1.2867,
                 1e-6);
+        }
+
+        [Fact]
+        public async Task CanReceiveAsset()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false); 
+           
+            var date = new LocalDateTime(2017, 8, 16, 12, 30).InUtc().ToInstant().ToTime();
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), Time.MinValue));
+            
+            var btc = new Asset("BTC", AssetType.Coin);
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+            
+            await connector.SetAsync(webSearchApi.GetUrl(fxQuoteApi.GetSearchTicker(gbp, usd)),
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3537,\"previousCloseDate\":\"2026-04-27\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(btc, usd)),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":76734.7109375,\"previousCloseDate\":\"2026-04-28\"}]");
+ 
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue)); 
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue)); 
+
+            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var btcTicker = assetPairInfo.Ticker;
+            
+            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            var gbpTicker = assetPairInfo.Ticker;
+
+            await connector.SetAsync(coinQuoteApi.GetPreciseUrl(btcTicker, date),
+                "[{\"timestamp\":1502886600,\"gmtoffset\":0,\"datetime\":\"2017-08-16 12:30:00\",\"open\":4082.9,\"high\":4109.154,\"low\":4062.45,\"close\":4065,\"volume\":27.95}]");
+            await connector.SetAsync(fxQuoteApi.GetUrl(gbpTicker, date),
+                "[{\"date\":\"2017-08-16\",\"open\":1.2868,\"high\":1.2903,\"low\":1.2845,\"close\":1.2867,\"adjusted_close\":1.2867,\"volume\":474}]");
+
+            await bus.Command(new RetroactiveCommand<ReceiveAsset>(new ReceiveAsset("Account", new Quantity(0.06, btc), new Quantity(4065*0.06, usd)), date));
+            
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", gbp) { QueryNet = true, Timestamp = date });
+            Assert.Equal(0.0, stats.CashBalance.Amount, 6);
+            Assert.Equal(0.06*4065/1.2867, stats.Balance.Amount, 6);
+            Assert.Equal(0, stats.RealisedGains[0].Amount, 6);
+            Assert.Equal(0.06, stats.Positions[0].Amount, 6);
+            Assert.Equal(0.06*4065/1.2867, stats.CostBasis[0].Amount, 6);
+            Assert.Equal(0.06*4065/1.2867, stats.Income.Amount, 6);
         }
 
         [Fact]

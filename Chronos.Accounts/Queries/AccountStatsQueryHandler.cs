@@ -212,6 +212,29 @@ namespace Chronos.Accounts.Queries
             extCashflows.Add((now, total));
             var irr = query.ComputeIrr ? IrrSolver.Solve(extCashflows) : 0.0;
 
+            var income = 0.0;
+            foreach(var (t, lst) in state.Income)
+            {
+                foreach (var i in lst)
+                {
+                    var quote = 1.0;
+                    if (i.Denominator != denominator)
+                    {
+                        var assetQuote = await _handler.Handle(new AssetQuoteQuery(i.Denominator, denominator)
+                        {
+                            Timestamp = t,
+                            UpdateQuote = query.QueryNet,
+                            EnforceCache = query.EnforceCache,
+                        });
+                        if (assetQuote != null)
+                            quote = assetQuote.Quantity.Amount;
+                        else
+                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(i.Denominator, denominator)} at {query.Timestamp}");
+                    }
+                    income += i.Amount * quote;
+                }
+            }
+            
             return new AccountStats(new Quantity(total, denominator))
             {
                 Positions = positions.Values.Select(p => p.Position).ToList(),
@@ -226,7 +249,8 @@ namespace Chronos.Accounts.Queries
                 ExternalCashflows = extCashflows.Take(extCashflows.Count - 1).Select( x => (x.time, new Quantity(x.amount, denominator))).ToList(),
                 Irr = irr,
                 AssetPools = pools,
-                State = state
+                State = state,
+                Income = new Quantity(income, denominator)
             };
         }
         

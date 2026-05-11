@@ -44,6 +44,9 @@ namespace Chronos.Accounts.Queries
         {
             var newState = new AccountState(state);
             newState.AddCost(e.Asset, e.Cost, e.Fee, e.Timestamp, e.RetroactiveId?.Id ?? e.CommandId?.Id);
+            if (e.AssetTransactionType == AssetTransactionType.Income && e.Cost.Denominator.AssetType == AssetType.Currency)
+                newState.AddIncome(e.Cost, e.Timestamp);
+                
             return newState;
         }
 

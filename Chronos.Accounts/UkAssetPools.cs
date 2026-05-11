@@ -167,7 +167,7 @@ public class UkAssetPools : IAssetPools
     {
         AdvanceTo(time);
         _sameDayDisposals.Date = time.ToDateTime().Date; 
-        _sameDayDisposals.RecordDisposal(++_disposalSequence, time, quantity, cost);
+        _sameDayDisposals.RecordDisposal(time, quantity, cost);
     }
 
     public void AdvanceTo(Time time)
@@ -309,18 +309,17 @@ public class UkAssetPools : IAssetPools
         _lastEndOfDay = matchingStartDate;
     }
 
-    private class Disposal(long sequence, DateTime date, double quantity)
+    private class Disposal(DateTime date, double quantity)
     {
-        public long Sequence => sequence;
         public DateTime Date => date;
         public double Quantity { get; set; } = quantity;
 
-        public Disposal(long sequence, Time disposalTime, double quantity)
-            : this(sequence, disposalTime.ToDateTime(), quantity)
+        public Disposal(Time disposalTime, double quantity)
+            : this(disposalTime.ToDateTime(), quantity)
         { }
 
         public Disposal(Disposal other, double ratio = 1.0)
-            : this(other.Sequence, other.Date, other.Quantity * ratio) 
+            : this(other.Date, other.Quantity * ratio) 
         { }
     }
 
@@ -337,11 +336,11 @@ public class UkAssetPools : IAssetPools
         
         public void Clear() => _items.Clear();
         
-        public void Add(long sequence, Time disposalTime, double quantity)
+        public void Add(Time disposalTime, double quantity)
         {
             if (quantity == 0)
                 return;
-            _items.Add(new Disposal(sequence, disposalTime, quantity));
+            _items.Add(new Disposal(disposalTime, quantity));
         }
         
         public void Add(IEnumerable<Disposal> other)
@@ -377,7 +376,7 @@ public class UkAssetPools : IAssetPools
             return disposals.Scale(ratio);
         }        
         
-        public IEnumerator<Disposal> GetEnumerator() => _items.Where(x => x.Quantity != 0).OrderBy(x => x.Sequence).GetEnumerator();
+        public IEnumerator<Disposal> GetEnumerator() => _items.Where(x => x.Quantity != 0).OrderBy(x => x.Date).GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
     
@@ -439,7 +438,7 @@ public class UkAssetPools : IAssetPools
             Cost *= ratio;
         }
         
-        public virtual void RecordDisposal(long sequence, Time time, double quantity, double cost)
+        public virtual void RecordDisposal(Time time, double quantity, double cost)
         {
             Quantity -= quantity;
             Cost -= cost;
@@ -549,10 +548,10 @@ public class UkAssetPools : IAssetPools
             _disposals.ReplaceWith(_disposals * ratio);
         } 
         
-        public override void RecordDisposal(long sequence, Time time, double quantity, double cost)
+        public override void RecordDisposal(Time time, double quantity, double cost)
         {
-            base.RecordDisposal(sequence, time, quantity, cost);
-            _disposals.Add(sequence, time, quantity);
+            base.RecordDisposal(time, quantity, cost);
+            _disposals.Add(time, quantity);
         }        
         
         public override void Clear()

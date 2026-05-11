@@ -1,4 +1,5 @@
-﻿using ZES.Infrastructure.Domain;
+﻿using Chronos.Accounts.Events;
+using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
 
@@ -35,6 +36,6 @@ public class SpendAssetHandler : CommandHandlerBase<SpendAsset, Account>
     /// <param name="command">The command specifying the details for spending the asset, including the quantity and cost.</param>
     protected override void Act(Account root, SpendAsset command)
     {
-        root.TransactAsset(command.Asset*(-1), command.Cost*(-1), null, false);
+        root.TransactAsset(command.Asset*(-1), command.Cost*(-1), null, false, assetTransactionType: AssetTransactionType.Spend);
     }
 }

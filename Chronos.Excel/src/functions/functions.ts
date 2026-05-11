@@ -272,6 +272,37 @@ export async function spendAsset(account: string, assetId : string, amount : num
   let result = await SingleQuery(mutation, getIdOrError(guid, data => data.spendAsset.toString()))
   return result
 }
+
+/**
+ * @customfunction
+ * @param {string} account - The account identifier associated with the received asset.
+ * @param {string} assetId - The unique identifier of the asset being received.
+ * @param {number} amount - The quantity of the asset being received.
+ * @param {string} costAssetId - The unique identifier of the asset used for costing the receipt.
+ * @param {any} cost - The quantity of the cost asset for this receipt.
+ * @param {number} date - The receipt date, represented as an Excel serial date number.
+ * @param {string} guid - A unique identifier for the command.
+ */
+export async function receiveAsset(account: string, assetId : string, amount : number, costAssetId? : string, cost?: any, date? : number, guid? : string)
+{
+  const costAmount = OptionalExcelNumber(cost);
+
+  const mutation = `mutation {
+    receiveAsset(
+      account: "${account}",
+      assetId: "${assetId}",
+      amount: ${amount},
+      ${costAssetId !== undefined ? `costAssetId: "${costAssetId}",` : ""}
+      cost: ${costAmount},
+      date: ${ExcelDateToISO(date)},
+      guid: "${guid}"
+    )
+  }`;
+  
+  let result = await SingleQuery(mutation, getIdOrError(guid, data => data.receiveAsset.toString()))
+  return result
+}
+
 /**
  * @customfunction
  * @param {string} account - The account identifier associated with the transaction.
@@ -695,7 +726,8 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
       denominator : { assetId : "${assetId}", assetType : CURRENCY },
       assetQuoteOverrides : ${assetQuoteOverrides})
       {
-        balance { amount denominator { assetId } } 
+        balance { amount denominator { assetId } }
+        income { amount denominator { assetId } } 
         cashBalance { amount denominator { assetId } } 
         totalDividend { amount denominator { assetId } } 
         positions { amount denominator { assetId } } 
@@ -716,6 +748,7 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
       assetQuoteOverrides : ${assetQuoteOverrides} ) 
       { 
         balance { amount denominator { assetId } } 
+        income { amount denominator { assetId } } 
         cashBalance { amount denominator { assetId } } 
         totalDividend { amount denominator { assetId } } 
         positions { amount denominator { assetId } } 
@@ -734,7 +767,7 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
   let result = await SingleQuery(query, data => ({ 
     amount: data.stats.balance.amount, asset: data.stats.balance.denominator,
     cashAmount: data.stats.cashBalance.amount, cashAsset: data.stats.cashBalance.denominator,
-    totalDividend: data.stats.totalDividend.amount,    
+    totalDividend: data.stats.totalDividend.amount, income : data.stats.income.amount, 
     positions: data.stats.positions, values: data.stats.values, costBasis: data.stats.costBasis, realisedGains: data.stats.realisedGains, dividends: data.stats.dividends,
     irr: data.stats.irr }
   ))
@@ -775,6 +808,20 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
             type : Excel.CellValueType.string,
             basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
           }  
+        },
+      },
+      "Income" : {
+        type: Excel.CellValueType.entity,
+        text: "Income",
+        properties : {
+          "Amount" : {
+            type : Excel.CellValueType.double,
+            basicValue : result.income,
+          },
+          "Asset" : {
+            type : Excel.CellValueType.string,
+            basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
+          }
         },
       },
       "Dividend" : {

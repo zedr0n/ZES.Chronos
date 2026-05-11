@@ -16,6 +16,11 @@ public class AccountStats(Quantity balance)
     /// Gets the total account balance expressed in the query denominator.
     /// </summary>
     public Quantity Balance => balance;
+
+    /// <summary>
+    /// Gets or sets the total income for the account, expressed as a monetary quantity.
+    /// </summary>
+    public Quantity Income { get; set; }
     
     /// <summary>
     /// Gets or sets the held asset quantities by asset.

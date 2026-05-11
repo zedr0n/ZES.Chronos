@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Chronos.Accounts.Events;
 using Chronos.Core;
 
 namespace Chronos.Accounts
@@ -44,9 +45,19 @@ namespace Chronos.Accounts
         {
             When(new Events.TransactionAdded(txId));
         }
-        public void TransactAsset(Quantity asset, Quantity cost, Quantity fee, bool createOffsettingCostTransaction)
+        public void TransactAsset(
+            Quantity asset, Quantity cost, Quantity fee,
+            bool createOffsettingCostTransaction,
+            string description = null,
+            AssetTransactionType assetTransactionType = AssetTransactionType.Unknown)
         {
-            When(new Events.AssetTransactionStarted(asset, cost) { Fee = fee, CreateOffsettingCostTransaction = createOffsettingCostTransaction });
+            When(new Events.AssetTransactionStarted(asset, cost)
+            {
+                Fee = fee,
+                CreateOffsettingCostTransaction = createOffsettingCostTransaction,
+                Description = description,
+                AssetTransactionType = assetTransactionType
+            });
         }
         private void ApplyEvent(Events.AccountCreated e)
         {

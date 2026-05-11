@@ -20,11 +20,14 @@ namespace Chronos.Accounts.Queries
         private readonly Dictionary<Time, List<(string fromAccount, string toAccount, Quantity quantity)>> _transfers = new();
         private readonly Dictionary<string, Dictionary<Time, double>> _quotes = new();
         private readonly HashSet<string> _accountNames = [];
+        private readonly Dictionary<Time, List<Quantity>> _income = new();
         private readonly Dictionary<Time, List<(string fromAccount, Quantity fee)>> _feeDisposals = new();
         private readonly Dictionary<Time, List<Guid?>> _feeDisposalCommandIds = new();
        
         private readonly Dictionary<Asset, double> _positions = new();
 
+        public ReadOnlyDictionary<Time, List<Quantity>> Income => _income.AsReadOnly();
+        
         public ReadOnlyDictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> Costs =>
             _costs.AsReadOnly();
 
@@ -75,6 +78,7 @@ namespace Chronos.Accounts.Queries
             _quotes = other._quotes.ToDictionary(x => x.Key, x => new Dictionary<Time, double>(x.Value));
             _feeDisposals = other._feeDisposals.ToDictionary(x => x.Key, x => x.Value.ToList());
             _feeDisposalCommandIds = other._feeDisposalCommandIds.ToDictionary(x => x.Key, x => x.Value.ToList());
+            _income = other._income.ToDictionary(x => x.Key, x => x.Value.ToList());
             _accountNames = new HashSet<string>(other.GetAccountNames());
             Transactions = new HashSet<string>(other.Transactions);
         }
@@ -277,6 +281,12 @@ namespace Chronos.Accounts.Queries
             }
         }
 
+        public void AddIncome(Quantity quantity, Time timestamp)
+        {
+            _income.TryAdd(timestamp, []);
+            _income[timestamp].Add(quantity);
+        }
+        
         public void AddFeeDisposal(string fromAccount, Quantity fee, Time timestamp, Guid? commandId)
         {
             _feeDisposals.TryAdd(timestamp, []);

@@ -1,4 +1,5 @@
-﻿using ZES.Infrastructure.Domain;
+﻿using Chronos.Accounts.Events;
+using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
 
@@ -9,6 +10,6 @@ public class TransactAssetHandler(IEsRepository<IAggregate> repository)
 {
     protected override void Act(Account root, TransactAsset command)
     {
-        root.TransactAsset(command.Asset, command.Cost, command.Fee, command.CreateOffsettingCostTransaction);
+        root.TransactAsset(command.Asset, command.Cost, command.Fee, command.CreateOffsettingCostTransaction, assetTransactionType: AssetTransactionType.Trade);
     }
 }

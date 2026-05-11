@@ -67,8 +67,11 @@ namespace Chronos.Core.Commands
 
       // handle holidays
       if (holidayCalendar != null && !timestamp.IsWorkingDay())
+      {
         timestamp = timestamp.PreviousWorkingDay().CloseOfDay();
-      
+        intraday = false;
+      }
+
       var hasExplicitTime = timestamp != timestamp.StartOfDay();
       
       if (timestamp == null)
