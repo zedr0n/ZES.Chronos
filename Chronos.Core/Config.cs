@@ -151,10 +151,10 @@ namespace Chronos.Core
                 return result;
             }
 
-            public bool RegisterAssetPair(Asset forAsset, Asset domAsset, string guid, string holidayCalendar = null, bool supportsIntraday = true)
+            public bool RegisterAssetPair(Asset forAsset, Asset domAsset, string guid, string holidayCalendar = null, bool supportsIntraday = true, bool useStaleQuotes = false)
             {
                 var fordom = AssetPair.Fordom(forAsset, domAsset);
-                var command = new RegisterAssetPair(fordom, forAsset, domAsset, holidayCalendar, supportsIntraday);
+                var command = new RegisterAssetPair(fordom, forAsset, domAsset, holidayCalendar, supportsIntraday, useStaleQuotes);
                 var result = Resolve(new RetroactiveCommand<RegisterAssetPair>(command, Time.MinValue) { Guid = guid });
                 return result;
             }
@@ -222,6 +222,28 @@ namespace Chronos.Core
                     Resolve(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(forAssetObj, domAssetObj), forAssetObj, domAssetObj), nDate));
 
                 return Resolve(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(forAssetObj, domAssetObj)), nDate));
+            }
+
+            public bool AddQuote(string assetId, double close, string date, string guid, string domAssetId = null, double? open = null, double? low = null, double? high = null)
+            {
+                var nDate = date.ToTime();
+                var fordoms = new List<string>();
+                if (domAssetId == null)
+                {
+                    var assetsList = Resolve(new AssetPairsInfoQuery() { Timeline = BranchManager.Master });
+                    fordoms = assetsList.Pairs.Where(x => x.StartsWith(assetId, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
+                else
+                {
+                    fordoms = new List<string>() { AssetPair.Fordom(assetId, domAssetId) };
+                }
+
+                var valid = true;
+                foreach (var fordom in fordoms)
+                    valid &= Resolve(new RetroactiveCommand<AddQuote>(new AddQuote(fordom, nDate.ToInstant(), close, open ?? 0, low ?? 0, high ?? 0), nDate) { Guid = guid });
+
+                return valid;
             }
 
             public bool AddTransactionQuote(string txId, string assetId, double amount)

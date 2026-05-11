@@ -120,10 +120,13 @@ namespace Chronos.Core.Queries
       if(TryGetOverride(query, forAsset, domAsset, out var price))
         return new SingleAssetQuote(price, timestamp.ToInstant());
       
+      var assetPairInfo = await pairInfoHandler.Handle(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)));
+      var useStaleQuotes = assetPairInfo?.UseStaleQuotes ?? false;
+      
       var fordom = AssetPair.Fordom(forAsset, domAsset);
-      if (query.UpdateQuote)
+      if (query.UpdateQuote && !useStaleQuotes)
       {
-        var quoteDates = (await pairInfoHandler.Handle(new AssetPairInfoQuery(fordom)))?.QuoteDates;
+        var quoteDates = assetPairInfo?.QuoteDates;
         var sameWorkingDatesQuotes = quoteDates?.Where(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant())).ToList();
 
         var hasExplicitTime = timestamp != timestamp.StartOfDay();
@@ -143,6 +146,9 @@ namespace Chronos.Core.Queries
         Timestamp = timestamp,
       });
 
+      if(useStaleQuotes && !double.IsNaN(result.Price))
+        return result;
+      
       if (result == null)
       {
         log.Error($"No pricing data found for {fordom}");
@@ -166,7 +172,7 @@ namespace Chronos.Core.Queries
 
       if (valid)
         return new SingleAssetQuote(result.Price, timestamp.ToInstant());
-      
+
       log.Error($"Stale pricing data found for {fordom} : {result?.Timestamp}");  
       return new SingleAssetQuote(0.0, timestamp.ToInstant());
     }    

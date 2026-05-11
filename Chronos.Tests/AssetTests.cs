@@ -757,5 +757,35 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(AssetPair.Fordom(btc, usd)), date));
             await bus.Equal(new HistoricalQuery<AssetQuoteQuery, AssetQuote>(new AssetQuoteQuery(btc, gbp), date), s => Math.Round(s.Quantity.Amount, 6), Math.Round(18802.99829969 / 1.3337, 6));
         }
+
+        [Fact]
+        public async Task CanUseStaleQuote()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            
+            var date = new LocalDateTime(2020, 1, 23, 12, 30).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2020, 1, 24, 12, 30).InUtc().ToInstant().ToTime();
+
+            var csno = new Asset("CSNO", AssetType.Coin);
+            var usd = new Currency("USD");
+
+            await connector.SetAsync(webSearchApi.GetUrl("CSNO-USD"),
+                "[]");
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(csno, usd, useStaleQuotes: true), Time.MinValue));
+            await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker(AssetPair.Fordom(csno, usd), "CSNO-USD.CC"), date));
+            await bus.Command(new RetroactiveCommand<AddQuote>(new AddQuote(AssetPair.Fordom(csno, usd), date.ToInstant(),0.028577), date));
+            await bus.Command(new RetroactiveCommand<AddQuote>(new AddQuote(AssetPair.Fordom(csno, usd), date2.ToInstant(),0), date2));
+            
+            var quote = await bus.QueryAsync(new AssetQuoteQuery(csno, usd) { UpdateQuote = true, Timestamp = date });
+            Assert.Equal(0.028577, quote.Quantity.Amount);
+            
+            quote = await bus.QueryAsync(new AssetQuoteQuery(csno, usd));
+            Assert.Equal(0, quote.Quantity.Amount);
+        }
     }
 }

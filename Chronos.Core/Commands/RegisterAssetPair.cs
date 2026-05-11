@@ -12,7 +12,7 @@ namespace Chronos.Core.Commands;
  /// into an asset pair, with an identifier comprising the combination of these assets.
  /// </remarks>
  [method: JsonConstructor]
- public class RegisterAssetPair(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true) : Command, ICreateCommand
+ public class RegisterAssetPair(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true, bool useStaleQuotes = false) : Command, ICreateCommand
  {
      /// <summary>
      /// Initializes a new instance of the <see cref="RegisterAssetPair"/> class.
@@ -22,13 +22,14 @@ namespace Chronos.Core.Commands;
      /// <param name="domAsset">Domestic asset in the pair</param>
      /// <param name="holidayCalendar">Holiday calendar for the asset pair</param>
      /// <param name="supportsIntraday">Indicates if the asset pair supports intraday trading</param>
+     /// <param name="useStaleQuotes">Indicates if stale quotes are permitted for the asset pair</param>
      /// <remarks>
      /// This command creates an association between two assets, referred to as the "for" asset and
      /// the "dom" (dominant) asset. The combination of these assets creates a unique identifier
      /// for the asset pair, known as "fordom".
      /// </remarks>
-     public RegisterAssetPair(Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true)
-         : this(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset, holidayCalendar, supportsIntraday) { }
+     public RegisterAssetPair(Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true, bool useStaleQuotes = false)
+         : this(AssetPair.Fordom(forAsset, domAsset), forAsset, domAsset, holidayCalendar, supportsIntraday, useStaleQuotes) { }
      
      /// <summary>
      /// Gets the combined identifier for the asset pair, which is typically
@@ -66,6 +67,18 @@ namespace Chronos.Core.Commands;
      /// of non-trading days or market-specific holidays that affect operations related to this asset pair.
      /// </summary>
      public string HolidayCalendar => holidayCalendar;
+
+     /// <summary>
+     /// Gets a value indicating whether stale quotes are permitted to be used for the asset pair.
+     /// Stale quotes refer to outdated pricing data, which may still be relevant in certain contexts
+     /// such as pre-market or after-hours trading.
+     /// </summary>
+     /// <remarks>
+     /// When enabled, the system may rely on older pricing data to support operations in scenarios
+     /// where live data is unavailable or delayed. This option may introduce risk but can improve
+     /// continuity and decision-making in time-sensitive processes.
+     /// </remarks>
+     public bool UseStaleQuotes => useStaleQuotes;
      
      /// <inheritdoc/>
      public override string Target => fordom;

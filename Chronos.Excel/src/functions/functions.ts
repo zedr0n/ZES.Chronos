@@ -134,12 +134,15 @@ export async function registerCurrencyPair(forCcy: string, domCcy: string)
  * @param guid Command guid
  * @param {string} [holidayCalendar] Holiday calendar identifier
  * @param {boolean} [supportsIntraday] Whether this asset pair supports intraday quoting
- * @param supportsIntraday
+ * @param {boolean} [useStaleQuotes] Whether stale quotes are permitted for this asset pair
  */
-export async function registerAssetPair(forAssetId : string, forAssetType : string, domAssetId : string, domAssetType : string, guid: string, holidayCalendar? : string, supportsIntraday? : boolean) : Promise<any>
+export async function registerAssetPair(forAssetId : string, forAssetType : string, domAssetId : string, domAssetType : string, guid: string, holidayCalendar? : string, supportsIntraday? : boolean, useStaleQuotes? : boolean) : Promise<any>
 {
   if(supportsIntraday === undefined || supportsIntraday == null)
     supportsIntraday = true
+
+  if(useStaleQuotes === undefined || useStaleQuotes == null)
+    useStaleQuotes = false
   
   const mutation = `mutation {
     registerAssetPair( 
@@ -149,7 +152,8 @@ export async function registerAssetPair(forAssetId : string, forAssetType : stri
       assetType : ${domAssetType.toUpperCase()}},
       guid : "${guid}",
       holidayCalendar : ${OptionalString(holidayCalendar)},
-      supportsIntraday : ${supportsIntraday})
+      supportsIntraday : ${supportsIntraday},
+      useStaleQuotes : ${useStaleQuotes})
   }`
  
   const fordom = forAssetId + domAssetId;
@@ -192,6 +196,36 @@ export async function addQuoteTicker(assetId : string, ticker : string, domAsset
   }`
   
   let result = await SingleQuery(mutation, getIdOrError(assetId, data => data.addQuoteTicker.toString()))
+  return result
+}
+
+/**
+ * @customfunction
+ * @param {string} assetId - The ID of the quoted asset.
+ * @param {number} close - The closing quote price.
+ * @param {number} date - The quote date, represented as an Excel serial date number.
+ * @param {string} guid - A unique identifier for the command.
+ * @param {string} [domAssetId] - The optional ID of the quote denominator asset.
+ * @param {number} [open] - The opening quote price.
+ * @param {number} [low] - The low quote price.
+ * @param {number} [high] - The high quote price.
+ */
+export async function addQuote(assetId : string, close : number, date : number, guid : string, domAssetId? : string, open? : number, low? : number, high? : number)
+{
+  const mutation = `mutation {
+    addQuote(
+      assetId: "${assetId}",
+      domAssetId: ${OptionalString(domAssetId)},
+      close: ${close},
+      date: ${ExcelDateToISO(date)},
+      guid: "${guid}",
+      open: ${OptionalExcelNumber(open)},
+      low: ${OptionalExcelNumber(low)},
+      high: ${OptionalExcelNumber(high)}
+    )
+  }`
+
+  let result = await SingleQuery(mutation, getIdOrError(assetId, data => data.addQuote.toString()))
   return result
 }
 

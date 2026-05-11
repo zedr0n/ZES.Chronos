@@ -35,15 +35,16 @@ namespace Chronos.Core
         /// <param name="domAsset">Domestic asset in the pair</param>
         /// <param name="supportsIntraday">Indicates whether intraday trading or quoting is supported</param>
         /// <param name="holidayCalendar">Holiday calendar for the asset pair</param>
+        /// <param name="useStaleQuotes">Indicates whether stale quotes are permitted for the asset pair</param>
         /// <remarks>
         /// An AssetPair consists of a "foreign" asset and a "domestic" asset, representing
         /// a trading pair or a conversion relationship. The class provides functionality to
         /// register asset pairs, add quotes, and associate a URL for quote information.
         /// </remarks>
-        public AssetPair(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar, bool supportsIntraday)
+        public AssetPair(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar, bool supportsIntraday, bool useStaleQuotes)
             : this()
         {
-            When(new AssetPairRegistered(fordom, forAsset, domAsset, holidayCalendar, supportsIntraday));
+            When(new AssetPairRegistered(fordom, forAsset, domAsset, holidayCalendar, supportsIntraday, useStaleQuotes));
         }
 
         /// <summary>
@@ -90,6 +91,12 @@ namespace Chronos.Core
         /// settlement operations related to the pair.
         /// </summary>
         public string HolidayCalendar { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether stale quotes are allowed for this asset pair.
+        /// When enabled, outdated or stale market quotes may be used to represent the asset pair pricing.
+        /// </summary>
+        public bool UseStaleQuotes { get; private set; }
 
         /// <summary>
         /// Combines the asset identifiers of the given "for" asset and "dom" asset into a single string.
@@ -160,6 +167,7 @@ namespace Chronos.Core
             DomAsset = e.DomAsset;
             SupportsIntraday = e.SupportsIntraday;
             HolidayCalendar = e.HolidayCalendar;
+            UseStaleQuotes = e.UseStaleQuotes;
         }
 
         private void ApplyEvent (QuoteAdded e)

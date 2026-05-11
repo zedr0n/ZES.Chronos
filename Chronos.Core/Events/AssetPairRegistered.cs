@@ -11,7 +11,7 @@ namespace Chronos.Core.Events;
 /// This event contains the asset pair identifier and its associated assets.
 /// </remarks>
 [method: JsonConstructor]
-public class AssetPairRegistered(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true) : Event
+public class AssetPairRegistered(string fordom, Asset forAsset, Asset domAsset, string holidayCalendar = null, bool supportsIntraday = true, bool useStaleQuotes = false) : Event
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetPairRegistered"/> class.
@@ -72,4 +72,16 @@ public class AssetPairRegistered(string fordom, Asset forAsset, Asset domAsset, 
     /// computing delivery dates, and aligning with market conventions.
     /// </remarks>
     public string HolidayCalendar => holidayCalendar;
+
+    /// <summary>
+    /// Gets a value indicating whether stale quotes are permitted to be used for the asset pair.
+    /// Stale quotes refer to outdated pricing data, which may still be relevant in certain contexts
+    /// such as pre-market or after-hours trading.
+    /// </summary>
+    /// <remarks>
+    /// When enabled, the system may rely on older pricing data to support operations in scenarios
+    /// where live data is unavailable or delayed. This option may introduce risk but can improve
+    /// continuity and decision-making in time-sensitive processes.
+    /// </remarks>
+    public bool UseStaleQuotes => useStaleQuotes;
 }

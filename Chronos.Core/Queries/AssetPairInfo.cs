@@ -9,7 +9,7 @@ namespace Chronos.Core.Queries;
 /// involved, relevant quote dates, and associated ticker information.
 /// </summary>
 [method: JsonConstructor]
-public class AssetPairInfo(Asset forAsset, Asset domAsset, Instant[] quoteDates, string ticker, string holidayCalendar = null, bool supportsIntraday = true) : ISingleState
+public class AssetPairInfo(Asset forAsset, Asset domAsset, Instant[] quoteDates, string ticker, string holidayCalendar = null, bool supportsIntraday = true, bool useStaleQuotes = false) : ISingleState
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetPairInfo"/> class.
@@ -74,4 +74,16 @@ public class AssetPairInfo(Asset forAsset, Asset domAsset, Instant[] quoteDates,
     /// schedules or date adjustments.
     /// </remarks>
     public string HolidayCalendar { get; } = holidayCalendar;
+    
+    /// <summary>
+    /// Gets a value indicating whether stale quotes are permitted to be used for the asset pair.
+    /// Stale quotes refer to outdated pricing data, which may still be relevant in certain contexts
+    /// such as pre-market or after-hours trading.
+    /// </summary>
+    /// <remarks>
+    /// When enabled, the system may rely on older pricing data to support operations in scenarios
+    /// where live data is unavailable or delayed. This option may introduce risk but can improve
+    /// continuity and decision-making in time-sensitive processes.
+    /// </remarks>
+    public bool UseStaleQuotes => useStaleQuotes;
 }
