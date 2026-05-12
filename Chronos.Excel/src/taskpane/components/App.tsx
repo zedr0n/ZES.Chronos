@@ -1,7 +1,6 @@
 import * as React from "react";
-import {Button, ButtonType, PrimaryButton} from "@fluentui/react";
+import {Checkbox, Dropdown, IDropdownOption, PrimaryButton, SearchBox} from "@fluentui/react";
 import Header from "./Header";
-import HeroList, { HeroListItem } from "./HeroList";
 import Progress from "./Progress";
 import { request } from 'graphql-request';
 import RangeInput from "./RangeInput";
@@ -10,12 +9,17 @@ declare global {
   interface Window {
     server: string;
     period: number;
+    riderProjects: { name: string; root: string }[];
     console : any;
   }
 }
 
 window.server = "https://localhost:5001";
 window.period = 5000;
+window.riderProjects = [
+  { name: "ZES.Chronos", root: "D:\\dev\\ZES.Chronos" },
+  { name: "ZES", root: "D:\\dev\\ZES" }
+];
 window.console = console;
 
 export interface AppProps {
@@ -24,36 +28,64 @@ export interface AppProps {
 }
 
 export interface AppState {
-  listItems: HeroListItem[];
+  logs: string[];
+  isLoadingLogs: boolean;
+  logLevelFilter: string;
+  logSearch: string;
+  showRetroactiveExecution: boolean;
+  showThreadNumber: boolean;
+  logError?: string;
 }
 
 export default class App extends React.Component<AppProps, AppState> {
   constructor(props, context) {
     super(props, context);
     this.state = {
-      listItems: []
+      logs: [],
+      isLoadingLogs: false,
+      logLevelFilter: "all",
+      logSearch: "",
+      showRetroactiveExecution: true,
+      showThreadNumber: false
     };
   }
   
   server : string = "https://localhost:5001";
+  logRefreshTimer?: number;
+  logWindowRef = React.createRef<HTMLDivElement>();
+  logLevelOptions: IDropdownOption[] = [
+    { key: "all", text: "All" },
+    { key: "E", text: "Errors" },
+    { key: "W", text: "Warnings" },
+    { key: "I", text: "Info" },
+    { key: "D", text: "Debug" },
+    { key: "T", text: "Trace" }
+  ];
 
   componentDidMount() {
-    this.setState({
-      listItems: [ /*
-        {
-          icon: 'Ribbon',
-          primaryText: 'Achieve more with Office integration'
-        },
-        {
-          icon: 'Unlock',
-          primaryText: 'Unlock features and functionality'
-        },
-        {
-          icon: 'Design',
-          primaryText: 'Create and visualize like a pro'
-        }*/
-      ]
-    });
+    this.refreshLogs();
+    this.logRefreshTimer = window.setInterval(this.refreshLogs, window.period);
+  }
+
+  componentWillUnmount() {
+    if (this.logRefreshTimer !== undefined) {
+      window.clearInterval(this.logRefreshTimer);
+    }
+  }
+
+  componentDidUpdate(previousProps: AppProps, previousState: AppState) {
+    const previousLogs = previousState.logs.join("\n");
+    const currentLogs = this.state.logs.join("\n");
+    if (previousLogs !== currentLogs || previousState.logError !== this.state.logError) {
+      this.scrollLogsToBottom();
+    }
+  }
+
+  scrollLogsToBottom = () => {
+    const logWindow = this.logWindowRef.current;
+    if (logWindow) {
+      logWindow.scrollTop = logWindow.scrollHeight;
+    }
   }
 
   ExcelDateToJSDate = (serial : number) => {
@@ -351,6 +383,164 @@ export default class App extends React.Component<AppProps, AppState> {
   {
     const mutation = "mutation { flushLog }"
     await request(window.server, mutation)
+    await this.refreshLogs()
+  }
+
+  refreshLogs = async() =>
+  {
+    this.setState({ isLoadingLogs: true, logError: undefined });
+    try {
+      const result = await request(window.server, "{ logs }") as { logs?: string[] };
+      this.setState({
+        logs: result.logs || [],
+        isLoadingLogs: false
+      });
+    }
+    catch (error) {
+      const message = error && error.message ? error.message : String(error);
+      this.setState({
+        isLoadingLogs: false,
+        logError: message
+      });
+    }
+  }
+
+  logClassName = (message: string) => {
+    if (message.indexOf("|E|") >= 0) {
+      return "ms-chronos-log__entry ms-chronos-log__entry--error";
+    }
+    if (message.indexOf("|W|") >= 0) {
+      return "ms-chronos-log__entry ms-chronos-log__entry--warning";
+    }
+    if (message.indexOf("|D|") >= 0) {
+      return "ms-chronos-log__entry ms-chronos-log__entry--debug";
+    }
+    if (message.indexOf("|T|") >= 0) {
+      return "ms-chronos-log__entry ms-chronos-log__entry--trace";
+    }
+    if (message.indexOf("|I|") >= 0) {
+      return "ms-chronos-log__entry ms-chronos-log__entry--info";
+    }
+    return "ms-chronos-log__entry ms-chronos-log__entry--info";
+  }
+
+  renderLogEntries = () => {
+    if (this.state.logError) {
+      return <div className='ms-chronos-log__entry ms-chronos-log__entry--error'>{this.renderLogMessage(this.displayLogMessage(this.state.logError))}</div>;
+    }
+
+    const logs = this.filteredLogs();
+    if (logs.length === 0) {
+      return <div className='ms-chronos-log__empty'>No log messages.</div>;
+    }
+
+    return logs.map((message, index) =>
+      <div className={this.logClassName(message)} key={index}>{this.renderLogMessage(this.displayLogMessage(message))}</div>
+    );
+  }
+
+  filteredLogs = () => {
+    let logs = this.state.logs;
+
+    if (this.state.logLevelFilter !== "all") {
+      const marker = `|${this.state.logLevelFilter}|`;
+      logs = logs.filter(message => message.indexOf(marker) >= 0);
+    }
+
+    if (!this.state.showRetroactiveExecution) {
+      logs = logs.filter(message => message.indexOf("Retroactive execution :") < 0);
+    }
+
+    const search = this.state.logSearch.trim().toLowerCase();
+    if (search.length > 0) {
+      logs = logs.filter(message => message.toLowerCase().indexOf(search) >= 0);
+    }
+
+    return logs;
+  }
+
+  setLogLevelFilter = (event: React.FormEvent<HTMLDivElement>, option?: IDropdownOption) => {
+    if (option) {
+      this.setState({ logLevelFilter: option.key as string });
+    }
+  }
+
+  setShowRetroactiveExecution = (event?: React.FormEvent<HTMLElement | HTMLInputElement>, checked?: boolean) => {
+    this.setState({ showRetroactiveExecution: checked !== false });
+  }
+
+  setShowThreadNumber = (event?: React.FormEvent<HTMLElement | HTMLInputElement>, checked?: boolean) => {
+    this.setState({ showThreadNumber: checked === true });
+  }
+
+  setLogSearch = (event?: React.ChangeEvent<HTMLInputElement>, value?: string) => {
+    this.setState({ logSearch: value || "" });
+  }
+
+  displayLogMessage = (message: string) => {
+    return this.state.showThreadNumber ? message : message.replace(/^<\s*\d+\s*>\s*/, "");
+  }
+
+  renderLogMessage = (message: string) => {
+    const linkPattern = /(https?:\/\/[^\s<>"']+|[A-Za-z]:\\[^\r\n\]]+\.[A-Za-z0-9]+(?::line \d+)?)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = linkPattern.exec(message)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(message.substring(lastIndex, match.index));
+      }
+
+      const text = match[0];
+      const trailing = text.match(/[),.;:]+$/);
+      const linkText = trailing ? text.substring(0, text.length - trailing[0].length) : text;
+
+      parts.push(
+        <a className='ms-chronos-log__link' href={this.logLinkHref(linkText)} key={parts.length} target='_blank' rel='noreferrer'>
+          {linkText}
+        </a>
+      );
+
+      if (trailing) {
+        parts.push(trailing[0]);
+      }
+
+      lastIndex = match.index + text.length;
+    }
+
+    if (lastIndex < message.length) {
+      parts.push(message.substring(lastIndex));
+    }
+
+    return parts;
+  }
+
+  logLinkHref = (text: string) => {
+    if (text.indexOf("http://") === 0 || text.indexOf("https://") === 0) {
+      return text;
+    }
+
+    const lineMatch = text.match(/:line (\d+)$/);
+    const filePath = text.replace(/:line \d+$/, "");
+    const project = this.riderProjectForPath(filePath);
+    const path = project
+      ? filePath.substring(project.root.length).replace(/^\\/, "").replace(/\\/g, "/")
+      : filePath.replace(/\\/g, "/");
+    const pathWithLine = lineMatch ? `${path}:${lineMatch[1]}` : path;
+
+    if (project) {
+      return `jetbrains://rd/navigate/reference?project=${encodeURIComponent(project.name)}&path=${encodeURIComponent(pathWithLine)}`;
+    }
+
+    return `jetbrains://rd/navigate/reference?path=${encodeURIComponent(pathWithLine)}`;
+  }
+
+  riderProjectForPath = (filePath: string) => {
+    const normalized = filePath.toLowerCase();
+    return window.riderProjects
+      .filter(project => normalized.indexOf(project.root.toLowerCase()) === 0)
+      .sort((a, b) => b.root.length - a.root.length)[0];
   }
 
   render() {
@@ -375,19 +565,44 @@ export default class App extends React.Component<AppProps, AppState> {
         <div style={{display: "flex", justifyContent: "center"}}>
           <PrimaryButton onClick={this.flushLog}>Flush log</PrimaryButton>
         </div>
-        <HeroList message='' items={this.state.listItems}>
-          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.registerHashflare}>Register hashflare</Button>
-          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.buyHashrate}>Buy hashrate</Button>
-          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.addMined}>Add mined amount</Button>
-
-          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createAccount}>Create account</Button>
-          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.createCoin}>Create coin</Button>
-          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.recordTransaction}>Record transaction</Button>
-          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.addTransaction}>Add transaction</Button>
-          
-          <Button className='ms-coin__action' buttonType={ButtonType.hero} iconProps={{ iconName: 'ChevronRight' }} onClick={this.updateQuote}>Update quote</Button>
-
-        </HeroList>
+        <main className='ms-welcome__main'>
+          <section className='ms-chronos-log'>
+            <div className='ms-chronos-log__header'>
+              <h2>Log</h2>
+              <div className='ms-chronos-log__tools'>
+                <Dropdown
+                  ariaLabel='Log message type'
+                  className='ms-chronos-log__filter'
+                  options={this.logLevelOptions}
+                  selectedKey={this.state.logLevelFilter}
+                  onChange={this.setLogLevelFilter}
+                />
+                <Checkbox
+                  checked={this.state.showRetroactiveExecution}
+                  className='ms-chronos-log__checkbox'
+                  label='Retroactive'
+                  onChange={this.setShowRetroactiveExecution}
+                />
+                <Checkbox
+                  checked={this.state.showThreadNumber}
+                  className='ms-chronos-log__checkbox'
+                  label='Thread'
+                  onChange={this.setShowThreadNumber}
+                />
+                <SearchBox
+                  className='ms-chronos-log__search'
+                  placeholder='Search'
+                  value={this.state.logSearch}
+                  onChange={this.setLogSearch}
+                />
+                {this.state.isLoadingLogs && <span>Refreshing</span>}
+              </div>
+            </div>
+            <div className='ms-chronos-log__window' ref={this.logWindowRef}>
+              {this.renderLogEntries()}
+            </div>
+          </section>
+        </main>
       </div>
     );
   }

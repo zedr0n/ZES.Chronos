@@ -5,6 +5,7 @@ import { ThemeProvider } from "@fluentui/react";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import '../functions/functions.ts'
+import './taskpane.css'
 
 initializeIcons();
 

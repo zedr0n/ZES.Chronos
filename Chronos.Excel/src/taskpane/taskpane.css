@@ -17,9 +17,7 @@
  }
  
  .ms-welcome__header {
-    padding: 20px;
-    padding-bottom: 30px;
-    padding-top: 100px;
+    padding: 12px 20px 16px;
     display: -webkit-flex;
     display: flex;
     -webkit-flex-direction: column;
@@ -77,4 +75,108 @@
 
 b {
     font-weight: bold;
+}
+
+.ms-chronos-log {
+    width: 100%;
+}
+
+.ms-chronos-log__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+}
+
+.ms-chronos-log__header h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.ms-chronos-log__header span {
+    color: #605e5c;
+    font-size: 12px;
+}
+
+.ms-chronos-log__tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.ms-chronos-log__filter {
+    width: 120px;
+}
+
+.ms-chronos-log__checkbox {
+    white-space: nowrap;
+}
+
+.ms-chronos-log__search {
+    width: 180px;
+}
+
+.ms-chronos-log__window {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 360px;
+    max-height: calc(100vh - 230px);
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    color: #d4d4d4;
+    background: #1e1e1e !important;
+    border: 1px solid #3c3c3c;
+    border-radius: 4px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.ms-chronos-log__entry {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    color: #d4d4d4;
+}
+
+.ms-chronos-log__entry--error {
+    color: #f48771;
+}
+
+.ms-chronos-log__entry--warning {
+    color: #dcdcaa;
+}
+
+.ms-chronos-log__entry--info {
+    color: #d7ba7d;
+}
+
+.ms-chronos-log__entry--debug {
+    color: #9cdcfe;
+}
+
+.ms-chronos-log__entry--trace {
+    color: #c586c0;
+}
+
+.ms-chronos-log__empty {
+    color: #808080;
+    font-style: italic;
+}
+
+.ms-chronos-log__link,
+.ms-chronos-log__link:visited {
+    color: #4fc1ff;
+    text-decoration: underline;
+}
+
+.ms-chronos-log__link:hover,
+.ms-chronos-log__link:focus {
+    color: #9cdcfe;
 }

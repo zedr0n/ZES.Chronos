@@ -4,11 +4,44 @@ import * as webpack from "webpack";
 
 /**
  * @customfunction
+ * @param invocation Custom function invocation
+ * @requiresAddress
  */
-export async function guid() : Promise<any> {
+export async function guid(invocation: CustomFunctions.Invocation) : Promise<any> {
 
   let guid = uuidv4();
+  freezeGuidFormula(invocation, guid);
   return guid;
+}
+
+function freezeGuidFormula(invocation: CustomFunctions.Invocation, guid: string) {
+  if (!invocation || !invocation.address || (invocation as any).isInValuePreview) {
+    return;
+  }
+
+  setTimeout(async () => {
+    try {
+      await Excel.run(async context => {
+        const range = getRangeFromAddress(context, invocation.address);
+        range.values = [[guid]];
+        await context.sync();
+      });
+    }
+    catch (error) {
+      console.error(error);
+    }
+  }, 0);
+}
+
+function getRangeFromAddress(context: Excel.RequestContext, address: string): Excel.Range {
+  const separator = address.lastIndexOf("!");
+  if (separator < 0) {
+    return context.workbook.worksheets.getActiveWorksheet().getRange(address);
+  }
+
+  const worksheetName = address.substring(0, separator).replace(/^'|'$/g, "").replace(/''/g, "'");
+  const rangeAddress = address.substring(separator + 1);
+  return context.workbook.worksheets.getItem(worksheetName).getRange(rangeAddress);
 }
 
 function OptionalString(value : string) : string | null {
@@ -810,126 +843,28 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
   
   const myEntity : Excel.EntityCellValue = {
     type : Excel.CellValueType.entity, 
-    text : accounts.map(a => `${a}`).join(', '),
+    text : `[${assetId}] ` + accounts.map(a => `${a}`).join(', '),
     properties : {
       "IRR" : {
         type : Excel.CellValueType.double,
         basicValue : result.irr,
       },
       "Balance" : {
-        type : Excel.CellValueType.entity,
-        text : "Balance",
-        properties : {
-          "Amount" : {
-            type : Excel.CellValueType.double,
-            basicValue : result.amount,
-          },
-          "Asset" : {
-            type : Excel.CellValueType.string,
-            basicValue : result.asset ? result.asset.assetId ?? "" : ""
-          }  
-        },
+        type : Excel.CellValueType.double,
+        basicValue: result.amount, 
       },
       "CashBalance" : {
-        type: Excel.CellValueType.entity,
-        text: "Cash Balance",
-        properties : {
-          "Amount" : {
-            type : Excel.CellValueType.double,
-            basicValue : result.cashAmount,
-          },
-          "Asset" : {
-            type : Excel.CellValueType.string,
-            basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
-          }  
-        },
+        type: Excel.CellValueType.double,
+        basicValue: result.cashAmount,
       },
       "Income" : {
-        type: Excel.CellValueType.entity,
-        text: "Income",
-        properties : {
-          "Amount" : {
-            type : Excel.CellValueType.double,
-            basicValue : result.income,
-          },
-          "Asset" : {
-            type : Excel.CellValueType.string,
-            basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
-          }
-        },
+        type: Excel.CellValueType.double,
+        basicValue: result.income,
       },
       "Dividend" : {
-        type: Excel.CellValueType.entity,
-        text: "Total dividend",
-        properties : {
-          "Amount" : {
-            type : Excel.CellValueType.double,
-            basicValue : result.totalDividend,
-          },
-          "Asset" : {
-            type : Excel.CellValueType.string,
-            basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
-          }
-        },
+        type: Excel.CellValueType.double,
+        basicValue: result.totalDividend,
       },
-      /*"Info" : {
-        type : Excel.CellValueType.array,
-        elements: [[ {
-            type : Excel.CellValueType.entity,
-            text : "Balance",
-            properties : {
-              "Type" : {
-                type: Excel.CellValueType.string,
-                basicValue: "Balance",
-              },
-              "Amount" : {
-                type : Excel.CellValueType.double,
-                basicValue : result.amount,
-              },
-              "Asset" : {
-                type : Excel.CellValueType.string,
-                basicValue : result.asset ? result.asset.assetId ?? "" : ""
-              }
-            }            
-          },
-          {
-            type : Excel.CellValueType.entity,
-            text : "Cash Balance",
-            properties : {
-              "Type" : {
-                type: Excel.CellValueType.string,
-                basicValue: "Cash Balance",
-              },
-              "Amount" : {
-                type : Excel.CellValueType.double,
-                basicValue : result.cashAmount,
-              },
-              "Asset" : {
-                type : Excel.CellValueType.string,
-                basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
-              }
-            }
-          },
-          {
-              type: Excel.CellValueType.entity,
-              text: "Total dividend",
-              properties : {
-                "Type" : {
-                  type: Excel.CellValueType.string,
-                  basicValue: "Dividend",
-                },
-                "Amount" : {
-                  type : Excel.CellValueType.double,
-                  basicValue : result.totalDividend,
-                },
-                "Asset" : {
-                  type : Excel.CellValueType.string,
-                  basicValue : result.cashAsset ? result.cashAsset.assetId ?? "" : ""
-                }
-              },
-            },            
-        ]],
-      },*/
       "Positions" : {
         type : Excel.CellValueType.array,
         elements: (result.positions && result.positions.length > 0)
