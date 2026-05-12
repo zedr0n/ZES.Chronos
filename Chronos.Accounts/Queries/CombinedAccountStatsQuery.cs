@@ -33,6 +33,11 @@ public class CombinedAccountStatsQuery(List<string> accounts, Asset denominator)
     public bool QueryNet { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether capital gains computations should be performed.
+    /// </summary>
+    public bool ComputeCapitalGains { get; set; } = true;
+    
+    /// <summary>
     /// Gets or sets a value indicating whether the cache should be enforced during the execution of the update quote command.
     /// When set to true, cached data will be prioritised and utilized if available; otherwise, the update
     /// operation may fetch fresh data regardless of any existing cached entries.

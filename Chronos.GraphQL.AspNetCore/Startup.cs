@@ -1,4 +1,5 @@
-﻿using HotChocolate.AspNetCore;
+﻿using System;
+using HotChocolate.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,10 @@ namespace Chronos.GraphQL.AspNetCore
         {
             services.AddCors()
                 .AddGraphQLServer().ModifyRequestOptions(opt =>
-                    opt.IncludeExceptionDetails = true);
+                {
+                    opt.IncludeExceptionDetails = true;
+                    opt.ExecutionTimeout = TimeSpan.FromMinutes(5);
+                });
             services.UseGraphQl(new[] { typeof(Chronos.Coins.Config), typeof(Chronos.Accounts.Config), typeof(Chronos.Hashflare.Config), typeof(Chronos.Core.Config) });
         }
 

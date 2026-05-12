@@ -1,3 +1,4 @@
+using System;
 using Chronos.Accounts.Events;
 using Chronos.Core;
 using Chronos.Core.Events;
@@ -46,7 +47,14 @@ namespace Chronos.Accounts.Queries
             newState.AddCost(e.Asset, e.Cost, e.Fee, e.Timestamp, e.RetroactiveId?.Id ?? e.CommandId?.Id);
             if (e.AssetTransactionType == AssetTransactionType.Income && e.Cost.Denominator.AssetType == AssetType.Currency)
                 newState.AddIncome(e.Cost, e.Timestamp);
+            if (e.AssetTransactionType == AssetTransactionType.Spend)
+            {
+                if(e.Cost.Denominator.AssetType != AssetType.Currency)
+                    throw new InvalidOperationException("Spend transactions must be denominated in currency assets");
                 
+                newState.AddSpend(e.Cost, e.Timestamp);
+            }
+
             return newState;
         }
 

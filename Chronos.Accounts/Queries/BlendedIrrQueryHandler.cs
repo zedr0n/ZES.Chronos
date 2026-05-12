@@ -15,13 +15,14 @@ namespace Chronos.Accounts.Queries;
 public class BlendedIrrQueryHandler : DefaultQueryHandler<BlendedIrrQuery, BlendedIrr, BlendedIrrState>
 {
     private readonly ITimeline _activeTimeline;
-    private readonly IQueryHandler<AccountStatsQuery, AccountStats> _accountStatsHandler;
-    
-    public BlendedIrrQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler)
+    private readonly IQueryHandler<CombinedAccountStatsQuery, AccountStats> _combinedAccountStatsHandler;
+
+    public BlendedIrrQueryHandler(IProjectionManager manager, ITimeline activeTimeline, 
+        IQueryHandler<CombinedAccountStatsQuery, AccountStats> combinedAccountStatsHandler)
         : base(manager, activeTimeline)
     {
         _activeTimeline = activeTimeline;
-        _accountStatsHandler = accountStatsHandler;
+        _combinedAccountStatsHandler = combinedAccountStatsHandler;
     }
 
     protected override Task<BlendedIrr> Handle(BlendedIrrQuery query)
@@ -40,35 +41,34 @@ public class BlendedIrrQueryHandler : DefaultQueryHandler<BlendedIrrQuery, Blend
 
         if (t0 != default)
         {
-            foreach(var account in accounts)
-            {
-                var accountStats = await _accountStatsHandler.Handle(new AccountStatsQuery(account, query.Denominator)
+            var startAccountStats =
+                await _combinedAccountStatsHandler.Handle(new CombinedAccountStatsQuery(accounts, query.Denominator)
                 {
                     Timeline = query.Timeline,
                     Timestamp = t0.ToTime(),
                     QueryNet = query.QueryNet,
+                    ComputeCapitalGains = false
                 });
-                startBalance += accountStats.Balance.Amount;
-                allCashflows.AddRange(accountStats.ExternalCashflows.Where(x => x.Item1 >= t0));
-            }
+            startBalance += startAccountStats.Balance.Amount;
+            allCashflows.AddRange(startAccountStats.ExternalCashflows.Where(x => x.Item1 >= t0));
         }
         
         if (startBalance != 0.0)
             allCashflows.Add((t0, new Quantity(-startBalance, query.Denominator)));
         
         var endBalance = 0.0;
-        foreach(var account in accounts)
-        {
-            var accountStats = await _accountStatsHandler.Handle(new AccountStatsQuery(account, query.Denominator)
+        
+        var endAccountStats =
+            await _combinedAccountStatsHandler.Handle(new CombinedAccountStatsQuery(accounts, query.Denominator)
             {
                 Timeline = query.Timeline,
                 Timestamp = query.Timestamp,
                 QueryNet = query.QueryNet,
+                ComputeCapitalGains = false 
             });
-            endBalance += accountStats.Balance.Amount;
-            allCashflows.AddRange(accountStats.ExternalCashflows.Where(x => x.Item1 >= t0));
-        }
-       
+        endBalance += endAccountStats.Balance.Amount;
+        allCashflows.AddRange(endAccountStats.ExternalCashflows.Where(x => x.Item1 >= t0));
+        
         var now = query.Timestamp?.ToInstant() ?? _activeTimeline.Now.ToInstant();
         var extCashflows = allCashflows.OrderBy(x => x.time).Select(x => (x.time, x.quantity.Amount)).ToList();
         extCashflows.Add((now, endBalance));

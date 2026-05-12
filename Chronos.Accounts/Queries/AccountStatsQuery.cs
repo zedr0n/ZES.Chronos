@@ -55,6 +55,11 @@ public class AccountStatsQuery(string name, Asset denominator) : Query<AccountSt
     public bool ComputeIrr { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether capital gains computations should be performed.
+    /// </summary>
+    public bool ComputeCapitalGains { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets a value indicating whether asset transfers out on the query timestamp should be included in gains calculations.
     /// </summary>
     /// <remarks>

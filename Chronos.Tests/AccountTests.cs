@@ -1295,9 +1295,41 @@ namespace Chronos.Tests
         }
 
         [Fact]
-        public async Task CanComputeIrrWithTransfers()
+        public async Task CanComputeIrrWithSpend()
         {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+
+            var date = new LocalDateTime(2021, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
             
+            var btc = new Asset("BTC", AssetType.Coin);
+            var gbp = new Currency("GBP");
+            var usd = new Currency("USD");
+            
+            await connector.SetAsync(webSearchApi.GetUrl("GBPUSD"), 
+                "[{\"Code\":\"GBPUSD\",\"Exchange\":\"FOREX\",\"Name\":\"UK Pound Sterling\\/US Dollar FX Spot Rate\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":1.3234,\"previousCloseDate\":\"2026-04-06\"}]");
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(btc, usd)),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":76734.7109375,\"previousCloseDate\":\"2026-04-28\"}]");
+            
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue));
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue));
+
+            var quote = await bus.QueryAsync(new AssetQuoteQuery(btc, gbp) { UpdateQuote = true, Timestamp = date });
+            
+            await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), date));
+            await bus.Command(new RetroactiveCommand<CreateTransaction>(
+                new CreateTransaction("Tx", new Quantity(0.01 * quote.Quantity.Amount, gbp), Transaction.TransactionType.Transfer,
+                    "Transfer In"), date));
+            await bus.Command(new RetroactiveCommand<AddTransaction>(new AddTransaction("Account", "Tx"), date));
+            
+            await bus.Command(new RetroactiveCommand<SpendAsset>(new SpendAsset("Account", new Quantity(0.01, btc), quote.Quantity*0.01), date));
+
+            var stats = await bus.QueryAsync(new AccountStatsQuery("Account", new Currency("GBP")) { Timestamp = date });
+            Assert.Equal(0, stats.Irr, 1e-3);
         }
         
         [Fact]

@@ -38,6 +38,7 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
             NumberOfMatchingDays = query.NumberOfMatchingDays,
             AssetQuoteOverrides = query.AssetQuoteOverrides,
             TrackDisposalLots = query.TrackDisposalLots,
+            ComputeCapitalGains = query.ComputeCapitalGains
         }); 
     }
 }

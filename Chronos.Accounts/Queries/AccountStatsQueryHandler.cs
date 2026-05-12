@@ -186,6 +186,28 @@ namespace Chronos.Accounts.Queries
                 }
             }
 
+            foreach (var (timestamp, quantities) in state.Spend)
+            {
+                foreach (var q in quantities)
+                {
+                    var quote = 1.0;
+                    if (q.Denominator != denominator)
+                    {
+                        var assetQuote = await _handler.Handle(new AssetQuoteQuery(q.Denominator, denominator)
+                        {
+                            Timestamp = timestamp,
+                            UpdateQuote = query.QueryNet,
+                            EnforceCache = query.EnforceCache,
+                        });
+                        if (assetQuote != null)
+                            quote = assetQuote.Quantity.Amount;
+                        else
+                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(q.Denominator, denominator)} at {query.Timestamp}");
+                    }
+                    extCashflows.Add((timestamp.ToInstant(), -q.Amount * quote));
+                }
+            }
+            
             foreach (var (timestamp, transfers) in state.AssetTransfers)
             {
                 foreach (var transfer in transfers)
@@ -264,6 +286,9 @@ namespace Chronos.Accounts.Queries
             var realisedGainsDictionary = new Dictionary<Asset, Quantity>();
             var realisedGainsPerTaxYearDictionary = new Dictionary<Asset, Dictionary<int, Quantity>>();
             var disposalGainItemsDictionary = new Dictionary<Asset, List<DisposalGainItem>>();
+            
+            if(!query.ComputeCapitalGains)
+                return (costBasisDictionary, realisedGainsDictionary, poolsDictionary, realisedGainsPerTaxYearDictionary, disposalGainItemsDictionary);
 
             var assetTransferIn = state.GetAssetTransfersIn();
             var assetTransfersOut = state.GetAssetTransfersOut();
