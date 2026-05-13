@@ -45,13 +45,13 @@ namespace Chronos.Hashflare
                 => Resolve(new HashflareStatsQuery());
 
             public HashflareStats HashflareStatsAsOf(long timestamp) 
-                => Resolve(new HistoricalQuery<HashflareStatsQuery, HashflareStats>(new HashflareStatsQuery(), Instant.FromUnixTimeMilliseconds(timestamp).ToTime()));
+                => Resolve(new HashflareStatsQuery() { Timestamp = Instant.FromUnixTimeMilliseconds(timestamp).ToTime() } );
 
             public ContractStats ContractStats(string txId) 
                 => Resolve(new ContractStatsQuery(txId));
 
             public ContractStats ContractStatsAsOf(string txId, long timestamp) 
-                => Resolve(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery(txId), Instant.FromUnixTimeMilliseconds(timestamp).ToTime()));
+                => Resolve(new ContractStatsQuery(txId) {Timestamp = Instant.FromUnixTimeMilliseconds(timestamp).ToTime() });
         }
 
         public class Mutations : GraphQlMutation

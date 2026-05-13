@@ -92,10 +92,10 @@ namespace Chronos.Tests
 
             await bus.Equal(new StatsQuery(), s => s.NumberOfCoins, 2);
             
-            var historicalQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), now);
+            var historicalQuery = new StatsQuery() { Timestamp = now };
             await bus.Equal(historicalQuery, s => s.NumberOfCoins, 1);
             
-            var liveQuery = new HistoricalQuery<StatsQuery, Stats>(new StatsQuery(), DateTime.UtcNow.ToInstant().ToTime());
+            var liveQuery = new StatsQuery() { Timestamp = DateTime.UtcNow.ToInstant().ToTime() };
             await bus.Equal(liveQuery, s => s.NumberOfCoins, 2);
         }
 

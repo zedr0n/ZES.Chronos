@@ -429,10 +429,10 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue)); 
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue)); 
 
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)) { Timestamp = date });
             var btcTicker = assetPairInfo.Ticker;
             
-            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)) { Timestamp = date });
             var gbpTicker = assetPairInfo.Ticker;
 
             await connector.SetAsync(coinQuoteApi.GetPreciseUrl(btcTicker, date),
@@ -485,10 +485,10 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue)); 
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue)); 
 
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)) { Timestamp = date });
             var btcTicker = assetPairInfo.Ticker;
             
-            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)) { Timestamp = date });
             var gbpTicker = assetPairInfo.Ticker;
 
             await connector.SetAsync(coinQuoteApi.GetPreciseUrl(btcTicker, date),
@@ -536,10 +536,10 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue)); 
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue)); 
 
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)) { Timestamp = date });
             var btcTicker = assetPairInfo.Ticker;
             
-            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)) { Timestamp = date });
             var gbpTicker = assetPairInfo.Ticker;
 
             await connector.SetAsync(coinQuoteApi.GetPreciseUrl(btcTicker, date),
@@ -865,21 +865,21 @@ namespace Chronos.Tests
             var date = new LocalDateTime(2016, 12, 30, 12, 30).InUtc().ToInstant().ToTime();
             var date2 = new LocalDateTime(2017, 8, 14, 12, 30).InUtc().ToInstant().ToTime();
            
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(gbp, usd)) { Timestamp = date });
             var ticker = assetPairInfo.Ticker;
             await connector.SetAsync(fxQuoteApi.GetUrl(ticker, date),
                 "[{\"date\":\"2016-12-30\",\"open\":1.2285,\"high\":1.2387,\"low\":1.227,\"close\":1.2288,\"adjusted_close\":1.2288,\"volume\":965}]");
             await connector.SetAsync(fxQuoteApi.GetUrl(ticker, date2),
                 "[{\"date\":\"2017-08-14\",\"open\":1.3008,\"high\":1.3023,\"low\":1.2961,\"close\":1.3006,\"adjusted_close\":1.3006,\"volume\":493}]");
             
-            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)), date));
+            assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)) { Timestamp = date });
             ticker = assetPairInfo.Ticker;
             await connector.SetAsync(coinQuoteApi.GetUrl(ticker, date2),
                 "[{\"date\":\"2017-08-14\",\"open\":4066.1000976563,\"high\":4325.1298828125,\"low\":3989.1599121094,\"close\":4325.1298828125,\"adjusted_close\":4325.1298828125,\"volume\":2463089920}]");
             await connector.SetAsync(coinQuoteApi.GetPreciseUrl(ticker, date2),
                 "[{\"date\":\"2017-08-14\",\"open\":4066.1000976563,\"high\":4325.1298828125,\"low\":3989.1599121094,\"close\":4325.1298828125,\"adjusted_close\":4325.1298828125,\"volume\":2463089920}]");
             
-            assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(eth, usd)), date));
+            assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(eth, usd)) { Timestamp = date });
             ticker = assetPairInfo.Ticker;
             await connector.SetAsync(coinQuoteApi.GetUrl(ticker, date2),
                 "[{\"date\":\"2017-08-14\",\"open\":298.0310058594,\"high\":306.8070068359,\"low\":296.4119873047,\"close\":300.0969848633,\"adjusted_close\":300.0969848633,\"volume\":864390976}]");
@@ -930,7 +930,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date));
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date));
            
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)) { Timestamp = date });
             var ticker = assetPairInfo.Ticker;
             await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
                 "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
@@ -1008,7 +1008,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date0));
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date0));
            
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date0));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)) { Timestamp = date0 });
             var ticker = assetPairInfo.Ticker;
             await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date0),
                 "[{\"date\":\"2021-08-16\",\"open\":759.8,\"high\":759.8,\"low\":752.212,\"close\":756.5,\"adjusted_close\":581.2255,\"volume\":293663}]");
@@ -1064,7 +1064,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date));
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date));
            
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)) { Timestamp = date });
             var ticker = assetPairInfo.Ticker;
             await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
                 "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
@@ -1149,7 +1149,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date));
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date));
            
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)) { Timestamp = date });
             var ticker = assetPairInfo.Ticker;
             await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
                 "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
@@ -1233,7 +1233,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Old", AccountType.Trading), date));
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("New", AccountType.Trading), date));
            
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)) { Timestamp = date });
             var ticker = assetPairInfo.Ticker;
             await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
                 "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
@@ -1355,7 +1355,7 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, gbx), date));
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(iukd, gbx), date));
            
-            var assetPairInfo = await bus.QueryAsync(new HistoricalQuery<AssetPairInfoQuery, AssetPairInfo>(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)), date));
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)) { Timestamp = date });
             var ticker = assetPairInfo.Ticker;
             await connector.SetAsync(equityQuoteApi.GetUrl(ticker, date),
                 "[{\"date\":\"2021-08-26\",\"open\":751.7,\"high\":754.4,\"low\":750.814,\"close\":751.9,\"adjusted_close\":577.6913,\"volume\":163286}]");
@@ -1525,7 +1525,7 @@ namespace Chronos.Tests
                     await await bus.CommandAsync(new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), t.Date.ToTime()));
             }
 
-            var balance = await bus.QueryAsync(new HistoricalQuery<AccountStatsQuery,AccountStats>(new AccountStatsQuery(account, usd), date));
+            var balance = await bus.QueryAsync(new AccountStatsQuery(account, usd) { Timestamp = date });
             Assert.NotNull(balance);
             Assert.NotNull(balance.Balance.Denominator);
         }

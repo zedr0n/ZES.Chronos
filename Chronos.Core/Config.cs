@@ -91,7 +91,7 @@ namespace Chronos.Core
                     return asset ?? throw new InvalidOperationException($"Asset {x} not registered");
                 });
                 
-                return Resolve(new HistoricalQuery<AssetQuoteQuery, AssetQuote>(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true }, nDate));
+                return Resolve(new AssetQuoteQuery(forAsset, domAsset) { UpdateQuote = true, Timestamp = nDate });
             }
             
             /// <summary>
@@ -124,9 +124,7 @@ namespace Chronos.Core
                 _bus.Command(new RetroactiveCommand<UpdateQuote>(
                     new UpdateQuote(AssetPair.Fordom(txInfo.Quantity.Denominator, asset)), date)).Wait();
 
-                return Resolve(
-                    new HistoricalQuery<TransactionInfoQuery, TransactionInfo>(
-                        new TransactionInfoQuery(txId, asset), date));
+                return Resolve(new TransactionInfoQuery(txId, asset) { Timestamp = date });
             }
         }
 

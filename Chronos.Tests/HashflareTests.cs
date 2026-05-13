@@ -57,7 +57,7 @@ namespace Chronos.Tests
 
             await bus.Equal(new HashflareStatsQuery(), s => s.BitcoinHashRate, 100);
             
-            var historicalQuery = new HistoricalQuery<HashflareStatsQuery, HashflareStats>(new HashflareStatsQuery(), time + Duration.FromMilliseconds(100));
+            var historicalQuery = new HashflareStatsQuery() { Timestamp = time + Duration.FromMilliseconds(100) };
             var result = await bus.QueryAsync(historicalQuery);
             Assert.Equal(100, result.BitcoinHashRate);
         }
@@ -103,8 +103,8 @@ namespace Chronos.Tests
             await await bus.CommandAsync(
                 new RetroactiveCommand<AddMinedCoinToHashflare>(new AddMinedCoinToHashflare("SHA-256", 0.01), lastTime + Duration.FromMilliseconds(500)));
             
-            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("0"), lastTime + Duration.FromSeconds(1)), c => c.Mined, 0.01 * 1.5);
-            await bus.Equal(new HistoricalQuery<ContractStatsQuery, ContractStats>(new ContractStatsQuery("1"), lastTime + Duration.FromSeconds(1)), c => c.Mined, 0.01 * 0.5);
+            await bus.Equal(new ContractStatsQuery("0") { Timestamp = lastTime + Duration.FromSeconds(1) }, c => c.Mined, 0.01 * 1.5);
+            await bus.Equal(new ContractStatsQuery("1") { Timestamp = lastTime + Duration.FromSeconds(1) }, c => c.Mined, 0.01 * 0.5);
 
             await graph.Serialise(nameof(CanRetroactivelyAddMinedToContract));
         }
@@ -182,7 +182,7 @@ namespace Chronos.Tests
             await bus.Equal(new ContractStatsQuery("1"), c => c.Mined, 0.055);
             
             var btcAsset = new Asset("Bitcoin", AssetType.Coin);
-            await bus.Equal(new HistoricalQuery<AccountStatsQuery, AccountStats>(new AccountStatsQuery("Hashflare", btcAsset), ultimateTime), a => a.Balance, new Quantity(0.11, btcAsset));
+            await bus.Equal(new AccountStatsQuery("Hashflare", btcAsset) { Timestamp = ultimateTime }, a => a.Balance, new Quantity(0.11, btcAsset));
         }
     }
 }
