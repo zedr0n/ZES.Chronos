@@ -34,7 +34,7 @@ namespace Chronos.Core.Queries
     IFlowCompletionService completionService)
     : QueryHandlerBase<AssetQuoteQuery, AssetQuote, AssetPairsInfo>(manager, activeTimeline)
   {
-    protected override async Task<AssetQuote> Handle(IProjection<AssetPairsInfo> projection, AssetQuoteQuery query)
+    protected override async Task<AssetQuote> Handle(IProjectionState<AssetPairsInfo> projection, AssetQuoteQuery query)
     {
       var price = 1.0;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);

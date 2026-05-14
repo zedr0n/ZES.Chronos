@@ -11,7 +11,7 @@ namespace Chronos.Accounts.Queries
     /// <summary>
     /// State for account stats
     /// </summary>
-    public class AccountState : IState
+    public class AccountState : IHistoricalState, IHistoricalResults<AccountState>
     {
         private readonly Dictionary<Asset, List<(Quantity quantity, Time timestamp)>> _deposits = new();
         private readonly Dictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> _costs = new();
@@ -84,6 +84,7 @@ namespace Chronos.Accounts.Queries
             _spend = other._spend.ToDictionary(x => x.Key, x => x.Value.ToList());
             _accountNames = new HashSet<string>(other.GetAccountNames());
             Transactions = new HashSet<string>(other.Transactions);
+            HistoricalResults = other.HistoricalResults.ToDictionary(x => x.Key, x => x.Value.Copy());
         }
 
         public AccountState Copy() => new(this);
@@ -110,6 +111,14 @@ namespace Chronos.Accounts.Queries
             
             foreach (var txId in other.Transactions)
                 Transactions.Add(txId);
+            
+            foreach (var (timestamp, otherHistoricalState) in other.HistoricalResults)
+            {
+                if (HistoricalResults.TryGetValue(timestamp, out var historicalState))
+                    historicalState.CombineWith(otherHistoricalState);
+                else
+                    HistoricalResults[timestamp] = otherHistoricalState.Copy();
+            }            
             
             _positions.Clear();
             return this;
@@ -389,5 +398,7 @@ namespace Chronos.Accounts.Queries
                     _transfers.Remove(timestamp);
             }
         }
+
+        public Dictionary<Time, AccountState> HistoricalResults { get; set; } = new();
     }
 }

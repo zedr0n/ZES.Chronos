@@ -16,7 +16,7 @@ public class SingleAssetQuoteQueryHandler(IProjectionManager manager, ITimeline 
     private readonly ITimeline _activeTimeline = activeTimeline;
 
     /// <inheritdoc/>
-    public override Task<SingleAssetQuote> Handle(IProjection projection, SingleAssetQuoteQuery query)
+    protected override Task<SingleAssetQuote> Handle(IProjectionState<SingleAssetQuote> projection, SingleAssetQuoteQuery query)
     {
         return query.Fordom switch
         {

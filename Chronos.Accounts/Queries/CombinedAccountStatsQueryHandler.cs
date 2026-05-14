@@ -20,7 +20,7 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
         return base.Handle(query);
     }
 
-    protected override async Task<AccountStats> Handle(IProjection<NullState> projection, CombinedAccountStatsQuery query)
+    protected override async Task<AccountStats> Handle(IProjectionState<NullState> projection, CombinedAccountStatsQuery query)
     {
         var accounts = query.Accounts;
         var state = await accountStatsStateHandler.Handle(new CombinedAccountStateQuery(accounts)

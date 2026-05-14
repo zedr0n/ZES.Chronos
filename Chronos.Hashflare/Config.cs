@@ -51,7 +51,7 @@ namespace Chronos.Hashflare
                 => Resolve(new ContractStatsQuery(txId));
 
             public ContractStats ContractStatsAsOf(string txId, long timestamp) 
-                => Resolve(new ContractStatsQuery(txId) {Timestamp = Instant.FromUnixTimeMilliseconds(timestamp).ToTime() });
+                => Resolve(new ContractStatsQuery(txId) { Timestamp = Instant.FromUnixTimeMilliseconds(timestamp).ToTime() });
         }
 
         public class Mutations : GraphQlMutation

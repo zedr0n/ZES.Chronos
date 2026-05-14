@@ -31,7 +31,7 @@ namespace Chronos.Core.Queries
         }
 
         /// <inheritdoc/>
-        protected override async Task<TransactionInfo> Handle(IProjection<TransactionInfo> projection, TransactionInfoQuery query)
+        protected override async Task<TransactionInfo> Handle(IProjectionState<TransactionInfo> projection, TransactionInfoQuery query)
         {
             var state = projection.State;
             if (state.TxId == null)

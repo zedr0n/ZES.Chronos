@@ -16,7 +16,7 @@ public class CombinedAccountStateQueryHandler(IProjectionManager manager, ITimel
         return base.Handle(query);
     }
 
-    protected override async Task<AccountState> Handle(IProjection<NullState> projection,
+    protected override async Task<AccountState> Handle(IProjectionState<NullState> projection,
         CombinedAccountStateQuery query)
     {
         AccountState state = null;
@@ -27,6 +27,7 @@ public class CombinedAccountStateQueryHandler(IProjectionManager manager, ITimel
             {
                 Timeline = query.Timeline,
                 Timestamp = query.Timestamp,
+                AdditionalTimestamps = query.AdditionalTimestamps
             });
             
             state = state == null ? accountStatsState.Copy() : state.CombineWith(accountStatsState);

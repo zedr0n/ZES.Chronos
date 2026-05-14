@@ -11,7 +11,7 @@ namespace Chronos.Accounts.Queries;
 public class TransactionListQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoQueryHandler)
     : DefaultSingleQueryHandler<TransactionListQuery, TransactionList, TransactionListState>(manager, activeTimeline)
 {
-    protected override async Task<TransactionList> Handle(IProjection<TransactionListState> projection, TransactionListQuery query)
+    protected override async Task<TransactionList> Handle(IProjectionState<TransactionListState> projection, TransactionListQuery query)
     {
         if (projection == null)
             throw new ArgumentNullException(nameof(projection), $"{typeof(IProjection<TransactionListState>).Name}");        

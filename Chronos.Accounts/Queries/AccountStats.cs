@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using Chronos.Core;
 using Newtonsoft.Json;
 using NodaTime;
+using ZES.Interfaces.Clocks;
+using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries;
 
@@ -10,7 +12,7 @@ namespace Chronos.Accounts.Queries;
 /// </summary>
 /// <param name="balance">The total account balance expressed in the query denominator.</param>
 [method: JsonConstructor]
-public class AccountStats(Quantity balance)
+public class AccountStats(Quantity balance) : IHistoricalResults<AccountStats>
 {
     /// <summary>
     /// Gets the total account balance expressed in the query denominator.
@@ -91,4 +93,8 @@ public class AccountStats(Quantity balance)
     /// Gets or sets the internal rate of return for the account.
     /// </summary>
     public double Irr { get; set; }
+
+    [JsonIgnore]
+    /// <inheritdoc/>
+    public Dictionary<Time, AccountStats> HistoricalResults { get; } = new();
 }

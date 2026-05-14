@@ -24,7 +24,7 @@ namespace Chronos.Coins.Queries
         }
 
         /// <inheritdoc/>
-        protected override async Task<WalletInfo> Handle(IProjection<WalletInfo> projection, WalletInfoQuery query)
+        protected override async Task<WalletInfo> Handle(IProjectionState<WalletInfo> projection, WalletInfoQuery query)
         {
             var state = projection.State;
 

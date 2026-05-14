@@ -31,7 +31,7 @@ public class BlendedIrrQueryHandler : DefaultQueryHandler<BlendedIrrQuery, Blend
         return base.Handle(query);
     }
 
-    protected override async Task<BlendedIrr> Handle(IProjection<BlendedIrrState> projection, BlendedIrrQuery query)
+    protected override async Task<BlendedIrr> Handle(IProjectionState<BlendedIrrState> projection, BlendedIrrQuery query)
     {
         var accounts = query.Accounts;
         var allCashflows = new List<(Instant time, Quantity quantity)>();

@@ -28,6 +28,8 @@ namespace Chronos.Accounts.Queries
         private readonly IQueryHandler<CombinedAccountStateQuery, AccountState> _accountStateHandler;
         private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
+        private readonly IQueryHandler<AssetLedgerQuery, AssetLedger> _ledgerHandler;
+
         private readonly ILog _log;
         private readonly Func<IQueryHandler<AccountStatsQuery, AccountStats>> _accountStatsHandlerFactory;
         private readonly AssetPoolFactory _assetPoolFactory;
@@ -42,7 +44,9 @@ namespace Chronos.Accounts.Queries
         public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
             IQueryHandler<CombinedAccountStateQuery, AccountState> accountStateHandler,
             IQueryHandler<AssetQuoteQuery, AssetQuote> handler,
-            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler, ILog log,
+            IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler,
+            IQueryHandler<AssetLedgerQuery, AssetLedger> ledgerHandler,
+            ILog log,
             Func<IQueryHandler<AccountStatsQuery, AccountStats>> accountStatsHandlerFactory,
             AssetPoolFactory assetPoolFactory)
             : base(manager, activeTimeline)
@@ -51,6 +55,7 @@ namespace Chronos.Accounts.Queries
             _accountStateHandler = accountStateHandler;
             _handler = handler;
             _transactionInfoHandler = transactionInfoHandler;
+            _ledgerHandler = ledgerHandler;
             _log = log;
             _accountStatsHandlerFactory = accountStatsHandlerFactory;
             _assetPoolFactory = assetPoolFactory;
@@ -72,17 +77,33 @@ namespace Chronos.Accounts.Queries
         }
         
         /// <inheritdoc/>
-        protected override async Task<AccountStats> Handle(IProjection<NullState> projection, AccountStatsQuery query)
+        protected override async Task<AccountStats> Handle(IProjectionState<NullState> projection, AccountStatsQuery query)
         {
             if (projection == null)
                 throw new ArgumentNullException(nameof(projection), $"{typeof(IProjection<AccountState>).Name}");
+            var timestamp = query.Timestamp;
             var state = await _accountStateHandler.Handle(new CombinedAccountStateQuery([query.Name])
             {
                 Timeline = query.Timeline,
-                Timestamp = query.Timestamp
+                Timestamp = timestamp,
+                AdditionalTimestamps = query.AdditionalTimestamps
             });
             
-            return await Handle(state, query);
+            var stats = await Handle(state, query);
+            try
+            {
+                foreach (var t in query.AdditionalTimestamps ?? [])
+                {
+                    query.Timestamp = t;
+                    stats.HistoricalResults[t] = await Handle(state.HistoricalResults[t], query);
+                }
+            }
+            finally
+            {
+                query.Timestamp = timestamp;
+            }
+
+            return stats;
         }
 
         public override async Task<AccountStats> Handle<TState>(TState tState, AccountStatsQuery query)
@@ -293,40 +314,95 @@ namespace Chronos.Accounts.Queries
             var assetTransferIn = state.GetAssetTransfersIn();
             var assetTransfersOut = state.GetAssetTransfersOut();
             var feeDisposals = state.FeeDisposals;
+            
+            var fromAccountStatsDictionary = new Dictionary<(string account, Time time), AccountStats>();
 
+            var timestampsByAccount = assetTransferIn
+                .SelectMany(x => x.Value.Select(y => new
+                {
+                    Account = y.fromAccount,
+                    Timestamp = x.Key
+                }))
+                .GroupBy(x => x.Account)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.Timestamp).Distinct().OrderBy(x => x).ToList());            
+           
+            foreach (var (account, timestamps) in timestampsByAccount)
+            {
+                var handler = _accountStatsHandlerFactory();
+                var latest = timestamps[^1];
+                var extraTimestamps = timestamps.Take(timestamps.Count - 1).ToList();
+                var fromAccountStats =  await handler.Handle(new AccountStatsQuery(account, denominator)
+                {
+                    Timeline = query.Timeline,
+                    QueryNet = query.QueryNet,
+                    Timestamp = latest,
+                    EnforceCache = query.EnforceCache,
+                    IncludeTransfersOutAtQueryDate = false,
+                    NumberOfMatchingDays = query.NumberOfMatchingDays,
+                    AssetQuoteOverrides = query.AssetQuoteOverrides,
+                    TrackDisposalLots = query.TrackDisposalLots,
+                    AdditionalTimestamps = extraTimestamps 
+                }); 
+                if (fromAccountStats == null)
+                    throw new InvalidOperationException($"Account {account} not found");
+                
+                fromAccountStatsDictionary[(account, latest)] = fromAccountStats;
+                foreach(var t in extraTimestamps)
+                    fromAccountStatsDictionary[(account, t)] = fromAccountStats.HistoricalResults[t];
+            }
+            
             var allTimestamps = state.Costs.Keys?.Union(assetTransferIn.Select(x => x.Key)).Union(assetTransfersOut.Select(x => x.Key)).Union(feeDisposals.Keys) ?? [];
             
             // we now need to sort all the costs by timestamp so that asset-asset swaps can be handled correctly
             const double tolerance = 1e-8;
-            var assetsWithCrossAccountMatching = new HashSet<Asset>();
+            var invalidAssetsAfterTransfer = new HashSet<Asset>();
+
+            var assetLedger = await _ledgerHandler.Handle(new AssetLedgerQuery() { Timeline = query.Timeline });
+            if (assetLedger == null)
+                throw new InvalidOperationException($"Asset ledger not found");
+            
             foreach (var t in allTimestamps.OrderBy(x => x))
             {
-                var costs = state.GetCosts(t).ToList(); //state.Costs.GetValueOrDefault(t, []);
+                var costs = state.GetCosts(t).ToList(); 
                 var transfersIn = assetTransferIn.GetValueOrDefault(t, []);
                 var transfersOut = assetTransfersOut.GetValueOrDefault(t, []);
-                
                 var assetsHandledByFullTransfer = new HashSet<Asset>();
                 
                 // handle transfers in
                 foreach (var (fromAccount, q) in transfersIn)
                 {
-                    var handler = _accountStatsHandlerFactory();
-                    var fromAccountStats = await handler.Handle(new AccountStatsQuery(fromAccount, denominator)
+                    var hasCrossAccountMatchingPair = assetLedger.HasCrossAccountMatchingPair(query.Name, fromAccount, q.Denominator, t, query.NumberOfMatchingDays);
+
+                    if (!fromAccountStatsDictionary.TryGetValue((fromAccount, t), out var fromAccountStats))
                     {
-                        QueryNet = query.QueryNet,
-                        Timestamp = t,
-                        IncludeTransfersOutAtQueryDate = false,
-                        NumberOfMatchingDays = query.NumberOfMatchingDays,
-                        AssetQuoteOverrides = query.AssetQuoteOverrides,
-                        TrackDisposalLots = query.TrackDisposalLots,
-                    });
+                        var handler = _accountStatsHandlerFactory();
+                        fromAccountStats = await handler.Handle(new AccountStatsQuery(fromAccount, denominator)
+                            {
+                                Timeline = query.Timeline,
+                                QueryNet = query.QueryNet,
+                                Timestamp = t,
+                                EnforceCache = query.EnforceCache,
+                                IncludeTransfersOutAtQueryDate = false,
+                                NumberOfMatchingDays = query.NumberOfMatchingDays,
+                                AssetQuoteOverrides = query.AssetQuoteOverrides,
+                                TrackDisposalLots = query.TrackDisposalLots,
+                            });
+                        fromAccountStatsDictionary[(fromAccount, t)] = fromAccountStats;
+                    }
                     if (fromAccountStats == null)
                         throw new InvalidOperationException($"Account {fromAccount} not found");
                     
-                    var isFullTransfer = Math.Abs(fromAccountStats.AssetPools[q.Denominator].TotalQuantity - q.Amount) < tolerance;
-
-                    if (isFullTransfer)
+                    if (hasCrossAccountMatchingPair)
                     {
+                        var isFullTransfer = Math.Abs(fromAccountStats.AssetPools[q.Denominator].TotalQuantity - q.Amount) < tolerance;
+                        if (!isFullTransfer)
+                        {
+                            invalidAssetsAfterTransfer.Add(q.Denominator);
+                            continue;
+                        }
+
                         var combinedState = await _accountStateHandler.Handle(
                             new CombinedAccountStateQuery([fromAccount, query.Name])
                             {
@@ -335,7 +411,7 @@ namespace Chronos.Accounts.Queries
                             });
                         if (combinedState == null)
                             throw new InvalidOperationException($"Account {fromAccount} not found");
-                        
+                            
                         var (costBasis, realisedGains, pools, realisedGainsPerTaxYear, disposalGainItems) = await ComputeGains(combinedState, new AccountStatsQuery(query.Name, denominator)
                         {
                             Timeline = query.Timeline,
@@ -349,7 +425,7 @@ namespace Chronos.Accounts.Queries
                         });
                         if(!pools.TryGetValue(q.Denominator, out var joinedPool))
                             throw new InvalidOperationException($"Asset {q.Denominator} not found in joined pool");
-                        
+                            
                         poolsDictionary[q.Denominator] = joinedPool;
                         costBasisDictionary[q.Denominator] = costBasis[q.Denominator];
                         realisedGainsDictionary[q.Denominator] = realisedGains[q.Denominator];
@@ -357,25 +433,12 @@ namespace Chronos.Accounts.Queries
                         disposalGainItemsDictionary[q.Denominator] = disposalGainItems[q.Denominator];
                         assetsHandledByFullTransfer.Add(q.Denominator);
                     }
-                    else if(!assetsWithCrossAccountMatching.Contains(q.Denominator))
+                    else
                     {
-                        // check if there are any historical cross-account matching
-                        if (HasCrossAccountMatchingPair(state, fromAccountStats.State, q.Denominator, t,
-                                query.NumberOfMatchingDays))
-                        {
-                            assetsWithCrossAccountMatching.Add(q.Denominator);
-                        }
-                        else
-                        {
-                            var fromPools = fromAccountStats.AssetPools;
-                            foreach (var asset in fromPools.Keys)
-                            {
-                                var pools = poolsDictionary.GetValueOrDefault(asset, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
-                                //pools.EndOfDay(t);
-                                pools.TransferFrom(t, fromPools[asset], q.Amount);
-                                poolsDictionary[asset] = pools;
-                            }
-                        } 
+                        var fromPools = fromAccountStats.AssetPools;
+                        var pools = poolsDictionary.GetValueOrDefault(q.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
+                        pools.TransferFrom(t, fromPools[q.Denominator], q.Amount);
+                        poolsDictionary[q.Denominator] = pools;
                     }
                 }
                  
@@ -404,7 +467,7 @@ namespace Chronos.Accounts.Queries
                             if (assetQuote != null)
                                 quote = assetQuote.Quantity.Amount;
                             else
-                                throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(c.Denominator, denominator)} at {query.Timestamp}");
+                                throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(c.Denominator, denominator)} at {t}");
                         }
                         
                         if (q.Denominator == asset)
@@ -484,7 +547,7 @@ namespace Chronos.Accounts.Queries
 
             foreach (var asset in poolsDictionary.Keys)
             {
-                if (assetsWithCrossAccountMatching.Contains(asset))
+                if (invalidAssetsAfterTransfer.Contains(asset))
                 {
                     costBasisDictionary[asset] = null;
                     realisedGainsDictionary[asset] = null;

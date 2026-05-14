@@ -24,7 +24,7 @@ public class DisposalGainItemsQueryHandler(IProjectionManager manager, ITimeline
         return base.Handle(query);
     }
     
-    protected override async Task<DisposalGainItems> Handle(IProjection<NullState> projection,
+    protected override async Task<DisposalGainItems> Handle(IProjectionState<NullState> projection,
         DisposalGainItemsQuery query)
     {
         var timestamp = query.Timestamp;

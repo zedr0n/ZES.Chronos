@@ -180,8 +180,7 @@ namespace Chronos.Accounts
                 if (!Enum.TryParse<AccountType>(type, out var accountType))
                     return false;
 
-                return time != null ? Resolve(new RetroactiveCommand<CreateAccount>(new CreateAccount(name, accountType), time) { Guid = guid }) 
-                    : Resolve(new CreateAccount(name, accountType) { Guid = guid }); 
+                return Resolve(new CreateAccount(name, accountType) { Guid = guid }, time);
             }
 
             public bool SpendAsset(string account, double amount, string assetId, string costAssetId, double? cost, string date, string guid)
@@ -368,7 +367,7 @@ namespace Chronos.Accounts
                         var fordom = AssetPair.Fordom(forAsset, domAsset);
                         var assetPairInfo = _coreQueries.AssetPairInfo(fordom);
                         if (time == null || assetPairInfo.QuoteDates.All(d => d != time.ToInstant()))
-                            Resolve(time != null ? new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom), time) : new UpdateQuote(fordom));
+                            Resolve(new UpdateQuote(fordom), time);
                     }
                 }
                     

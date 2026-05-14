@@ -21,7 +21,7 @@ public class RealisedGainsForTaxYearQueryHandler(IProjectionManager manager, ITi
         return base.Handle(query);
     }
 
-    protected override async Task<RealisedGainsForTaxYear> Handle(IProjection<NullState> projection,
+    protected override async Task<RealisedGainsForTaxYear> Handle(IProjectionState<NullState> projection,
         RealisedGainsForTaxYearQuery query)
     {
         var timestamp = query.Timestamp;

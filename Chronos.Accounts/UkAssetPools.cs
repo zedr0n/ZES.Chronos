@@ -126,7 +126,13 @@ public class UkAssetPools : IAssetPools
 
     public void TransferFrom(Time time, IAssetPools source, double quantity)
     {
+        if(_lastEndOfDay > time.ToDateTime().Date)
+            throw new InvalidOperationException("Cannot transfer from a future date");
+        AdvanceTo(time);
+        
         var s = (UkAssetPools)source;
+        if(s._lastEndOfDay > time.ToDateTime().Date)
+            throw new InvalidOperationException("Cannot transfer from a future date");
         s.AdvanceTo(time);
         
         if(_pendingDisposalsByAge.Count != s._pendingDisposalsByAge.Count)
