@@ -399,6 +399,22 @@ namespace Chronos.Accounts.Queries
             }
         }
 
+        public bool IsFullTransfer(Asset asset, Time timestamp, double amount, double tolerance = 1e-8)
+        {
+            var position = Positions.GetValueOrDefault(asset);
+
+            var transferOutAtTimestamp = _transfers
+                .GetValueOrDefault(timestamp, [])
+                .Where(t => IsIncludedAccount(t.fromAccount) && t.quantity.Denominator == asset)
+                .Sum(t => t.quantity.Amount);
+
+            var positionBeforeTransferOut = position + transferOutAtTimestamp;
+
+            return Math.Abs(positionBeforeTransferOut - amount) < tolerance;        
+        }
+        
+
         public Dictionary<Time, AccountState> HistoricalResults { get; set; } = new();
+        public Dictionary<string, AccountState> ComponentStates { get; } = new();
     }
 }

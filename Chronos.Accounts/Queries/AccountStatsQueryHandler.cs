@@ -315,9 +315,10 @@ namespace Chronos.Accounts.Queries
             var assetTransfersOut = state.GetAssetTransfersOut();
             var feeDisposals = state.FeeDisposals;
             
-            var fromAccountStatsDictionary = new Dictionary<(string account, Time time), AccountStats>();
+            var fromAccountStateDictionary = new Dictionary<(string account, Time time), AccountState>();
+            var joinedAccountStateDictionary = new Dictionary<(string account, Time time), AccountState>();
 
-            var timestampsByAccount = assetTransferIn
+            var fromTimestampsByAccount = assetTransferIn
                 .SelectMany(x => x.Value.Select(y => new
                 {
                     Account = y.fromAccount,
@@ -327,41 +328,38 @@ namespace Chronos.Accounts.Queries
                 .ToDictionary(
                     g => g.Key,
                     g => g.Select(x => x.Timestamp).Distinct().OrderBy(x => x).ToList());            
-           
-            foreach (var (account, timestamps) in timestampsByAccount)
-            {
-                var handler = _accountStatsHandlerFactory();
-                var latest = timestamps[^1];
-                var extraTimestamps = timestamps.Take(timestamps.Count - 1).ToList();
-                var fromAccountStats =  await handler.Handle(new AccountStatsQuery(account, denominator)
-                {
-                    Timeline = query.Timeline,
-                    QueryNet = query.QueryNet,
-                    Timestamp = latest,
-                    EnforceCache = query.EnforceCache,
-                    IncludeTransfersOutAtQueryDate = false,
-                    NumberOfMatchingDays = query.NumberOfMatchingDays,
-                    AssetQuoteOverrides = query.AssetQuoteOverrides,
-                    TrackDisposalLots = query.TrackDisposalLots,
-                    AdditionalTimestamps = extraTimestamps 
-                }); 
-                if (fromAccountStats == null)
-                    throw new InvalidOperationException($"Account {account} not found");
-                
-                fromAccountStatsDictionary[(account, latest)] = fromAccountStats;
-                foreach(var t in extraTimestamps)
-                    fromAccountStatsDictionary[(account, t)] = fromAccountStats.HistoricalResults[t];
-            }
+         
+            await FillStateCache(fromTimestampsByAccount, fromAccountStateDictionary, query, false);
+            
+            var assetLedger = await _ledgerHandler.Handle(new AssetLedgerQuery() { Timeline = query.Timeline });
+            if (assetLedger == null)
+                throw new InvalidOperationException($"Asset ledger not found");
+            
+            var joinedStatsTimestampsByAccount = assetTransferIn
+                .SelectMany(x => x.Value
+                    .Where(y => assetLedger.HasCrossAccountMatchingPair(
+                        query.Name,
+                        y.fromAccount,
+                        y.quantity.Denominator,
+                        x.Key,
+                        query.NumberOfMatchingDays))
+                    .Select(y => new
+                    {
+                        Account = y.fromAccount,
+                        Timestamp = x.Key
+                    }))
+                .GroupBy(x => x.Account)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => x.Timestamp).Distinct().OrderBy(x => x).ToList());            
+            
+            await FillStateCache(joinedStatsTimestampsByAccount, joinedAccountStateDictionary, query, true);
             
             var allTimestamps = state.Costs.Keys?.Union(assetTransferIn.Select(x => x.Key)).Union(assetTransfersOut.Select(x => x.Key)).Union(feeDisposals.Keys) ?? [];
             
             // we now need to sort all the costs by timestamp so that asset-asset swaps can be handled correctly
             const double tolerance = 1e-8;
             var invalidAssetsAfterTransfer = new HashSet<Asset>();
-
-            var assetLedger = await _ledgerHandler.Handle(new AssetLedgerQuery() { Timeline = query.Timeline });
-            if (assetLedger == null)
-                throw new InvalidOperationException($"Asset ledger not found");
             
             foreach (var t in allTimestamps.OrderBy(x => x))
             {
@@ -375,42 +373,40 @@ namespace Chronos.Accounts.Queries
                 {
                     var hasCrossAccountMatchingPair = assetLedger.HasCrossAccountMatchingPair(query.Name, fromAccount, q.Denominator, t, query.NumberOfMatchingDays);
 
-                    if (!fromAccountStatsDictionary.TryGetValue((fromAccount, t), out var fromAccountStats))
+                    if (!fromAccountStateDictionary.TryGetValue((fromAccount, t), out var fromAccountState))
                     {
-                        var handler = _accountStatsHandlerFactory();
-                        fromAccountStats = await handler.Handle(new AccountStatsQuery(fromAccount, denominator)
-                            {
-                                Timeline = query.Timeline,
-                                QueryNet = query.QueryNet,
-                                Timestamp = t,
-                                EnforceCache = query.EnforceCache,
-                                IncludeTransfersOutAtQueryDate = false,
-                                NumberOfMatchingDays = query.NumberOfMatchingDays,
-                                AssetQuoteOverrides = query.AssetQuoteOverrides,
-                                TrackDisposalLots = query.TrackDisposalLots,
-                            });
-                        fromAccountStatsDictionary[(fromAccount, t)] = fromAccountStats;
+                        fromAccountState = await _accountStateHandler.Handle(new CombinedAccountStateQuery([fromAccount])
+                        {
+                            Timeline = query.Timeline,
+                            Timestamp = t
+                        });
+                        if (fromAccountState == null)
+                            throw new InvalidOperationException($"Account {fromAccount} not found");
+                        fromAccountStateDictionary[(fromAccount, t)] = fromAccountState;
                     }
-                    if (fromAccountStats == null)
-                        throw new InvalidOperationException($"Account {fromAccount} not found");
                     
                     if (hasCrossAccountMatchingPair)
                     {
-                        var isFullTransfer = Math.Abs(fromAccountStats.AssetPools[q.Denominator].TotalQuantity - q.Amount) < tolerance;
+                        //var isFullTransfer = Math.Abs(fromAccountStats.AssetPools[q.Denominator].TotalQuantity - q.Amount) < tolerance;
+                        var isFullTransfer = fromAccountState.IsFullTransfer(q.Denominator, t, q.Amount, tolerance);
                         if (!isFullTransfer)
                         {
                             invalidAssetsAfterTransfer.Add(q.Denominator);
                             continue;
                         }
 
-                        var combinedState = await _accountStateHandler.Handle(
-                            new CombinedAccountStateQuery([fromAccount, query.Name])
-                            {
-                                Timeline = query.Timeline,
-                                Timestamp = t
-                            });
-                        if (combinedState == null)
-                            throw new InvalidOperationException($"Account {fromAccount} not found");
+                        if (!joinedAccountStateDictionary.TryGetValue((fromAccount, t), out var combinedState))
+                        {
+                            combinedState = await _accountStateHandler.Handle(
+                                new CombinedAccountStateQuery([fromAccount, query.Name])
+                                {
+                                    Timeline = query.Timeline,
+                                    Timestamp = t
+                                });
+                            if (combinedState == null)
+                                throw new InvalidOperationException($"Account {fromAccount} not found");
+                            joinedAccountStateDictionary[(fromAccount, t)] = combinedState;
+                        }
                             
                         var (costBasis, realisedGains, pools, realisedGainsPerTaxYear, disposalGainItems) = await ComputeGains(combinedState, new AccountStatsQuery(query.Name, denominator)
                         {
@@ -435,6 +431,19 @@ namespace Chronos.Accounts.Queries
                     }
                     else
                     {
+                        var fromAccountStats = await Handle(fromAccountState,
+                            new AccountStatsQuery(fromAccount, denominator)
+                            {
+                                Timeline = query.Timeline,
+                                QueryNet = query.QueryNet,
+                                Timestamp = t,
+                                EnforceCache = query.EnforceCache,
+                                IncludeTransfersOutAtQueryDate = false,
+                                NumberOfMatchingDays = query.NumberOfMatchingDays,
+                                AssetQuoteOverrides = query.AssetQuoteOverrides,
+                                TrackDisposalLots = query.TrackDisposalLots,
+                            });
+                        
                         var fromPools = fromAccountStats.AssetPools;
                         var pools = poolsDictionary.GetValueOrDefault(q.Denominator, _assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
                         pools.TransferFrom(t, fromPools[q.Denominator], q.Amount);
@@ -597,6 +606,29 @@ namespace Chronos.Accounts.Queries
                     })
                     .Where(q => q.Denominator == asset && q.Amount != 0)
                     .Select(q => (x.Key, q.Amount)));
+        }
+
+        private async Task FillStateCache(Dictionary<string, List<Time>> timestampsByAccount, 
+            Dictionary<(string account, Time timestamp), AccountState> cache,
+            AccountStatsQuery query, bool combined)
+        {
+            foreach (var (account, timestamps) in timestampsByAccount)
+            {
+                var latest = timestamps[^1];
+                var extraTimestamps = timestamps.Take(timestamps.Count - 1).ToList();
+                var state =  await _accountStateHandler.Handle(new CombinedAccountStateQuery(combined ? [account, query.Name] : [account])
+                {
+                    Timeline = query.Timeline,
+                    Timestamp = latest,
+                    AdditionalTimestamps = extraTimestamps
+                });
+                if (state == null)
+                    throw new InvalidOperationException($"Account {account} not found");
+
+                cache[(account, latest)] = state;
+                foreach(var t in extraTimestamps)
+                    cache[(account, t)] = state.HistoricalResults[t];
+            }
         }
     }
 }
