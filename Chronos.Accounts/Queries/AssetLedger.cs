@@ -36,6 +36,11 @@ public class AssetLedger : IState
            
         return these.Any(x => others.Any(y => WouldMatch(x, y, numberOfMatchingDays, upTo) || WouldMatch(y, x, numberOfMatchingDays, upTo)));
     }
+
+    public bool HasCrossAccountMatchingPair(IEnumerable<string> accounts, string otherAccount, Asset asset, Time upTo, int numberOfMatchingDays)
+    {
+        return accounts.Any(account => HasCrossAccountMatchingPair(account, otherAccount, asset, upTo, numberOfMatchingDays));
+    }
     
     public IEnumerable<(Time Time, double Amount)> GetAccountAssetMovements(
         Asset asset,

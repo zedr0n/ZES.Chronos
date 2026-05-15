@@ -29,7 +29,7 @@ namespace Chronos.Accounts.Queries
 
         public ReadOnlyDictionary<Time, List<Quantity>> Income => _income.AsReadOnly();
         public ReadOnlyDictionary<Time, List<Quantity>> Spend => _spend.AsReadOnly();
-        
+
         public ReadOnlyDictionary<Time, List<(Quantity assetQuantity, Quantity costQuantity)>> Costs =>
             _costs.AsReadOnly();
 
@@ -314,7 +314,7 @@ namespace Chronos.Accounts.Queries
             _feeDisposalCommandIds[timestamp].Add(commandId);
         }
 
-        private IEnumerable<string> GetAccountNames()
+        public IEnumerable<string> GetAccountNames()
         {
             if (_accountNames.Count > 0)
                 return _accountNames;
