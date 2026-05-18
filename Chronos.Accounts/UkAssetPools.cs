@@ -48,7 +48,12 @@ public class UkAssetPools : IAssetPools
             return pools._disposalGains.Sum(g => g.Gain);
         }
     }
-    
+
+    public IAssetPools Copy()
+    {
+        return new UkAssetPools(this);
+    }
+
     /// <inheritdoc />
     public Dictionary<int, double> GetRealisedGainsPerTaxYear()
     {
@@ -122,6 +127,21 @@ public class UkAssetPools : IAssetPools
         ];
         _pools.AddRange(_pendingDisposalsByAge);
         _pools.Add(_section104Pool);
+    }
+
+    public IAssetPools Slice(Time time, double ratio)
+    {
+        var slice = (UkAssetPools)Copy();
+        slice.AdvanceTo(time);
+
+        foreach (var pool in slice._pools)
+            pool.Scale(ratio);
+        
+        var scaledGains = slice._disposalGains.Select(g => new DisposalGainItem(g, ratio)).ToList();
+        slice._disposalGains.Clear();
+        slice._disposalGains.AddRange(scaledGains);
+        
+        return slice;
     }
 
     public void TransferFrom(Time time, IAssetPools source, double quantity)

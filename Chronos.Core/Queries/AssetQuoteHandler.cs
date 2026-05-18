@@ -184,7 +184,7 @@ namespace Chronos.Core.Queries
       if (valid)
         return new SingleAssetQuote(result.Price, timestamp.ToInstant());
 
-      log.Error($"Stale pricing data found for {fordom} : {result?.Timestamp}");  
+      log.Warn($"Stale pricing data found for {fordom} : {result?.Timestamp}");  
       return new SingleAssetQuote(0.0, timestamp.ToInstant());
     }    
   }

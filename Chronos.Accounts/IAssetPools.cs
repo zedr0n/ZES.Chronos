@@ -9,6 +9,8 @@ public interface IAssetPools
     double RealisedGain { get; }
     double CostBasis { get; }
 
+    IAssetPools Copy();
+    
     /// <summary>
     /// Retrieves a dictionary mapping tax years to the total realised gains for those years.
     /// </summary>
@@ -21,6 +23,7 @@ public interface IAssetPools
     void Dispose(Time time, double quantity, double cost);
     void AdvanceTo(Time time);
 
+    IAssetPools Slice(Time time, double ratio);
     void TransferFrom(Time time, IAssetPools source, double quantity);
     void TransferOut(Time time, double quantity);
 }

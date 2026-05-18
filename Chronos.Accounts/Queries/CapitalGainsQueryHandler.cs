@@ -9,6 +9,7 @@ using ZES.Infrastructure.Domain;
 using ZES.Interfaces.Branching;
 using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
+using ZES.Interfaces.Infrastructure;
 
 namespace Chronos.Accounts.Queries;
 
@@ -19,6 +20,7 @@ public class CapitalGainsQueryHandler(
     IQueryHandler<AssetQuoteQuery, AssetQuote> assetQuoteHandler,
     IQueryHandler<CombinedAccountStateQuery, AccountState> accountStateHandler,
     IQueryHandler<AssetLedgerQuery, AssetLedger> ledgerHandler,
+    ILog log,
     AssetPoolFactory assetPoolFactory)
     : DefaultQueryHandler<CapitalGainsQuery, CapitalGains, NullState>(manager, activeTimeline)
 {
@@ -28,25 +30,51 @@ public class CapitalGainsQueryHandler(
         if (projection == null)
             throw new ArgumentNullException(nameof(projection), $"{typeof(IProjection<AccountState>).Name}");
         var timestamp = query.Timestamp;
+        var initialTime = query.InitialTime;
+        var initial = query.Initial;
+        
         var state = await accountStateHandler.Handle(new CombinedAccountStateQuery(query.Accounts)
         {
             Timeline = query.Timeline,
             Timestamp = timestamp,
             AdditionalTimestamps = query.AdditionalTimestamps
         });
-            
-        var capitalGains = await Handle(state, query);
+        
+        if(query.AdditionalTimestamps == null)
+            return await Handle(state, query);
+
+        CapitalGains capitalGains = null;
         try
         {
-            foreach (var t in query.AdditionalTimestamps ?? [])
+            var states = new Dictionary<Time, AccountState>();
+            var capitalGainsDictionary = new Dictionary<Time, CapitalGains>();
+            foreach (var t in query.AdditionalTimestamps)
+                states[t] = state.HistoricalResults[t];
+            states[timestamp] = state;
+            
+            if(initialTime != null && initialTime > states.Min(x => x.Key))
+                throw new InvalidOperationException($"Initial time {initialTime} is before the earliest timestamp {states.Min(x => x.Key)}");
+            if (timestamp != null && states.Max(x => x.Key) > timestamp)
+                throw new InvalidOperationException($"Timestamp {timestamp} is after the latest requested timestamp {states.Max(x => x.Key)}");
+                
+            foreach (var (t, s) in states.OrderBy(x => x.Key))
             {
                 query.Timestamp = t;
-                capitalGains.HistoricalResults[t] = await Handle(state.HistoricalResults[t], query);
+                capitalGains = await Handle(s, query);
+                capitalGainsDictionary[t] = capitalGains.Copy();
+
+                query.Initial = capitalGains;
+                query.InitialTime = t;
             }
+            
+            foreach(var t in query.AdditionalTimestamps)
+                capitalGains?.HistoricalResults[t] = capitalGainsDictionary[t];
         }
         finally
         {
             query.Timestamp = timestamp;
+            query.Initial = initial;
+            query.InitialTime = initialTime;
         }
 
         return capitalGains;
@@ -57,6 +85,12 @@ public class CapitalGainsQueryHandler(
         if (tState is not AccountState state)
             throw new ArgumentException($"{nameof(AccountState)} expected", nameof(tState));
 
+        query.AccountStateCache ??= new Dictionary<(string accountsKey, Time timestamp), AccountState>();
+        query.CapitalGainsCache ??= new Dictionary<(string accountsKey, Time timestamp, string assetId), CapitalGains>();
+
+        var requestedAssets = query.Assets?.Where(a => a != null).ToHashSet() ?? [];
+        var filterAssets = requestedAssets is { Count: > 0 };
+        
         var denominator = query.Denominator;
             
         var poolsDictionary = new Dictionary<Asset, IAssetPools>();
@@ -64,74 +98,85 @@ public class CapitalGainsQueryHandler(
         var realisedGainsDictionary = new Dictionary<Asset, Quantity>();
         var realisedGainsPerTaxYearDictionary = new Dictionary<Asset, Dictionary<int, Quantity>>();
         var disposalGainItemsDictionary = new Dictionary<Asset, List<DisposalGainItem>>();
+
+        var t0 = query.InitialTime ?? Time.MinValue;
+        var initialCgt = query.Initial;
+        
+        if (t0 != Time.MinValue && initialCgt != null)
+        {
+            poolsDictionary = initialCgt.AssetPools.ToDictionary(x => x.Key, x => x.Value.Copy());
+            costBasisDictionary = new Dictionary<Asset, Quantity>(initialCgt.CostBasis);
+            realisedGainsDictionary = new Dictionary<Asset, Quantity>(initialCgt.RealisedGains);
+            realisedGainsPerTaxYearDictionary = initialCgt.RealisedGainsPerTaxYear.ToDictionary(x => x.Key, x => new Dictionary<int, Quantity>(x.Value));
+            disposalGainItemsDictionary = initialCgt.DisposalGainItems.ToDictionary(x => x.Key, x => x.Value.ToList());
+        }
         
         var assetTransferIn = state.GetAssetTransfersIn();
         var assetTransfersOut = state.GetAssetTransfersOut();
         var feeDisposals = state.FeeDisposals;
-        
-        var fromAccountStateDictionary = new Dictionary<(string account, Time time), AccountState>();
-        var joinedAccountStateDictionary = new Dictionary<(string account, Time time), AccountState>();
+
+        var accountStateDictionary = query.AccountStateCache; 
 
         var assetLedger = await ledgerHandler.Handle(new AssetLedgerQuery() { Timeline = query.Timeline });
         if (assetLedger == null)
             throw new InvalidOperationException($"Asset ledger not found");
-        
-        var joinedStatsTimestampsByAccount = assetTransferIn
-            .SelectMany(x => x.Value
-                .Where(y => assetLedger.HasCrossAccountMatchingPair(
-                    state.GetAccountNames(),
-                    y.fromAccount,
-                    y.quantity.Denominator,
-                    x.Key,
-                    query.NumberOfMatchingDays))
-                .Select(y => new
-                {
-                    Account = y.fromAccount,
-                    Timestamp = x.Key
-                }))
-            .GroupBy(x => x.Account)
-            .ToDictionary(
-                g => g.Key,
-                g => g.Select(x => x.Timestamp).Distinct().OrderBy(x => x).ToList());
 
-        var allJoinedTimestamps = joinedStatsTimestampsByAccount.Values
+        var allTransferTimestampsByAccount = new Dictionary<string, HashSet<Time>>();
+        var joinedTransferTimestampsByAccount = new Dictionary<string, HashSet<Time>>();
+        
+        foreach (var (timestamp, transfersIn) in assetTransferIn)
+        {
+            foreach (var (fromAccount, quantity) in transfersIn)
+            {
+                AddTimestamp(allTransferTimestampsByAccount, fromAccount, timestamp);
+
+                var hasCrossAccountMatchingPair = assetLedger.HasCrossAccountMatchingPair(
+                    state.GetAccountNames(),
+                    fromAccount,
+                    quantity.Denominator,
+                    timestamp,
+                    query.NumberOfMatchingDays);
+
+                if(hasCrossAccountMatchingPair)
+                    AddTimestamp(joinedTransferTimestampsByAccount, fromAccount, timestamp);
+            }
+        }      
+        
+        foreach (var (timestamp, transfersOut) in assetTransfersOut)
+        {
+            foreach (var (toAccount, quantity) in transfersOut)
+            {
+                var hasCrossAccountMatchingPair = assetLedger.HasCrossAccountMatchingPair(
+                    state.GetAccountNames(),
+                    toAccount,
+                    quantity.Denominator,
+                    timestamp,
+                    query.NumberOfMatchingDays);
+
+                if (hasCrossAccountMatchingPair)
+                {
+                    AddTimestamp(allTransferTimestampsByAccount, toAccount, timestamp);
+                    AddTimestamp(joinedTransferTimestampsByAccount, toAccount, timestamp);
+                }
+            }
+        }        
+        
+        var allJoinedTimestamps = joinedTransferTimestampsByAccount.Values
             .SelectMany(x => x)
             .Distinct()
             .OrderBy(x => x)
             .ToList();
-
-        var sourceStates = await LoadAccountStates(state.GetAccountNames().ToList(), allJoinedTimestamps, query);
-        foreach (var (fromAccount, timestamps) in joinedStatsTimestampsByAccount)
-        {
-            var fromStates = await LoadAccountStates([fromAccount], timestamps, query);
-
-            foreach (var timestamp in timestamps)
-            {
-                var joinedState = sourceStates[timestamp].Copy().CombineWith(fromStates[timestamp]);
-                joinedAccountStateDictionary[(fromAccount, timestamp)] = joinedState;
-                fromAccountStateDictionary[(fromAccount, timestamp)] = fromStates[timestamp];
-            }
-        }
-    
-        var missingTimestampsByAccount = assetTransferIn
-            .SelectMany(x => x.Value.Select(y => new
-            {
-                Account = y.fromAccount,
-                Timestamp = x.Key
-            }))
-            .Where(x => !fromAccountStateDictionary.ContainsKey((x.Account, x.Timestamp)))
-            .GroupBy(x => x.Account)
-            .ToDictionary(
-                g => g.Key,
-                g => g.Select(x => x.Timestamp).Distinct().OrderBy(x => x).ToList());
         
-        await FillStateCache(missingTimestampsByAccount, fromAccountStateDictionary, query);
+       foreach(var timestamp in allJoinedTimestamps)
+          AddTimestamp(allTransferTimestampsByAccount, state.AccountName, timestamp);
         
-        var allTimestamps = state.Costs.Keys?.Union(assetTransferIn.Select(x => x.Key)).Union(assetTransfersOut.Select(x => x.Key)).Union(feeDisposals.Keys) ?? [];
+        // load all the account states for the accounts involved in transfers-in 
+        await FillStateCache(allTransferTimestampsByAccount, accountStateDictionary, query);
+
+        var allTimestamps = state.Costs.Keys?.Union(assetTransferIn.Select(x => x.Key)).Union(assetTransfersOut.Select(x => x.Key)).Union(feeDisposals.Keys).Where(t => t > t0) ?? [];
         
         // we now need to sort all the costs by timestamp so that asset-asset swaps can be handled correctly
         const double tolerance = 1e-8;
-        var invalidAssetsAfterTransfer = new HashSet<Asset>();
         
         foreach (var t in allTimestamps.OrderBy(x => x))
         {
@@ -143,93 +188,62 @@ public class CapitalGainsQueryHandler(
             // handle transfers in
             foreach (var (fromAccount, q) in transfersIn)
             {
+                if (filterAssets && !requestedAssets.Contains(q.Denominator))
+                    continue;
+                
                 var hasCrossAccountMatchingPair = assetLedger.HasCrossAccountMatchingPair(state.GetAccountNames(), fromAccount, q.Denominator, t, query.NumberOfMatchingDays);
 
-                if (!fromAccountStateDictionary.TryGetValue((fromAccount, t), out var fromAccountState))
-                {
-                    fromAccountState = await accountStateHandler.Handle(new CombinedAccountStateQuery([fromAccount])
-                    {
-                        Timeline = query.Timeline,
-                        Timestamp = t
-                    });
-                    if (fromAccountState == null)
-                        throw new InvalidOperationException($"Account {fromAccount} not found");
-                    fromAccountStateDictionary[(fromAccount, t)] = fromAccountState;
-                }
+                var fromAccountState = accountStateDictionary[(fromAccount, t)];
                 
                 if (hasCrossAccountMatchingPair)
                 {
-                    //var isFullTransfer = Math.Abs(fromAccountStats.AssetPools[q.Denominator].TotalQuantity - q.Amount) < tolerance;
-                    var isFullTransfer = fromAccountState.IsFullTransfer(q.Denominator, t, q.Amount, tolerance);
+                    var isFullTransfer = fromAccountState.IsFullTransfer(q.Denominator, t, q.Amount, out var total, tolerance);
                     if (!isFullTransfer)
+                        log.Warn($"Partial transfer detected for {q.Denominator} from {fromAccount} to {state.AccountName} on {t} of amount {q.Amount} out of {total}");
+
+                    var combinedAccountName = string.Join("|",state.GetAccountNames().Append(fromAccount).Distinct().OrderBy(x => x).ToList());
+                    if (!accountStateDictionary.TryGetValue((combinedAccountName, t), out var combinedState))
                     {
-                        invalidAssetsAfterTransfer.Add(q.Denominator);
-                        continue;
+                        var currentState = accountStateDictionary[(state.AccountName, t)]; 
+                        combinedState = currentState.Copy().CombineWith(fromAccountState);
+                        accountStateDictionary[(combinedAccountName, t)] = combinedState;
                     }
 
-                    var joinedAccounts = state.GetAccountNames().Append(fromAccount).ToList();
-                    if (!joinedAccountStateDictionary.TryGetValue((fromAccount, t), out var combinedState))
-                    {
-                        combinedState = await accountStateHandler.Handle(
-                            new CombinedAccountStateQuery(joinedAccounts)
-                            {
-                                Timeline = query.Timeline,
-                                Timestamp = t
-                            });
-                        if (combinedState == null)
-                            throw new InvalidOperationException($"Account {fromAccount} not found");
-                        joinedAccountStateDictionary[(fromAccount, t)] = combinedState;
-                    }
-                        
-                    var capitalGains = await Handle(combinedState,
-                        new CapitalGainsQuery(joinedAccounts, denominator)
-                    {
-                        Timeline = query.Timeline,
-                        Timestamp = t,
-                        QueryNet = query.QueryNet,
-                        EnforceCache = query.EnforceCache,
-                        IncludeTransfersOutAtQueryDate = false,
-                        NumberOfMatchingDays = query.NumberOfMatchingDays,
-                        AssetQuoteOverrides = query.AssetQuoteOverrides,
-                        TrackDisposalLots = query.TrackDisposalLots,
-                    });
-                    
+                    var coupledAssets = GetCoupledAssets(fromAccountState, t, q.Denominator);
+                    var capitalGains = await GetCapitalGains(combinedState, t, coupledAssets, query);
                     if(!capitalGains.AssetPools.TryGetValue(q.Denominator, out var joinedPool))
                         throw new InvalidOperationException($"Asset {q.Denominator} not found in joined pool");
-                        
-                    poolsDictionary[q.Denominator] = joinedPool;
-                    costBasisDictionary[q.Denominator] = capitalGains.CostBasis[q.Denominator];
-                    realisedGainsDictionary[q.Denominator] = capitalGains.RealisedGains[q.Denominator];
-                    realisedGainsPerTaxYearDictionary[q.Denominator] = capitalGains.RealisedGainsPerTaxYear[q.Denominator];
-                    disposalGainItemsDictionary[q.Denominator] = capitalGains.DisposalGainItems[q.Denominator];
+
+                    var ratio = q.Amount / total;
+                    var scaledPool = joinedPool.Slice(t,ratio);
+                    
+                    poolsDictionary[q.Denominator] = scaledPool;
+                    costBasisDictionary[q.Denominator] = new Quantity(scaledPool.CostBasis, denominator);
+                    realisedGainsDictionary[q.Denominator] = new Quantity(scaledPool.RealisedGain, denominator);
+                    realisedGainsPerTaxYearDictionary[q.Denominator] = scaledPool.GetRealisedGainsPerTaxYear()
+                        .ToDictionary(x => x.Key, x => new Quantity(x.Value, denominator)); 
+                    disposalGainItemsDictionary[q.Denominator] =
+                        scaledPool.GetDisposalGains().Select(x => new DisposalGainItem(x)).ToList(); 
                     assetsHandledByFullTransfer.Add(q.Denominator);
                 }
                 else
                 {
-                    var fromCapitalGains = await Handle(fromAccountState,
-                        new CapitalGainsQuery([fromAccount], denominator)
-                        {
-                            Timeline = query.Timeline,
-                            QueryNet = query.QueryNet,
-                            Timestamp = t,
-                            EnforceCache = query.EnforceCache,
-                            IncludeTransfersOutAtQueryDate = false,
-                            NumberOfMatchingDays = query.NumberOfMatchingDays,
-                            AssetQuoteOverrides = query.AssetQuoteOverrides,
-                            TrackDisposalLots = query.TrackDisposalLots,
-                        });
-                    
+                    var coupledAssets = GetCoupledAssets(fromAccountState, t, q.Denominator);
+                    var fromCapitalGains = await GetCapitalGains(fromAccountState, t, coupledAssets, query);
                     var fromPools = fromCapitalGains.AssetPools;
                     var pools = poolsDictionary.GetValueOrDefault(q.Denominator, assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
-                    pools.TransferFrom(t, fromPools[q.Denominator], q.Amount);
+                    pools.TransferFrom(t, fromPools[q.Denominator].Copy(), q.Amount);
                     poolsDictionary[q.Denominator] = pools;
                 }
             }
              
             // all assets involved in the transactions on t
-            var assets = costs.Select(c => c.assetQuantity.Denominator).Where(a => a.AssetType != AssetType.Currency)
+            var assets = costs
+                .Select(c => c.assetQuantity.Denominator).Where(a => a.AssetType != AssetType.Currency)
                 .Union(costs.Select(c => c.costQuantity.Denominator).Where(a => a.AssetType != AssetType.Currency) )
-                .Where(a => !assetsHandledByFullTransfer.Contains(a)).ToList();
+                .Where(a => !assetsHandledByFullTransfer.Contains(a))
+                .Where(a => !filterAssets || requestedAssets.Contains(a))
+                .ToList();
             foreach (var asset in assets)
             {
                 var pools = poolsDictionary.GetValueOrDefault(asset, assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
@@ -291,26 +305,71 @@ public class CapitalGainsQueryHandler(
                 poolsDictionary[asset] = pools;
             }
             
-            // handle transfers out
-            if(transfersOut.GroupBy(x => x.Denominator).Any(x => x.Count() > 1))
-                throw new InvalidOperationException("Multiple transfers out to the same asset are not supported");
-            
-            foreach (var q in transfersOut)
+            foreach (var (toAccount, q) in transfersOut)
             {
+                if (filterAssets && !requestedAssets.Contains(q.Denominator))
+                    continue;
+               
                 var pools = poolsDictionary.GetValueOrDefault(q.Denominator, assetPoolFactory.Create(query.NumberOfMatchingDays, query.TrackDisposalLots));
                 
                 // Even when excluding the transfer-out itself at the query date, advance the
                 // source pools to the transfer date so transfers-in receive a normalized state.                    
-                if(t == query.Timestamp && !query.IncludeTransfersOutAtQueryDate)
+                if (t == query.Timestamp && !query.IncludeTransfersOutAtQueryDate)
+                {
                     pools.AdvanceTo(t);
-                else
-                    pools.TransferOut(t, q.Amount);
+                    poolsDictionary[q.Denominator] = pools;
+                    continue;
+                }                
+                
+                var hasCrossAccountMatchingPair = assetLedger.HasCrossAccountMatchingPair(state.GetAccountNames(), toAccount, q.Denominator, t, query.NumberOfMatchingDays);
+                if (hasCrossAccountMatchingPair)
+                {
+                    var toAccountState = accountStateDictionary[(toAccount, t)];
+                    var thisAccountState = accountStateDictionary[(state.AccountName, t)];
+                                   
+                    var isFullTransfer = thisAccountState.IsFullTransfer(q.Denominator, t, q.Amount, out var total, tolerance);
+                    if (!isFullTransfer)
+                        log.Warn($"Partial transfer detected for {q.Denominator} from {state.AccountName} to {toAccount} on {t} of amount {q.Amount} out of {total}");
+
+                    if (!isFullTransfer)
+                    {
+                        var combinedAccountName = string.Join("|",state.GetAccountNames().Append(toAccount).Distinct().OrderBy(x => x).ToList());
+                        if (!accountStateDictionary.TryGetValue((combinedAccountName, t), out var combinedState))
+                        {
+                            var currentState = accountStateDictionary[(state.AccountName, t)]; 
+                            combinedState = currentState.Copy().CombineWith(toAccountState);
+                            accountStateDictionary[(combinedAccountName, t)] = combinedState;
+                        }
+
+                        var coupledAssets = GetCoupledAssets(toAccountState, t, q.Denominator);
+                        var capitalGains = await GetCapitalGains(combinedState, t, coupledAssets, query);
+                        if(!capitalGains.AssetPools.TryGetValue(q.Denominator, out var joinedPool))
+                            throw new InvalidOperationException($"Asset {q.Denominator} not found in joined pool");
+
+                        var ratio = q.Amount / total;
+                        var scaledPool = joinedPool.Slice(t, 1.0-ratio);
+                    
+                        poolsDictionary[q.Denominator] = scaledPool;
+                        costBasisDictionary[q.Denominator] = new Quantity(scaledPool.CostBasis, denominator);
+                        realisedGainsDictionary[q.Denominator] = new Quantity(scaledPool.RealisedGain, denominator);
+                        realisedGainsPerTaxYearDictionary[q.Denominator] = scaledPool.GetRealisedGainsPerTaxYear()
+                            .ToDictionary(x => x.Key, x => new Quantity(x.Value, denominator)); // new Dictionary<int, Quantity>(capitalGains.RealisedGainsPerTaxYear[q.Denominator]);
+                        disposalGainItemsDictionary[q.Denominator] =
+                            scaledPool.GetDisposalGains().Select(x => new DisposalGainItem(x)).ToList(); 
+                        continue;                        
+                    }
+                }
+                
+                pools.TransferOut(t, q.Amount);
                 poolsDictionary[q.Denominator] = pools;
             }
 
             // handle fee disposals
             foreach (var (fee, sourceOperationId) in state.GetFeeDisposals(t))
             {
+                if (filterAssets && !requestedAssets.Contains(fee.Denominator))
+                    continue;
+                
                 if (assetsHandledByFullTransfer.Contains(fee.Denominator))
                     continue;
                 
@@ -331,21 +390,11 @@ public class CapitalGainsQueryHandler(
 
         foreach (var asset in poolsDictionary.Keys)
         {
-            if (invalidAssetsAfterTransfer.Contains(asset))
-            {
-                costBasisDictionary[asset] = null;
-                realisedGainsDictionary[asset] = null;
-                realisedGainsPerTaxYearDictionary[asset] = null;
-                disposalGainItemsDictionary[asset] = null;
-            }
-            else
-            {
-                var pools = poolsDictionary[asset];
-                costBasisDictionary[asset] = new Quantity(pools.CostBasis, denominator);
-                realisedGainsDictionary[asset] = new Quantity(pools.RealisedGain, denominator);
-                realisedGainsPerTaxYearDictionary[asset] = pools.GetRealisedGainsPerTaxYear().ToDictionary(x => x.Key, x => new Quantity(x.Value, denominator));
-                disposalGainItemsDictionary[asset] = pools.GetDisposalGains().Select(x => new DisposalGainItem(x)).ToList();
-            }
+            var pools = poolsDictionary[asset];
+            costBasisDictionary[asset] = new Quantity(pools.CostBasis, denominator);
+            realisedGainsDictionary[asset] = new Quantity(pools.RealisedGain, denominator);
+            realisedGainsPerTaxYearDictionary[asset] = pools.GetRealisedGainsPerTaxYear().ToDictionary(x => x.Key, x => new Quantity(x.Value, denominator));
+            disposalGainItemsDictionary[asset] = pools.GetDisposalGains().Select(x => new DisposalGainItem(x)).ToList();
         }
         
         return new CapitalGains()
@@ -358,15 +407,20 @@ public class CapitalGainsQueryHandler(
         };
     }
 
-    private async Task FillStateCache(Dictionary<string, List<Time>> timestampsByAccount, 
+    private async Task FillStateCache(Dictionary<string, HashSet<Time>> timestampsByAccount, 
     Dictionary<(string account, Time timestamp), AccountState> cache,
     CapitalGainsQuery query)
     {
-        foreach (var (account, timestamps) in timestampsByAccount)
+        foreach (var (account, timestampSet) in timestampsByAccount)
         {
+            var timestamps = timestampSet.OrderBy(t => t).ToList();
+            if (timestamps.Count == 0)
+                continue;
+            
             var latest = timestamps[^1];
             var extraTimestamps = timestamps.Take(timestamps.Count - 1).ToList();
-            var state =  await accountStateHandler.Handle(new CombinedAccountStateQuery([account])
+            var accounts = account.Split('|').ToList();
+            var state =  await accountStateHandler.Handle(new CombinedAccountStateQuery(accounts)
             {
                 Timeline = query.Timeline,
                 Timestamp = latest,
@@ -381,28 +435,91 @@ public class CapitalGainsQueryHandler(
         }
     }
 
-    private async Task<Dictionary<Time, AccountState>> LoadAccountStates(List<string> accounts,
-        List<Time> timestamps, CapitalGainsQuery query)
+    private static string AssetsKey(IEnumerable<Asset> assets)
     {
-        if(timestamps.Count == 0)
-            return new Dictionary<Time, AccountState>();
+        var assetList = assets?.ToList();
+        if (assetList is not { Count: > 0 })
+            return null;
+
+        return string.Join("|", assetList
+            .Select(a => a.AssetId ?? a.ToString())
+            .OrderBy(x => x));
+    }
+    
+    private async Task<CapitalGains> GetCapitalGains(
+        AccountState state,
+        Time timestamp,
+        List<Asset> assets,
+        CapitalGainsQuery parentQuery,
+        bool includeTransfersOutAtQueryDate = false)
+    {
+        var accounts = state.GetAccountNames().Distinct().OrderBy(x => x).ToList();
+        var assetsKey = AssetsKey(assets);
         
-        var latest = timestamps[^1];
-        var extraTimestamps = timestamps.Take(timestamps.Count - 1).ToList();
-        var accountStates = new Dictionary<Time, AccountState>();
+        // Cached CapitalGains instances are treated as immutable snapshots. Copy individual
+        // pools before passing them to operations that mutate pool state.
+        if (parentQuery.CapitalGainsCache.TryGetValue((state.AccountName, timestamp, assetsKey), out var cached))
+            return cached;
 
-        var state =  await accountStateHandler.Handle(new CombinedAccountStateQuery(accounts)
+        var previous = parentQuery.CapitalGainsCache
+            .Where(x => x.Key.accountsKey == state.AccountName && x.Key.assetsKey == assetsKey && x.Key.timestamp < timestamp)
+            .OrderByDescending(x => x.Key.timestamp)
+            .FirstOrDefault();
+
+        var childQuery = new CapitalGainsQuery(accounts, parentQuery.Denominator, assets)
         {
-            Timeline = query.Timeline,
-            Timestamp = latest,
-            AdditionalTimestamps = extraTimestamps
-        }); 
-        if (state == null)
-            throw new InvalidOperationException($"Account in {accounts} not found");
+            Timeline = parentQuery.Timeline,
+            Timestamp = timestamp,
+            QueryNet = parentQuery.QueryNet,
+            EnforceCache = parentQuery.EnforceCache,
+            IncludeTransfersOutAtQueryDate = includeTransfersOutAtQueryDate,
+            NumberOfMatchingDays = parentQuery.NumberOfMatchingDays,
+            AssetQuoteOverrides = parentQuery.AssetQuoteOverrides,
+            TrackDisposalLots = parentQuery.TrackDisposalLots,
 
-        accountStates[latest] = state;
-        foreach(var t in extraTimestamps)
-            accountStates[t] = state.HistoricalResults[t];
-        return accountStates;
+            InitialTime = previous.Value == null ? null : previous.Key.timestamp,
+            Initial = previous.Value?.Copy(),
+
+            AccountStateCache = parentQuery.AccountStateCache,
+            CapitalGainsCache = parentQuery.CapitalGainsCache
+        };
+
+        var capitalGains = await Handle(state, childQuery);
+        parentQuery.CapitalGainsCache[(state.AccountName, timestamp, assetsKey)] = capitalGains;
+
+        return capitalGains;
+    }
+
+    private static void AddTimestamp(
+        Dictionary<string, HashSet<Time>> timestampsByAccount,
+        string account,
+        Time timestamp)
+    {
+        if (!timestampsByAccount.TryGetValue(account, out var timestamps))
+        {
+            timestamps = [];
+            timestampsByAccount[account] = timestamps;
+        }
+
+        timestamps.Add(timestamp);
+    }
+    
+    private static List<Asset> GetCoupledAssets(AccountState state, Time timestamp, Asset asset)
+    {
+        var assets = new HashSet<Asset> { asset };
+
+        foreach (var (assetQuantity, costQuantity, _) in state.GetCosts(timestamp))
+        {
+            if (assetQuantity.Denominator == asset || costQuantity.Denominator == asset)
+            {
+                if (assetQuantity.Denominator.AssetType != AssetType.Currency)
+                    assets.Add(assetQuantity.Denominator);
+
+                if (costQuantity.Denominator.AssetType != AssetType.Currency)
+                    assets.Add(costQuantity.Denominator);
+            }
+        }
+
+        return assets.ToList();
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
@@ -20,9 +22,9 @@ public class CombinedAccountStateQueryHandler(IProjectionManager manager, ITimel
     protected override async Task<AccountState> Handle(IProjectionState<NullState> projection,
         CombinedAccountStateQuery query)
     {
-        AccountState state = null;
-
-        foreach (var account in query.Accounts)
+        var state = new AccountState();
+        
+        foreach (var account in query.Accounts.Distinct())
         {
             var accountState = await accountStatsStateHandler.Handle(new AccountStateQuery(account)
             {
@@ -31,20 +33,11 @@ public class CombinedAccountStateQueryHandler(IProjectionManager manager, ITimel
                 AdditionalTimestamps = query.AdditionalTimestamps
             });
             
-            state = state == null ? accountState.Copy() : state.CombineWith(accountState);
-            state.ComponentStates[account] = accountState.Copy();
+            if (accountState == null)
+                throw new InvalidOperationException($"Account {account} not found");
             
-            foreach (var timestamp in query.AdditionalTimestamps ?? [])
-            {
-                var historicalCombined = state.HistoricalResults[timestamp];
-                if(query.Accounts.Count > 1)
-                    historicalCombined.AccountName = "Combined";
-                historicalCombined.ComponentStates[account] = accountState.HistoricalResults[timestamp].Copy();
-            }
+            state = state.CombineWith(accountState);
         }
-       
-        if(query.Accounts.Count > 1)
-            state?.AccountName = "Combined";
-        return state;
+        return state; 
     }
 }

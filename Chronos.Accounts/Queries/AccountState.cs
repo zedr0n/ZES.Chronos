@@ -97,6 +97,7 @@ namespace Chronos.Accounts.Queries
             foreach (var accountName in GetAccountNames().Concat(other.GetAccountNames()).Where(a => a != null))
                 _accountNames.Add(accountName);
 
+            AccountName = string.Join("|", GetAccountNames().Distinct().OrderBy(x => x).ToList()); 
             AddRange(_deposits, other._deposits);
             AddDistinctRange(_splits, other._splits);
             AddRange(_costs, other._costs);
@@ -104,8 +105,12 @@ namespace Chronos.Accounts.Queries
             AddDistinctRange(_transfers, other._transfers);
             AddDistinctRange(_feeDisposals, other._feeDisposals);
             AddRange(_feeDisposalCommandIds, other._feeDisposalCommandIds);
+            AddRange(_income, other._income);
+            AddRange(_spend, other._spend);
             MergeQuotes(other._quotes);
-           
+            foreach(var tx in other.Transactions)
+                Transactions.Add(tx);
+            
             RemoveInternalTransfers();
             SortCombinedState();
             
@@ -178,12 +183,12 @@ namespace Chronos.Accounts.Queries
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
         }
         
-        public Dictionary<Time, List<Quantity>> GetAssetTransfersOut()
+        public Dictionary<Time, List<(string toAccount, Quantity quantity)>> GetAssetTransfersOut()
         {
             return _transfers
                 .ToDictionary(t => t.Key, t => 
                     t.Value.Where(v => IsIncludedAccount(v.fromAccount))
-                        .Select(v => v.quantity).ToList())
+                        .Select(v => (v.toAccount,v.quantity)).ToList())
                 .Where(kv => kv.Value.Count > 0)
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
         }
@@ -399,7 +404,7 @@ namespace Chronos.Accounts.Queries
             }
         }
 
-        public bool IsFullTransfer(Asset asset, Time timestamp, double amount, double tolerance = 1e-8)
+        public bool IsFullTransfer(Asset asset, Time timestamp, double amount, out double total, double tolerance = 1e-8)
         {
             var position = Positions.GetValueOrDefault(asset);
 
@@ -409,12 +414,11 @@ namespace Chronos.Accounts.Queries
                 .Sum(t => t.quantity.Amount);
 
             var positionBeforeTransferOut = position + transferOutAtTimestamp;
+            total = positionBeforeTransferOut;
 
             return Math.Abs(positionBeforeTransferOut - amount) < tolerance;        
         }
         
-
         public Dictionary<Time, AccountState> HistoricalResults { get; set; } = new();
-        public Dictionary<string, AccountState> ComponentStates { get; } = new();
     }
 }

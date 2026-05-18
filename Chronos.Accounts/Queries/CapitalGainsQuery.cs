@@ -2,6 +2,7 @@
 using Chronos.Core;
 using Newtonsoft.Json;
 using ZES.Infrastructure.Domain;
+using ZES.Interfaces.Clocks;
 
 namespace Chronos.Accounts.Queries;
 
@@ -64,5 +65,16 @@ public class CapitalGainsQuery(List<string> accounts, Asset denominator, List<As
     /// Gets or sets a value indicating whether disposal lots should be tracked.
     /// </summary>
     public bool TrackDisposalLots { get; set; }
+    
+    [JsonIgnore]
+    public Time InitialTime { get; set; }
+    [JsonIgnore]
+    public CapitalGains Initial { get; set; }
+    
+    [JsonIgnore]
+    public Dictionary<(string account, Time timestamp), AccountState> AccountStateCache { get; set; }
+
+    [JsonIgnore]
+    public Dictionary<(string accountsKey, Time timestamp, string assetsKey), CapitalGains> CapitalGainsCache { get; set; }
 }
 
