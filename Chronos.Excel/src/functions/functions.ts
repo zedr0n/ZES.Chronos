@@ -978,98 +978,105 @@ export async function disposalGainItems(accounts : string[][], asOfDate : number
   if(typeof(result)  === "string")
     return result
 
+  const emptyDisposalGainItem = {
+    type: Excel.CellValueType.entity,
+    text: "N/A",
+    properties: {
+      "Disposal Date": {
+        type: Excel.CellValueType.error,
+        errorType: Excel.ErrorCellValueType.notAvailable
+      },
+      "Acquisition Date": {
+        type: Excel.CellValueType.error,
+        errorType: Excel.ErrorCellValueType.notAvailable
+      },
+      "Quantity": {
+        type: Excel.CellValueType.error,
+        errorType: Excel.ErrorCellValueType.notAvailable
+      },
+      "Proceeds": {
+        type: Excel.CellValueType.error,
+        errorType: Excel.ErrorCellValueType.notAvailable
+      },
+      "Cost Basis": {
+        type: Excel.CellValueType.error,
+        errorType: Excel.ErrorCellValueType.notAvailable
+      },
+      "Gain": {
+        type: Excel.CellValueType.error,
+        errorType: Excel.ErrorCellValueType.notAvailable
+      },
+      "Tax Year": {
+        type: Excel.CellValueType.error,
+        errorType: Excel.ErrorCellValueType.notAvailable
+      },
+      "Match Type": {
+        type: Excel.CellValueType.error,
+        errorType: Excel.ErrorCellValueType.notAvailable
+      }
+    }
+  }
+
+  const disposalGainRows = result && result.length > 0
+    ? result
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map(item => [({
+          type: Excel.CellValueType.entity,
+          text: `${item.date ?? ""}`,
+          properties: {
+            "Disposal Date": {
+              type: Excel.CellValueType.double,
+              basicValue: DateTimeToExcelDate(item.date),
+              numberFormat: "yyyy-mm-dd"
+            },
+            "Acquisition Date": item.acquisitionDate
+              ? {
+                type: Excel.CellValueType.double,
+                basicValue: DateTimeToExcelDate(item.acquisitionDate),
+                numberFormat: "yyyy-mm-dd"
+              }
+              : {
+                type: Excel.CellValueType.string,
+                basicValue: ""
+              },
+            "Quantity": {
+              type: Excel.CellValueType.double,
+              basicValue: CleanNumber(item.quantity, 12)
+            },
+            "Proceeds": {
+              type: Excel.CellValueType.double,
+              basicValue: CleanMoney(item.proceeds)
+            },
+            "Cost Basis": {
+              type: Excel.CellValueType.double,
+              basicValue: CleanMoney(item.costBasis)
+            },
+            "Gain": {
+              type: Excel.CellValueType.double,
+              basicValue: CleanMoney(item.gain)
+            },
+            "Tax Year": {
+              type: Excel.CellValueType.double,
+              basicValue: item.taxYear ?? 0
+            },
+            "Match Type": {
+              type: Excel.CellValueType.string,
+              basicValue: item.matchType ?? ""
+            }
+          }
+        })])
+    : [[emptyDisposalGainItem]]
+
+  if (disposalGainRows.length === 1)
+    disposalGainRows.push([emptyDisposalGainItem])
+
   const myEntity : Excel.EntityCellValue = {
     type : Excel.CellValueType.entity,
     text : `${accounts.map(a => `${a}`).join(', ')} ${assetId} disposals`,
     properties : {
       "Items" : {
         type : Excel.CellValueType.array,
-        elements: (result && result.length > 0)
-          ? result
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                .map(item => ({
-              type: Excel.CellValueType.entity,
-              text: `${item.date ?? ""}`,
-              properties: {
-                "Disposal Date": {
-                  type: Excel.CellValueType.double,
-                  basicValue: DateTimeToExcelDate(item.date),
-                  numberFormat: "yyyy-mm-dd"
-                },
-                "Acquisition Date": item.acquisitionDate
-                  ? {
-                    type: Excel.CellValueType.double,
-                    basicValue: DateTimeToExcelDate(item.acquisitionDate),
-                    numberFormat: "yyyy-mm-dd"
-                  }
-                  : {
-                    type: Excel.CellValueType.string,
-                    basicValue: ""
-                  },
-                "Quantity": {
-                  type: Excel.CellValueType.double,
-                  basicValue: CleanNumber(item.quantity, 12)
-                },
-                "Proceeds": {
-                  type: Excel.CellValueType.double,
-                  basicValue: CleanMoney(item.proceeds)
-                },
-                "Cost Basis": {
-                  type: Excel.CellValueType.double,
-                  basicValue: CleanMoney(item.costBasis)
-                },
-                "Gain": {
-                  type: Excel.CellValueType.double,
-                  basicValue: CleanMoney(item.gain)
-                },
-                "Tax Year": {
-                  type: Excel.CellValueType.double,
-                  basicValue: item.taxYear ?? 0
-                },
-                "Match Type": {
-                  type: Excel.CellValueType.string,
-                  basicValue: item.matchType ?? ""
-                }
-              }
-            }))
-          : [{
-              type: Excel.CellValueType.entity,
-              text: "No disposal gains",
-              properties: {
-                "Disposal Date": {
-                  type: Excel.CellValueType.string,
-                  basicValue: ""
-                },
-                "Acquisition Date": {
-                  type: Excel.CellValueType.string,
-                  basicValue: ""
-                },
-                "Quantity": {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                },
-                "Proceeds": {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                },
-                "Cost Basis": {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                },
-                "Gain": {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                },
-                "Tax Year": {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                },
-                "Match Type": {
-                  type: Excel.CellValueType.string,
-                  basicValue: ""
-                }
-              }
-            }]
+        elements: disposalGainRows
       }
     }
   }

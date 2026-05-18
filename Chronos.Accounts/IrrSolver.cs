@@ -41,7 +41,10 @@ public static class IrrSolver
       if (Math.Abs(r0 - (-1)) < 1e-12)
          return 0.0;
 
-      return NewtonRaphson(F, r0);
+      var irr = NewtonRaphson(F, r0);
+      if (double.IsInfinity(irr))
+         irr = 0.0;
+      return irr;
 
       (double, double) F(double x)
       {
