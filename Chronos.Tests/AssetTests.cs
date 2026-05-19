@@ -36,6 +36,38 @@ namespace Chronos.Tests
         }
 
         [Fact]
+        public void CrossAccountMatchingIgnoresDisposalsAfterCutoffDate()
+        {
+            var asset = new Asset("ABC", AssetType.Equity);
+            var ledger = new AssetLedger();
+
+            var upTo = new LocalDateTime(2024, 1, 10, 12, 0).InUtc().ToInstant().ToTime();
+            var futureDisposal = new LocalDateTime(2024, 1, 11, 12, 0).InUtc().ToInstant().ToTime();
+            var futureAcquisition = new LocalDateTime(2024, 1, 12, 12, 0).InUtc().ToInstant().ToTime();
+
+            ledger.AddMovement(asset, futureDisposal, "Account", -10);
+            ledger.AddMovement(asset, futureAcquisition, "OtherAccount", 10);
+
+            Assert.False(ledger.HasCrossAccountMatchingPair("Account", "OtherAccount", asset, upTo, 30));
+        }
+
+        [Fact]
+        public void CrossAccountMatchingIncludesDisposalsOnCutoffDate()
+        {
+            var asset = new Asset("ABC", AssetType.Equity);
+            var ledger = new AssetLedger();
+
+            var upTo = new LocalDateTime(2024, 1, 10, 12, 0).InUtc().ToInstant().ToTime();
+            var disposal = new LocalDateTime(2024, 1, 10, 15, 0).InUtc().ToInstant().ToTime();
+            var acquisition = new LocalDateTime(2024, 1, 11, 12, 0).InUtc().ToInstant().ToTime();
+
+            ledger.AddMovement(asset, disposal, "Account", -10);
+            ledger.AddMovement(asset, acquisition, "OtherAccount", 10);
+
+            Assert.True(ledger.HasCrossAccountMatchingPair("Account", "OtherAccount", asset, upTo, 30));
+        }
+
+        [Fact]
         public async Task CanRecordTransaction()
         {
             var container = CreateContainer();

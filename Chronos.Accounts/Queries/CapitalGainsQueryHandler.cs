@@ -32,8 +32,19 @@ public class CapitalGainsQueryHandler(
         var timestamp = query.Timestamp;
         var initialTime = query.InitialTime;
         var initial = query.Initial;
+       
+        var accounts = query.Accounts;
+        if (accounts == null || accounts.Count == 0)
+        {
+            var assetLedger = await ledgerHandler.Handle(new AssetLedgerQuery());
+            if (assetLedger == null)
+                throw new InvalidOperationException($"Asset ledger not found");
+            if(query.Assets == null)
+                throw new InvalidOperationException($"No accounts specified and no assets specified");
+            accounts = assetLedger.GetAccountsWithAssets(query.Assets).ToList();
+        }
         
-        var state = await accountStateHandler.Handle(new CombinedAccountStateQuery(query.Accounts)
+        var state = await accountStateHandler.Handle(new CombinedAccountStateQuery(accounts)
         {
             Timeline = query.Timeline,
             Timestamp = timestamp,

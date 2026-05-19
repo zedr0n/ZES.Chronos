@@ -637,10 +637,9 @@ export async function createAccount(name : string, type : string, date : number,
 export async function assetQuote(forAssetId : string, domAssetId : string, date: number) : Promise<any>
 {
   let query = `query { assetQuote( forAssetId : "${forAssetId}", domAssetId : "${domAssetId}", date : ${ExcelDateToISO(date)} ) { quantity { amount } } }`
-
+  window.console.log(query)
+  
   let result = await SingleQuery(query, data => data.assetQuote.quantity.amount)
-  window.console.log(result)
-
   return result
 }
 
@@ -777,8 +776,9 @@ function FormatAssetQuoteOverrides(quoteOverrides?: string[][]): string {
  * @param {number} asOfDate as of date
  * @param {string} assetId denominator asset
  * @param quoteOverrides
+ * @param {boolean} computeGains whether to compute gains
  */
-export async function accountStats(accounts : string[][], asOfDate : number, assetId? : string, quoteOverrides?: string[][]) : Promise<any> {
+export async function accountStats(accounts : string[][], asOfDate : number, assetId? : string, quoteOverrides?: string[][], computeGains? : boolean) : Promise<any> {
   if(assetId == undefined || assetId == "")
     assetId = "GBP"
 
@@ -936,23 +936,25 @@ export async function accountStats(accounts : string[][], asOfDate : number, ass
 
 /**
  * @customfunction
- * @param {string[][]} accounts account names
  * @param {number} asOfDate as of date
  * @param {string} assetId disposed asset id
+ * @param {string[][]} accounts account names
  * @param {string} [denominatorAssetId] denominator asset
  * @param {string[][]} [quoteOverrides] Quote overrides
  * @param {boolean} [trackDisposalLots] Aggregate disposal gains
  */
-export async function disposalGainItems(accounts : string[][], asOfDate : number, assetId : string, denominatorAssetId? : string, quoteOverrides?: string[][], trackDisposalLots? : boolean) : Promise<any> {
+export async function disposalGainItems(asOfDate : number, assetId : string, accounts? : string[][], denominatorAssetId? : string, quoteOverrides?: string[][], trackDisposalLots? : boolean) : Promise<any> {
   if(denominatorAssetId == undefined || denominatorAssetId == "")
     denominatorAssetId = "GBP"
 
   if(trackDisposalLots === undefined || trackDisposalLots == null)
     trackDisposalLots = false
   
+  let allAccounts = accounts != null ? `[${accounts.map(a => `"${a}"`).join(', ')}]` : null
+  
   let assetQuoteOverrides = FormatAssetQuoteOverrides(quoteOverrides)
-  let query = `{ disposalGains: accountDisposalGainItems(
-      accounts:[${accounts.map(a => `"${a}"`).join(', ')}],
+  let query = `{ disposalGains: disposalGainItems(
+      accounts: ${allAccounts},
       assetId : "${assetId}",
       denominatorAssetId : "${denominatorAssetId}",
       date : "${ExcelDateToJSDate(asOfDate).toISOString()}",
@@ -1072,7 +1074,7 @@ export async function disposalGainItems(accounts : string[][], asOfDate : number
 
   const myEntity : Excel.EntityCellValue = {
     type : Excel.CellValueType.entity,
-    text : `${accounts.map(a => `${a}`).join(', ')} ${assetId} disposals`,
+    text : `${accounts != null ? accounts.map(a => `${a}`).join(', ') + ' ' : ''}${assetId} disposals`,
     properties : {
       "Items" : {
         type : Excel.CellValueType.array,

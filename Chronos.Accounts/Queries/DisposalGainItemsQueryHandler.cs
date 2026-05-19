@@ -13,8 +13,7 @@ namespace Chronos.Accounts.Queries;
 
 [Transient]
 public class DisposalGainItemsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
-    IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler,
-    IQueryHandler<CombinedAccountStatsQuery, AccountStats> combinedAccountStatsHandler)
+    IQueryHandler<CapitalGainsQuery, CapitalGains> capitalGainsHandler)
     : DefaultQueryHandler<DisposalGainItemsQuery, DisposalGainItems, NullState>(manager, activeTimeline)
 {
     // do not read any streams for the query itself
@@ -29,37 +28,17 @@ public class DisposalGainItemsQueryHandler(IProjectionManager manager, ITimeline
     {
         var timestamp = query.Timestamp;
 
-        var accounts = query.Accounts;
-        AccountStats stats = null;
-        switch (accounts.Count)
+        var capitalGains = await capitalGainsHandler.Handle(new CapitalGainsQuery(query.Accounts, query.Denominator, [query.Asset])
         {
-            case 0:
-                break; 
-            case > 1:
-                stats = await combinedAccountStatsHandler.Handle(new CombinedAccountStatsQuery(accounts.ToList(), query.Denominator)
-                {
-                    Timeline = query.Timeline,
-                    Timestamp = timestamp,
-                    QueryNet = query.QueryNet,
-                    AssetQuoteOverrides = query.AssetQuoteOverrides,
-                    TrackDisposalLots = query.TrackDisposalLots,
-                    EnforceCache = query.EnforceCache
-                });
-                break;
-            case 1:
-                stats = await accountStatsHandler.Handle(new AccountStatsQuery(accounts[0], query.Denominator)
-                {
-                    Timeline = query.Timeline,
-                    Timestamp = timestamp,
-                    QueryNet = query.QueryNet,
-                    AssetQuoteOverrides = query.AssetQuoteOverrides,
-                    TrackDisposalLots = query.TrackDisposalLots,
-                    EnforceCache = query.EnforceCache
-                });
-                break;
-        }
-        
-        var disposalGains = stats?.DisposalGainItems.GetValueOrDefault(query.Asset, []);
+            Timeline = query.Timeline,
+            Timestamp = timestamp,
+            QueryNet = query.QueryNet,
+            AssetQuoteOverrides = query.AssetQuoteOverrides,
+            TrackDisposalLots = query.TrackDisposalLots,
+            EnforceCache = query.EnforceCache
+        });
+
+        var disposalGains = capitalGains.DisposalGainItems.GetValueOrDefault(query.Asset, []);
         return new DisposalGainItems() { Items = disposalGains };
     } 
 }

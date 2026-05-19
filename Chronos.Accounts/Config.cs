@@ -67,7 +67,7 @@ namespace Chronos.Accounts
             /// <returns>Account stats</returns>
             public Stats AccountStats() => Resolve(new StatsQuery());
 
-            public DisposalGainItems AccountDisposalGainItems(string[] accounts, string assetId, string denominatorAssetId, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool trackDisposalLots = false)
+            public DisposalGainItems DisposalGainItems(string assetId, string denominatorAssetId, List<string> accounts = null, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool trackDisposalLots = false)
             {
                 var time = date?.ToTime();
                
@@ -85,7 +85,7 @@ namespace Chronos.Accounts
                     return denominator ?? throw new InvalidOperationException($"Asset {x} not registered");
                 });
                 
-                return Resolve(new DisposalGainItemsQuery(accounts.ToList(), asset, denominator)
+                return Resolve(new DisposalGainItemsQuery(accounts, asset, denominator)
                 {
                     Timestamp = time,
                     QueryNet = true,
@@ -94,7 +94,7 @@ namespace Chronos.Accounts
                 });
             }
             
-            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool? immediate = null)
+            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool? immediate = null, bool computeGains = true)
             {
                 var time = date?.ToTime();
 
@@ -105,7 +105,8 @@ namespace Chronos.Accounts
                     ConvertToDenominatorAtTxDate = immediate ?? true,
                     Timestamp = time,
                     QueryNet = true,
-                    AssetQuoteOverrides = assetQuoteOverrides
+                    AssetQuoteOverrides = assetQuoteOverrides,
+                    ComputeCapitalGains = computeGains
                 });  
             }
 
