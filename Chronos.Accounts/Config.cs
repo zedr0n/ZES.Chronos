@@ -121,6 +121,53 @@ namespace Chronos.Accounts
                 }); 
             }
 
+            public List<AccountStatsAtTime> AccountStatsAtDates(string[] accounts, string[] dates, Asset denominator = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool computeGains = true)
+            {
+                if (accounts == null || accounts.Length == 0)
+                    throw new InvalidOperationException("At least one account is required");
+
+                var timestamps = dates?
+                    .Where(d => !string.IsNullOrWhiteSpace(d))
+                    .Select(d => d.ToTime())
+                    .Distinct()
+                    .ToList() ?? [];
+
+                if (timestamps.Count == 0)
+                    throw new InvalidOperationException("At least one date is required");
+
+                var latest = timestamps.Max();
+                var additionalTimestamps = timestamps
+                    .Where(t => t != latest)
+                    .OrderBy(t => t)
+                    .ToList();
+
+                var stats = accounts.Length == 1
+                    ? Resolve(new AccountStatsQuery(accounts[0], denominator)
+                    {
+                        Timestamp = latest,
+                        AdditionalTimestamps = additionalTimestamps,
+                        QueryNet = true,
+                        AssetQuoteOverrides = assetQuoteOverrides,
+                        ComputeCapitalGains = computeGains
+                    })
+                    : Resolve(new CombinedAccountStatsQuery(accounts.ToList(), denominator)
+                    {
+                        Timestamp = latest,
+                        AdditionalTimestamps = additionalTimestamps,
+                        QueryNet = true,
+                        AssetQuoteOverrides = assetQuoteOverrides,
+                        ComputeCapitalGains = computeGains
+                    });
+
+                return timestamps
+                    .Select(t => new AccountStatsAtTime
+                    {
+                        Date = t.ToInstant().ToDateTimeUtc().ToString("O"),
+                        Stats = t == latest ? stats : stats.HistoricalResults[t]
+                    })
+                    .ToList();
+            }
+
             public BlendedIrr BlendedIrr(string[] accounts, Asset denominator = null, string date = null, string startDate = null)
             {
                 var time = date?.ToTime();

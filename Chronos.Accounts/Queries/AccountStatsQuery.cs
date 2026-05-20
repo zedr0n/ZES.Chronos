@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Chronos.Core;
+using Chronos.Core.Queries;
 using Newtonsoft.Json;
 using ZES.Infrastructure.Domain;
+using ZES.Interfaces.Clocks;
 
 namespace Chronos.Accounts.Queries;
 
@@ -85,4 +87,9 @@ public class AccountStatsQuery(string name, Asset denominator) : Query<AccountSt
     /// Gets or sets a value indicating whether disposal lots should be tracked.
     /// </summary>
     public bool TrackDisposalLots { get; set; }
+
+    [JsonIgnore]
+    public Dictionary<(string txId, string assetId), TransactionInfo> TransactionInfos { get; set; } = new();
+    [JsonIgnore]
+    public Dictionary<(string fordom, Time timestamp), AssetQuote> AssetQuotes { get; set; } = new();
 }

@@ -15,54 +15,48 @@ namespace Chronos.Accounts.Queries
 
         public AccountState Handle(AccountCreated e, AccountState state)
         {
-            var newState = new AccountState(state);
-            newState.AccountName = e.Name;
-            return newState;
+            state.AccountName = e.Name;
+            return state;
         }
         
         public AccountState Handle (AssetDeposited e, AccountState state)
         {
-            var newState = new AccountState(state);
-            newState.Add(e.Quantity, e.Timestamp);
-            return newState;
+            state.Add(e.Quantity, e.Timestamp);
+            return state;
         }
 
         public AccountState Handle(TransactionAdded e, AccountState state)
         {
-            var newState = new AccountState(state);
-            newState.Transactions.Add(e.TxId);
-            return newState;
+            state.Transactions.Add(e.TxId);
+            return state;
         }
 
         public AccountState Handle(StockSplitAdded e, AccountState state)
         {
-            var newState = new AccountState(state);
-            newState.AddSplit(e.ForAsset, e.Timestamp, e.Ratio);
-            return newState;
+            state.AddSplit(e.ForAsset, e.Timestamp, e.Ratio);
+            return state;
         }
 
         public AccountState Handle(AssetTransactionStarted e, AccountState state)
         {
-            var newState = new AccountState(state);
-            newState.AddCost(e.Asset, e.Cost, e.Fee, e.Timestamp, e.RetroactiveId?.Id ?? e.CommandId?.Id);
+            state.AddCost(e.Asset, e.Cost, e.Fee, e.Timestamp, e.RetroactiveId?.Id ?? e.CommandId?.Id);
             if (e.AssetTransactionType == AssetTransactionType.Income && e.Cost.Denominator.AssetType == AssetType.Currency)
-                newState.AddIncome(e.Cost, e.Timestamp);
+                state.AddIncome(e.Cost, e.Timestamp);
             if (e.AssetTransactionType == AssetTransactionType.Spend)
             {
                 if(e.Cost.Denominator.AssetType != AssetType.Currency)
                     throw new InvalidOperationException("Spend transactions must be denominated in currency assets");
                 
-                newState.AddSpend(e.Cost, e.Timestamp);
+                state.AddSpend(e.Cost, e.Timestamp);
             }
 
-            return newState;
+            return state;
         }
 
         public AccountState Handle(QuoteAdded e, AccountState state)
         {
-            var newState = new AccountState(state);
-            newState.AddQuote(e.AggregateRootId(), e.Close, e.Timestamp);
-            return newState;
+            state.AddQuote(e.AggregateRootId(), e.Close, e.Timestamp);
+            return state;
         }
 
         public AccountState Handle(TransferStarted e, AccountState state)
@@ -72,12 +66,11 @@ namespace Chronos.Accounts.Queries
             if (e.Amount.Denominator.AssetType == AssetType.Currency && !hasFeeDisposal)
                 return state;
 
-            var newState = new AccountState(state);
             if (e.Amount.Denominator.AssetType != AssetType.Currency)
-                newState.AddAssetTransfer(e.FromAccount, e.ToAccount, e.Amount, e.Fee, e.Timestamp);
+                state.AddAssetTransfer(e.FromAccount, e.ToAccount, e.Amount, e.Fee, e.Timestamp);
             if (hasFeeDisposal)
-                newState.AddFeeDisposal(e.FromAccount, e.Fee, e.Timestamp, e.RetroactiveId?.Id ?? e.CommandId?.Id);
-            return newState;
+                state.AddFeeDisposal(e.FromAccount, e.Fee, e.Timestamp, e.RetroactiveId?.Id ?? e.CommandId?.Id);
+            return state;
         }
     }
 }

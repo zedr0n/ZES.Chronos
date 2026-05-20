@@ -27,9 +27,10 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
         {
             Timeline = query.Timeline,
             Timestamp = query.Timestamp,
+            AdditionalTimestamps = query.AdditionalTimestamps
         });
         
-        return await accountStatsHandler.Handle(state, new AccountStatsQuery("Combined", query.Denominator)
+        var accountStatsQuery = new AccountStatsQuery(state.AccountName, query.Denominator)
         {
             Timeline = query.Timeline,
             Timestamp = query.Timestamp,
@@ -39,6 +40,15 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
             AssetQuoteOverrides = query.AssetQuoteOverrides,
             TrackDisposalLots = query.TrackDisposalLots,
             ComputeCapitalGains = query.ComputeCapitalGains
-        }); 
+        };
+
+        var stats = await accountStatsHandler.Handle(state, accountStatsQuery);
+        foreach (var t in query.AdditionalTimestamps ?? [])
+        {
+            accountStatsQuery.Timestamp = t;
+            stats.HistoricalResults[t] = await accountStatsHandler.Handle(state.HistoricalResults[t], accountStatsQuery);
+        }
+
+        return stats; 
     }
 }

@@ -9,6 +9,7 @@ using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Infrastructure;
 
@@ -108,6 +109,8 @@ namespace Chronos.Accounts.Queries
         { 
             if (tState is not AccountState state)
                 throw new ArgumentException($"{nameof(AccountState)} expected", nameof(tState));
+
+            var transactionInfos = query.TransactionInfos;
             
             var total = 0.0;
             var denominator = query.Denominator;
@@ -157,14 +160,9 @@ namespace Chronos.Accounts.Queries
                 
                 if (asset.AssetId != denominator?.AssetId && amount != 0)
                 {
-                    var queryResult = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
-                    {
-                        Timestamp = query.Timestamp,
-                        UpdateQuote = query.QueryNet,
-                        EnforceCache = query.EnforceCache
-                    });
-                    if (queryResult != null)
-                        price = queryResult.Quantity.Amount;
+                    var assetQuote = await GetAssetQuote(asset, denominator, query, query.Timestamp);
+                    if (assetQuote != null)
+                        price = assetQuote.Quantity.Amount;
                     else
                         return null;
                 }
@@ -190,17 +188,21 @@ namespace Chronos.Accounts.Queries
             
             foreach (var txId in state.Transactions)
             {
-                var tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, denominator)
+                if (!transactionInfos.TryGetValue((txId, denominator.AssetId), out var tx))
                 {
-                    ConvertToDenominatorAtTxDate = query.ConvertToDenominatorAtTxDate,
-                    QueryNet = query.QueryNet,
-                    EnforceCache = query.EnforceCache,
-                    //Timestamp = query.Timestamp,
-                });
-                if (tx == null)
-                {
-                    _log.Error($"Transaction {txId} not found");
-                    return null;
+                    tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, denominator)
+                    {
+                        ConvertToDenominatorAtTxDate = query.ConvertToDenominatorAtTxDate,
+                        QueryNet = query.QueryNet,
+                        EnforceCache = query.EnforceCache,
+                        //Timestamp = query.Timestamp,
+                    });
+                    if (tx == null)
+                    {
+                        _log.Error($"Transaction {txId} not found");
+                        return null;
+                    }
+                    transactionInfos[(txId, denominator.AssetId)] = tx;
                 }
 
                 if (tx.TransactionType == Transaction.TransactionType.Transfer)
@@ -238,16 +240,11 @@ namespace Chronos.Accounts.Queries
                     var quote = 1.0;
                     if (q.Denominator != denominator)
                     {
-                        var assetQuote = await _handler.Handle(new AssetQuoteQuery(q.Denominator, denominator)
-                        {
-                            Timestamp = timestamp,
-                            UpdateQuote = query.QueryNet,
-                            EnforceCache = query.EnforceCache,
-                        });
+                        var assetQuote = await GetAssetQuote(q.Denominator, denominator, query, timestamp);
                         if (assetQuote != null)
                             quote = assetQuote.Quantity.Amount;
                         else
-                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(q.Denominator, denominator)} at {query.Timestamp}");
+                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(q.Denominator, denominator)} at {timestamp}");
                     }
                     extCashflows.Add((timestamp.ToInstant(), -q.Amount * quote));
                 }
@@ -260,16 +257,11 @@ namespace Chronos.Accounts.Queries
                     var quote = 1.0;
                     if (transfer.Denominator != denominator)
                     {
-                        var assetQuote = await _handler.Handle(new AssetQuoteQuery(transfer.Denominator, denominator)
-                        {
-                            Timestamp = timestamp,
-                            UpdateQuote = query.QueryNet,
-                            EnforceCache = query.EnforceCache,
-                        });
+                        var assetQuote = await GetAssetQuote(transfer.Denominator, denominator, query, timestamp);
                         if (assetQuote != null)
                             quote = assetQuote.Quantity.Amount;
                         else
-                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(transfer.Denominator, denominator)} at {query.Timestamp}");
+                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(transfer.Denominator, denominator)} at {timestamp}");
                     }
                     extCashflows.Add((timestamp.ToInstant(), -transfer.Amount * quote));
                 }
@@ -287,16 +279,11 @@ namespace Chronos.Accounts.Queries
                     var quote = 1.0;
                     if (i.Denominator != denominator)
                     {
-                        var assetQuote = await _handler.Handle(new AssetQuoteQuery(i.Denominator, denominator)
-                        {
-                            Timestamp = t,
-                            UpdateQuote = query.QueryNet,
-                            EnforceCache = query.EnforceCache,
-                        });
+                        var assetQuote = await GetAssetQuote(i.Denominator, denominator, query, t);
                         if (assetQuote != null)
                             quote = assetQuote.Quantity.Amount;
                         else
-                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(i.Denominator, denominator)} at {query.Timestamp}");
+                            throw new InvalidOperationException($"No quote for asset {AssetPair.Fordom(i.Denominator, denominator)} at {t}");
                     }
                     income += i.Amount * quote;
                 }
@@ -319,6 +306,30 @@ namespace Chronos.Accounts.Queries
                 State = state,
                 Income = new Quantity(income, denominator)
             };
+        }
+        
+        private async Task<AssetQuote> GetAssetQuote(Asset asset, Asset denominator, AccountStatsQuery query, Time timestamp)
+        {
+            var fordom = AssetPair.Fordom(asset, denominator);
+            var key = (fordom, timestamp);
+
+            query.AssetQuotes ??= new Dictionary<(string fordom, Time timestamp), AssetQuote>();
+
+            if (query.AssetQuotes.TryGetValue(key, out var cached))
+                return cached;
+
+            var quote = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
+            {
+                Timeline = query.Timeline,
+                Timestamp = timestamp,
+                EnforceCache = query.EnforceCache,
+                UpdateQuote = query.QueryNet
+                //AssetQuoteOverrides = query.AssetQuoteOverrides
+            });
+
+            if(quote != null)
+                query.AssetQuotes[key] = quote;
+            return quote;
         }
     }
 }
