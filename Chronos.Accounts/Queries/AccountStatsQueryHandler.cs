@@ -91,6 +91,28 @@ namespace Chronos.Accounts.Queries
             var stats = await Handle(state, query);
             try
             {
+                var assets = query.AssetQuotes.Keys.Select(k => k.asset).Distinct().ToList();
+                var denominator = query.Denominator;
+                if (query.Denominator == null)
+                    denominator = state.Assets.SingleOrDefault();
+
+                foreach (var asset in assets)
+                {
+                    var quotes = await _handler.Handle(new AssetQuoteQuery(asset, denominator)
+                    {
+                        Timeline = query.Timeline,
+                        Timestamp = timestamp,
+                        EnforceCache = query.EnforceCache,
+                        UpdateQuote = query.QueryNet,
+                        AdditionalTimestamps = query.AdditionalTimestamps,
+                        AssetQuoteOverrides = query.AssetQuoteOverrides
+                    });
+                    foreach (var (t, quote) in quotes.HistoricalResults)
+                    {
+                        query.AssetQuotes[(asset, denominator, t)] = quote;
+                    }
+                }
+                
                 foreach (var t in query.AdditionalTimestamps ?? [])
                 {
                     query.Timestamp = t;
@@ -120,7 +142,6 @@ namespace Chronos.Accounts.Queries
             var positions = new Dictionary<string, PositionData>();
             var totalDividend = 0.0;
             
-            //var (costBasis, realisedGains, pools, realisedGainsPerTaxYear, disposalGainItems) = await ComputeGains(state, query);
             var pools = new Dictionary<Asset, IAssetPools>();
             var costBasis = new Dictionary<Asset, Quantity>();
             var realisedGains = new Dictionary<Asset, Quantity>();
@@ -138,7 +159,7 @@ namespace Chronos.Accounts.Queries
                         EnforceCache = query.EnforceCache,
                         NumberOfMatchingDays = query.NumberOfMatchingDays,
                         AssetQuoteOverrides = query.AssetQuoteOverrides,
-                        TrackDisposalLots = query.TrackDisposalLots,
+                        TrackDisposalLots = query.TrackDisposalLots
                     });
                 costBasis = capitalGains.CostBasis;
                 realisedGains = capitalGains.RealisedGains;
@@ -153,10 +174,6 @@ namespace Chronos.Accounts.Queries
             {
                 var price = 1.0;
                 assets.Add(asset);
-                
-                // don't include the zero positions
-                //if (amount == 0)
-                //    continue;
                 
                 if (asset.AssetId != denominator?.AssetId && amount != 0)
                 {
@@ -310,10 +327,9 @@ namespace Chronos.Accounts.Queries
         
         private async Task<AssetQuote> GetAssetQuote(Asset asset, Asset denominator, AccountStatsQuery query, Time timestamp)
         {
-            var fordom = AssetPair.Fordom(asset, denominator);
-            var key = (fordom, timestamp);
+            var key = (asset, denominator, timestamp);
 
-            query.AssetQuotes ??= new Dictionary<(string fordom, Time timestamp), AssetQuote>();
+            query.AssetQuotes ??= new Dictionary<(Asset asset, Asset denominator, Time timestamp), AssetQuote>();
 
             if (query.AssetQuotes.TryGetValue(key, out var cached))
                 return cached;
@@ -323,8 +339,8 @@ namespace Chronos.Accounts.Queries
                 Timeline = query.Timeline,
                 Timestamp = timestamp,
                 EnforceCache = query.EnforceCache,
-                UpdateQuote = query.QueryNet
-                //AssetQuoteOverrides = query.AssetQuoteOverrides
+                UpdateQuote = query.QueryNet,
+                AssetQuoteOverrides = query.AssetQuoteOverrides
             });
 
             if(quote != null)

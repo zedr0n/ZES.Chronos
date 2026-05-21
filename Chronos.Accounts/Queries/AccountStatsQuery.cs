@@ -91,5 +91,5 @@ public class AccountStatsQuery(string name, Asset denominator) : Query<AccountSt
     [JsonIgnore]
     public Dictionary<(string txId, string assetId), TransactionInfo> TransactionInfos { get; set; } = new();
     [JsonIgnore]
-    public Dictionary<(string fordom, Time timestamp), AssetQuote> AssetQuotes { get; set; } = new();
+    public Dictionary<(Asset asset, Asset denominator, Time timestamp), AssetQuote> AssetQuotes { get; set; } = new();
 }

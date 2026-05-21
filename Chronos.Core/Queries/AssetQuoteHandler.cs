@@ -15,6 +15,7 @@ using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.Infrastructure;
 using IClock = ZES.Interfaces.Clocks.IClock;
@@ -36,10 +37,46 @@ namespace Chronos.Core.Queries
   {
     protected override async Task<AssetQuote> Handle(IProjectionState<AssetPairsInfo> projection, AssetQuoteQuery query)
     {
+      var state = projection.State;
+      state.Tree.Log = log;
+      
+      var timestamps = query.AdditionalTimestamps?.ToList();
+      var quote = await Handle(state, query);
+      if (query.AdditionalTimestamps == null)
+        return quote;
+
+      if (TryGetOverride(query, query.ForAsset, query.DomAsset, out _))
+      {
+        log.Warn("Asset quote overrides were provided for multiple timestamps query, is this expected?");
+        return quote;
+      }
+
+      var timestamp = query.Timestamp;
+      try
+      {
+        foreach (var t in query.AdditionalTimestamps ?? [])
+        {
+          query.Timestamp = t;
+          query.AdditionalTimestamps = null;
+          quote.HistoricalResults[t] = await Handle(state, query);
+        }
+      }
+      finally
+      {
+        query.AdditionalTimestamps = timestamps;
+        query.Timestamp = timestamp;
+      }
+      
+      return quote;
+    }
+
+    public override async Task<AssetQuote> Handle<TState>(TState state, AssetQuoteQuery query)
+    {
+      if (state is not AssetPairsInfo info)
+        throw new ArgumentException($"{nameof(AssetPairsInfo)} expected", nameof(state));
+      
       var price = 1.0;
       var fordom = AssetPair.Fordom(query.ForAsset, query.DomAsset);
-      var info = projection.State;
-      info.Tree.Log = log;
       var timestamp = query.Timestamp;
       if (query.Timeline != "")
         timestamp = branchManager.GetTime(query.Timeline);
@@ -49,12 +86,9 @@ namespace Chronos.Core.Queries
       if(TryGetOverride(query, query.ForAsset, query.DomAsset, out var priceOverride))
         return new AssetQuote(new Quantity(priceOverride, query.DomAsset), timestamp.ToInstant());
       
-      var now = clock.GetCurrentInstant();
-      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
-      
       if (info.Pairs.ToList().Contains(fordom))
       {
-        var result = await GetSingleQuote(query, query.ForAsset, query.DomAsset, intraday);
+        var result = await GetSingleQuote(query, timestamp, query.ForAsset, query.DomAsset);
         price = result.Price;
       }
       else 
@@ -69,8 +103,8 @@ namespace Chronos.Core.Queries
           var isInverse = info.Pairs.Contains(AssetPair.Fordom(domAsset, forAsset));
           
           var pathResult = isInverse ? 
-            await GetSingleQuote(query, domAsset, forAsset, intraday) 
-            : await GetSingleQuote(query, forAsset, domAsset, intraday);
+            await GetSingleQuote(query, timestamp, domAsset, forAsset) 
+            : await GetSingleQuote(query, timestamp, forAsset, domAsset);
           
           var pathPrice = pathResult.Price;
 
@@ -83,7 +117,7 @@ namespace Chronos.Core.Queries
       
       return new AssetQuote(new Quantity(price, query.DomAsset), timestamp.ToInstant()); 
     }
-    
+
     private static bool TryGetOverride(AssetQuoteQuery query, Asset forAsset, Asset domAsset, out double price)
     {
       price = 0.0;
@@ -110,14 +144,62 @@ namespace Chronos.Core.Queries
       price = 1.0 / inverse.Price;
       return true;
     }
-    
-    private async Task<SingleAssetQuote> GetSingleQuote(AssetQuoteQuery query, Asset forAsset, Asset domAsset, bool intraday)
+
+    private async Task<SingleAssetQuote> GetSingleQuote(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
     {
-      var timestamp = query.Timestamp;
-      if (query.Timeline != "")
-        timestamp = branchManager.GetTime(query.Timeline);
-      else if (timestamp == null)
-        timestamp = branchManager.GetTime(branchManager.ActiveBranch);
+      var key = (forAsset, domAsset, timestamp);
+
+      query.SingleAssetQuotes ??= new Dictionary<(Asset asset, Asset denominator, Time timestamp), SingleAssetQuote>();
+
+      var now = clock.GetCurrentInstant();
+      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
+      if (!intraday && query.SingleAssetQuotes.TryGetValue(key, out var cached))
+        return cached;
+
+      var quote = await GetSingleQuoteEx(query, timestamp, forAsset, domAsset);
+      if (quote != null)
+      {
+        query.SingleAssetQuotes[key] = quote;
+        foreach(var (t, historicalQuote) in quote.HistoricalResults ?? [])
+          query.SingleAssetQuotes[(forAsset, domAsset, t)] = historicalQuote;
+      }
+
+      return quote;
+    }
+
+    private async Task UpdateSingleQuote(AssetPairInfo assetPairInfo, Time timestamp, bool enforceCache)
+    {
+      var now = clock.GetCurrentInstant();
+      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
+      
+      var fordom = AssetPair.Fordom(assetPairInfo.ForAsset, assetPairInfo.DomAsset);
+      var quoteDates = assetPairInfo?.QuoteDates;
+      var holidayCalendar = assetPairInfo?.HolidayCalendar;
+      List<Instant> sameDayQuotes;
+      if(holidayCalendar != null) 
+        sameDayQuotes = quoteDates?.Where(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant(), timestamp.IsWorkingDay() ? 0 : 1)).ToList();
+      else
+        sameDayQuotes = quoteDates?.Where(d => d.IsSameDay(timestamp.ToInstant())).ToList(); 
+
+      var hasExplicitTime = timestamp != timestamp.StartOfDay();
+      if (holidayCalendar != null && !timestamp.IsWorkingDay())
+        hasExplicitTime = false;
+        
+      var hasExactQuote = quoteDates?.Contains(timestamp.ToInstant()) ?? false;
+        
+      // we always try to update quote for intraday if requested
+      if (!hasExactQuote && ((sameDayQuotes?.Count == 0 || intraday || hasExplicitTime)))
+      {
+        await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
+        await updateQuoteHandler.Handle(
+          new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = enforceCache }, timestamp ));
+      }
+    }
+    
+    private async Task<SingleAssetQuote> GetSingleQuoteEx(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
+    {
+      var now = clock.GetCurrentInstant();
+      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
 
       if(TryGetOverride(query, forAsset, domAsset, out var price))
         return new SingleAssetQuote(price, timestamp.ToInstant());
@@ -128,64 +210,72 @@ namespace Chronos.Core.Queries
       var fordom = AssetPair.Fordom(forAsset, domAsset);
       if (query.UpdateQuote && !useStaleQuotes)
       {
-        var quoteDates = assetPairInfo?.QuoteDates;
-        var holidayCalendar = assetPairInfo?.HolidayCalendar;
-        List<Instant> sameDayQuotes;
-        if(holidayCalendar != null) 
-          sameDayQuotes = quoteDates?.Where(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant(), timestamp.IsWorkingDay() ? 0 : 1)).ToList();
-        else
-          sameDayQuotes = quoteDates?.Where(d => d.IsSameDay(timestamp.ToInstant())).ToList(); 
-
-        var hasExplicitTime = timestamp != timestamp.StartOfDay();
-        if (holidayCalendar != null && !timestamp.IsWorkingDay())
-          hasExplicitTime = false;
-        
-        var hasExactQuote = quoteDates?.Contains(timestamp.ToInstant()) ?? false;
-        
-        // we always try to update quote for intraday if requested
-        if (!hasExactQuote && ((sameDayQuotes?.Count == 0 || intraday || hasExplicitTime)))
-        {
-          await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
-          await updateQuoteHandler.Handle(
-            new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = query.EnforceCache }, timestamp ));
-        }
+        await UpdateSingleQuote(assetPairInfo, timestamp, query.EnforceCache);
+        foreach(var t in query.AdditionalTimestamps ?? [])
+          await UpdateSingleQuote(assetPairInfo, t, query.EnforceCache);
       }
-      
+
       var result = await handler.Handle(new SingleAssetQuoteQuery(fordom)
       {
         Timeline = query.Timeline,
         Timestamp = timestamp,
+        AdditionalTimestamps = query.AdditionalTimestamps,
       });
 
-      if(useStaleQuotes && !double.IsNaN(result.Price))
-        return result;
-      
       if (result == null)
       {
         log.Error($"No pricing data found for {fordom}");
         return new SingleAssetQuote(double.NaN, timestamp.ToInstant());
       }
 
-      var valid = result.IsValid(timestamp.ToInstant(), intraday);
-      if (valid) 
-        return new SingleAssetQuote(result.Price, timestamp.ToInstant());
-     
-      var eodTimestamp = query.Timestamp?.ToInstant().EndOfDay().ToTime();
-      if (!intraday && eodTimestamp != null)
+      var historicalResults = result.HistoricalResults;
+      var invalidResults = historicalResults.Where(r => r.Value == null || double.IsNaN(r.Value.Price)).Select(x => x.Key).ToList();
+      if(double.IsNaN(result.Price))
+        invalidResults.Add(timestamp);
+      
+      if(useStaleQuotes && invalidResults.Count == 0)
+        return result;
+
+      invalidResults = historicalResults.Where(r => r.Value == null || !r.Value.IsValid(r.Key.ToInstant())).Select(x => x.Key).ToList();
+      if(!result.IsValid(timestamp.ToInstant(), intraday))
+        invalidResults.Add(timestamp);
+
+      if (invalidResults.Count == 0)
+        return result;
+
+      var eodTimestamps = invalidResults.Select(t => t.ToInstant().EndOfDay().ToTime()).Distinct().OrderBy(x => x).ToList();
+      var eodTimestamp = eodTimestamps[^1];
+      var eodResult = await handler.Handle(new SingleAssetQuoteQuery(fordom)
       {
-        result = await handler.Handle(new SingleAssetQuoteQuery(fordom)
-        {
-          Timeline = query.Timeline,
-          Timestamp = eodTimestamp,
-        });
-        valid = result != null && result.IsValid(timestamp.ToInstant());
+        Timeline = query.Timeline,
+        Timestamp = eodTimestamp,
+        AdditionalTimestamps = eodTimestamps.Take(eodTimestamps.Count - 1).ToList()
+      });
+      foreach (var t in invalidResults.ToList())
+      {
+        var fallbackTimestamp = t.ToInstant().EndOfDay().ToTime();
+        var r = fallbackTimestamp == eodTimestamp
+          ? eodResult
+          : eodResult.HistoricalResults.GetValueOrDefault(fallbackTimestamp);
+       
+        if (r == null || !r.IsValid(t.ToInstant()))
+          continue;
+
+        if (t == timestamp)
+          result = r;
+        else
+          historicalResults[t] = r;
+        
+        invalidResults.Remove(t);
       }
-
-      if (valid)
-        return new SingleAssetQuote(result.Price, timestamp.ToInstant());
-
-      log.Warn($"Stale pricing data found for {fordom} : {result?.Timestamp}");  
-      return new SingleAssetQuote(0.0, timestamp.ToInstant());
+      
+      if (invalidResults.Count == 0)
+        return new SingleAssetQuote(result.Price, timestamp.ToInstant()) { HistoricalResults = historicalResults }; 
+     
+      log.Warn($"Stale pricing data found for {fordom} : {string.Join(", ", invalidResults)}");      
+      foreach (var t in invalidResults)
+        historicalResults[t] = new SingleAssetQuote(0.0, t.ToInstant()); 
+      return new SingleAssetQuote(result.IsValid(timestamp.ToInstant(), intraday) ? result.Price : 0.0, timestamp.ToInstant()) { HistoricalResults = historicalResults };
     }    
   }
 }

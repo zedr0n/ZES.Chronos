@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using ZES.Interfaces.Clocks;
 
 namespace Chronos.Core.Queries;
 
@@ -50,4 +51,12 @@ public class AssetQuoteQuery(Asset forAsset, Asset domAsset) : ZES.Infrastructur
     /// direct, inverse, or triangulated quote paths.
     /// </remarks>
     public List<AssetQuoteOverride> AssetQuoteOverrides { get; set; }
+
+    /// <summary>
+    /// Gets or sets the collection of single asset quotes, indexed by a tuple containing the base asset,
+    /// denominating asset, and timestamp. This property stores cached quotes and supports efficient access
+    /// to historical or real-time pricing data for specific asset pairs and timestamps.
+    /// </summary>
+    [JsonIgnore]
+    public Dictionary<(Asset ForAsset, Asset DomAsset, Time Timestamp), SingleAssetQuote> SingleAssetQuotes { get; set; }
 }

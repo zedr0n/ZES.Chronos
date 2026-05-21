@@ -1047,6 +1047,24 @@ function AccountStatsEntity(result : any, text : string, date? : string) : Excel
   }
 }
 
+function DateKey(value : string) : string {
+  if(value === null || value === undefined || value === "")
+    return ""
+
+  return value.toString().substring(0, 10)
+}
+
+function ExcelDateKey(serial : number) : string {
+  const date = ExcelDateToJSDate(serial)
+  if(date === null)
+    return ""
+
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, "0")
+  const day = date.getDate().toString().padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 /**
  * @customfunction
  * @param {string[][]} accounts account names
@@ -1054,8 +1072,9 @@ function AccountStatsEntity(result : any, text : string, date? : string) : Excel
  * @param {string} assetId denominator asset
  * @param quoteOverrides
  * @param {boolean} computeGains whether to compute gains
+ * @param {boolean} indexByDate return results as an entity indexed by date
  */
-export async function accountStatsAtDates(accounts : string[][], dates : number[][], assetId? : string, quoteOverrides?: string[][], computeGains? : boolean) : Promise<any> {
+export async function accountStatsAtDates(accounts : string[][], dates : number[][], assetId? : string, quoteOverrides?: string[][], computeGains? : boolean, indexByDate? : boolean) : Promise<any> {
   if(assetId == undefined || assetId == "")
     assetId = "GBP"
 
@@ -1066,10 +1085,16 @@ export async function accountStatsAtDates(accounts : string[][], dates : number[
     .filter(a => a !== null && a !== undefined && a.toString() !== "")
     .map(a => a.toString())
 
-  const dateArgs = FlattenRange(dates)
+  const inputDates = FlattenRange(dates)
     .filter(d => d !== null && d !== undefined && d.toString() !== "")
+
+  const dateArgs = inputDates
     .map(d => ExcelDateToISO(Number(d)))
     .filter(d => d !== null)
+
+  const dateKeys = inputDates
+    .map(d => ExcelDateKey(Number(d)))
+    .filter(d => d !== "")
 
   if(accountNames.length == 0)
     return "At least one account is required"
@@ -1115,18 +1140,32 @@ export async function accountStatsAtDates(accounts : string[][], dates : number[
   if(typeof(result)  === "string")
     return result
 
+  const resultProperties = indexByDate
+    ? {
+        "Results" : {
+          type : Excel.CellValueType.entity,
+          text : "Results",
+          properties : result.reduce((properties, item, idx) => {
+            const date = dateKeys[idx] ?? DateKey(item.date)
+            properties[date] = AccountStatsEntity(item, date, date)
+            return properties
+          }, {})
+        }
+      }
+    : {
+        "Results" : {
+          type : Excel.CellValueType.array,
+          elements: result.map((item, idx) => {
+            const date = dateKeys[idx] ?? DateKey(item.date)
+            return [AccountStatsEntity(item, date, date)]
+          })
+        }
+      }
+
   return {
     type : Excel.CellValueType.entity,
     text : `[${assetId}] ` + accountNames.join(', '),
-    properties : {
-      "Results" : {
-        type : Excel.CellValueType.array,
-        elements: result.map(item => {
-          const date = item.date ? new Date(item.date).toISOString().substring(0, 10) : ""
-          return [AccountStatsEntity(item, date, date)]
-        })
-      }
-    }
+    properties : resultProperties
   }
 }
 

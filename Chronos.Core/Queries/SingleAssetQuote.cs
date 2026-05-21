@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using NodaTime;
 using ZES.Infrastructure.Utils;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Core.Queries;
@@ -9,7 +11,7 @@ namespace Chronos.Core.Queries;
 /// Represents a quote for a single asset with its price, timestamp, and additional metadata.
 /// </summary>
 [method: JsonConstructor]
-public class SingleAssetQuote(double price, Instant timestamp, string holidayCalendar = null, bool supportsIntraday = true) : ISingleState
+public class SingleAssetQuote(double price, Instant timestamp, string holidayCalendar = null, bool supportsIntraday = true) : ISingleState, IHistoricalState, IHistoricalResults<SingleAssetQuote>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SingleAssetQuote"/> class.
@@ -55,6 +57,9 @@ public class SingleAssetQuote(double price, Instant timestamp, string holidayCal
     /// </remarks>
     public string HolidayCalendar => holidayCalendar;
 
+    /// <inheritdoc/>
+    public Dictionary<Time, SingleAssetQuote> HistoricalResults { get; set; } = new();
+    
     /// <summary>
     /// Validates if the current quote is valid based on its timestamp and price value,
     /// considering fallback conditions and intraday constraints.

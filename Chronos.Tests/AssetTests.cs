@@ -819,5 +819,110 @@ namespace Chronos.Tests
             quote = await bus.QueryAsync(new AssetQuoteQuery(csno, usd));
             Assert.Equal(0, quote.Quantity.Amount);
         }
+
+        [Fact]
+        public async Task CanGetFallbackHistoricalQuotes()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var log = container.GetInstance<ILog>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var eqQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
+            
+            var validDate = new LocalDateTime(2026, 5, 20, 12, 30).InUtc().ToInstant().ToTime();
+            var invalidDate = new LocalDateTime(2026, 5, 17, 12, 30).InUtc().ToInstant().ToTime();
+
+            var validHistoricalDate = new LocalDateTime(2026, 5, 15, 12, 30).InUtc().ToInstant().ToTime();
+            var invalidHistoricalDate = new LocalDateTime(2026, 5, 10, 12, 30).InUtc().ToInstant().ToTime();
+            var fallbackHistoricalDate = new LocalDateTime(2026, 5, 8, 12, 30).InUtc().ToInstant().ToTime();
+
+            var iukd = new Asset("IUKD", AssetType.Equity);
+            var gbp = new Asset("GBP", AssetType.Currency);
+            var gbx = new Currency("GBX");
+
+            await connector.SetAsync(webSearchApi.GetUrl(iukd.AssetId),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+            
+            await bus.Command(new RegisterAssetPair(gbp, gbx).ToRetroactiveCommand(Time.MinValue));
+            await bus.Command(new RegisterAssetPair(iukd, gbx, "UK").ToRetroactiveCommand(Time.MinValue));
+
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)));
+            var ticker = assetPairInfo.Ticker;
+
+            await connector.SetAsync(eqQuoteApi.GetUrl(ticker, validDate),
+                "[{\"date\":\"2026-05-20\",\"open\":988.5,\"high\":1007.4,\"low\":987.3,\"close\":1003.8,\"adjusted_close\":1003.8,\"volume\":151385}]");
+            await connector.SetAsync(eqQuoteApi.GetUrl(ticker, validHistoricalDate),
+                "[{\"date\":\"2026-05-15\",\"open\":987.3,\"high\":993.1,\"low\":974.8,\"close\":979.7,\"adjusted_close\":979.7,\"volume\":146978}]");
+            await connector.SetAsync(eqQuoteApi.GetUrl(ticker, fallbackHistoricalDate),
+                "[{\"date\":\"2026-05-08\",\"open\":975.5,\"high\":986.5,\"low\":971.1,\"close\":981.1,\"adjusted_close\":981.1,\"volume\":175734}]");
+            
+            var query = new AssetQuoteQuery(iukd, gbp)
+            {
+                UpdateQuote = true,
+                Timestamp = validDate,
+                AdditionalTimestamps = [validHistoricalDate]
+            };
+            
+            var quote = await bus.QueryAsync(query);
+            Assert.Equal(10.038, quote.Quantity.Amount, 6);
+            Assert.Equal(9.797, quote.HistoricalResults[validHistoricalDate].Quantity.Amount, 6);
+            
+            query = new AssetQuoteQuery(iukd, gbp)
+            {
+                UpdateQuote = true,
+                Timestamp = invalidDate,
+                AdditionalTimestamps = [validHistoricalDate]
+            };
+            
+            quote = await bus.QueryAsync(query);
+            Assert.Equal(9.797, quote.Quantity.Amount, 6);
+            Assert.Equal(9.797, quote.HistoricalResults[validHistoricalDate].Quantity.Amount, 6);
+            
+            query = new AssetQuoteQuery(iukd, gbp)
+            {
+                UpdateQuote = true,
+                Timestamp = validDate,
+                AdditionalTimestamps = [invalidHistoricalDate]
+            };
+            
+            quote = await bus.QueryAsync(query);
+            Assert.Equal(10.038, quote.Quantity.Amount, 6);
+            Assert.Equal(9.811, quote.HistoricalResults[invalidHistoricalDate].Quantity.Amount, 6);
+
+            query = new AssetQuoteQuery(iukd, gbp)
+            {
+                UpdateQuote = true,
+                Timestamp = invalidDate,
+                AdditionalTimestamps = [invalidHistoricalDate]
+            };
+            
+            quote = await bus.QueryAsync(query);
+            Assert.Equal(9.797, quote.Quantity.Amount, 6);
+            Assert.Equal(9.811, quote.HistoricalResults[invalidHistoricalDate].Quantity.Amount, 6);
+
+            query = new AssetQuoteQuery(iukd, gbp)
+            {
+                UpdateQuote = true,
+                Timestamp = validDate,
+                AdditionalTimestamps = [validHistoricalDate,invalidHistoricalDate]
+            };
+            quote = await bus.QueryAsync(query);
+            Assert.Equal(10.038, quote.Quantity.Amount, 6);
+            Assert.Equal(9.797, quote.HistoricalResults[validHistoricalDate].Quantity.Amount, 6);
+            Assert.Equal(9.811, quote.HistoricalResults[invalidHistoricalDate].Quantity.Amount, 6);
+            
+            query = new AssetQuoteQuery(iukd, gbp)
+            {
+                UpdateQuote = true,
+                Timestamp = invalidDate,
+                AdditionalTimestamps = [validHistoricalDate,invalidHistoricalDate]
+            };
+            quote = await bus.QueryAsync(query);
+            Assert.Equal(9.797, quote.Quantity.Amount, 6);
+            Assert.Equal(9.797, quote.HistoricalResults[validHistoricalDate].Quantity.Amount, 6);
+            Assert.Equal(9.811, quote.HistoricalResults[invalidHistoricalDate].Quantity.Amount, 6);
+        }
     }
 }
