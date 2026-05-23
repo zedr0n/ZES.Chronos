@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Drawing.Drawing2D;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using Chronos.Accounts.Queries;
 using Chronos.Core;
 using Chronos.Core.Commands;
 using Chronos.Core.Queries;
+using NodaTime;
 using SimpleInjector;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Branching;
@@ -93,35 +95,13 @@ namespace Chronos.Accounts
                     TrackDisposalLots = trackDisposalLots
                 });
             }
+
+            public AccountStats AccountStats(string[] accounts, string date = null, Asset denominator = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool computeGains = true)
+            {
+                return AccountStatsAtDates(accounts, date != null ? [date] : null, denominator, assetQuoteOverrides, computeGains).Single().Stats;
+            }
             
-            public AccountStats AccountStats(string accountName, Asset denominator = null, Currency currency = null, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool? immediate = null, bool computeGains = true)
-            {
-                var time = date?.ToTime();
-
-                if (denominator == null && currency != null)
-                    denominator = currency;
-                return Resolve(new AccountStatsQuery(accountName, denominator)
-                {
-                    ConvertToDenominatorAtTxDate = immediate ?? true,
-                    Timestamp = time,
-                    QueryNet = true,
-                    AssetQuoteOverrides = assetQuoteOverrides,
-                    ComputeCapitalGains = computeGains
-                });  
-            }
-
-            public AccountStats CombinedAccountStats(string[] accounts, Asset denominator = null, string date = null, List<AssetQuoteOverride> assetQuoteOverrides = null)
-            {
-                var time = date?.ToTime();
-                return Resolve(new CombinedAccountStatsQuery(accounts.ToList(), denominator)
-                {
-                    Timestamp = time,
-                    QueryNet = true,
-                    AssetQuoteOverrides = assetQuoteOverrides
-                }); 
-            }
-
-            public List<AccountStatsAtTime> AccountStatsAtDates(string[] accounts, string[] dates, Asset denominator = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool computeGains = true)
+            public List<AccountStatsAtTime> AccountStatsAtDates(string[] accounts, string[] dates = null, Asset denominator = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool computeGains = true)
             {
                 if (accounts == null || accounts.Length == 0)
                     throw new InvalidOperationException("At least one account is required");
@@ -130,13 +110,10 @@ namespace Chronos.Accounts
                     .Where(d => !string.IsNullOrWhiteSpace(d))
                     .Select(d => d.ToTime())
                     .Distinct()
-                    .ToList() ?? [];
+                    .ToList();
 
-                if (timestamps.Count == 0)
-                    throw new InvalidOperationException("At least one date is required");
-
-                var latest = timestamps.Max();
-                var additionalTimestamps = timestamps
+                var latest = timestamps?.Max();
+                var additionalTimestamps = timestamps?
                     .Where(t => t != latest)
                     .OrderBy(t => t)
                     .ToList();
@@ -159,26 +136,48 @@ namespace Chronos.Accounts
                         ComputeCapitalGains = computeGains
                     });
 
-                return timestamps
+                var accountStats = timestamps?
                     .Select(t => new AccountStatsAtTime
                     {
-                        Date = t.ToInstant().ToDateTimeUtc().ToString("O"),
+                        Time = t,
                         Stats = t == latest ? stats : stats.HistoricalResults[t]
                     })
-                    .ToList();
+                    .ToList() ?? [ new AccountStatsAtTime() { Time = null, Stats = stats } ];
+                return accountStats;
             }
 
-            public BlendedIrr BlendedIrr(string[] accounts, Asset denominator = null, string date = null, string startDate = null)
+            public BlendedIrr BlendedIrr(string[] accounts, string date = null, Asset denominator = null, Period period = null, string startDate = null)
             {
-                var time = date?.ToTime();
+                return BlendedIrrAtDates(accounts, date != null ? [date] : null, denominator, period, startDate).Single().BlendedIrr;
+            }
+            
+            public List<BlendedIrrAtTime> BlendedIrrAtDates(string[] accounts, string[] dates = null, Asset denominator = null, Period period = null, string startDate = null)
+            {
                 var startTime = startDate?.ToTime().ToInstant() ?? default;
+                
+                var times = dates?.Select(d => d?.ToTime()).ToList();
+                var latest = times?.Max();
+                var additionalTimes = times?
+                    .Where(t => t != latest)
+                    .OrderBy(t => t)
+                    .ToList();
 
-                return Resolve(new BlendedIrrQuery(accounts.ToList(), denominator)
+                var blendedIrr = Resolve(new BlendedIrrQuery(accounts.ToList(), denominator)
                 {
-                    Timestamp = time,
+                    Timestamp = latest,
+                    AdditionalTimestamps = additionalTimes,
                     QueryNet = true,
-                    Start = startTime
+                    Period = period,
+                    Start = startTime 
                 });
+
+                var blendedIrrs = times?
+                    .Select(t => new BlendedIrrAtTime()
+                    {
+                        Time = t,
+                        BlendedIrr = t == latest ? blendedIrr : blendedIrr.HistoricalResults[t]
+                    }).ToList() ?? [new BlendedIrrAtTime() { Time = null, BlendedIrr = blendedIrr }];
+                return blendedIrrs;
             }
             
             public TransactionList TransactionList(string account) => Resolve(new TransactionListQuery(account));
@@ -188,6 +187,29 @@ namespace Chronos.Accounts
                 var list = txList.TxId.Select(tx => _bus.QueryAsync(new TransactionInfoQuery(tx)).Result).ToList();
                 return list;
             }
+            
+            /// <summary>
+            /// Represents account statistics evaluated at a specific timestamp.
+            /// </summary>
+            public class AccountStatsAtTime
+            {
+                /// <summary>
+                /// Gets or sets the timestamp used to produce the account statistics.
+                /// </summary>
+                public Time Time { get; set; }
+
+                /// <summary>
+                /// Gets or sets the account statistics for the timestamp.
+                /// </summary>
+                public AccountStats Stats { get; set; }
+            }
+
+            public class BlendedIrrAtTime
+            {
+               public Time Time { get; set; }
+               public BlendedIrr BlendedIrr { get; set; }
+            }
+
         }
 
         /// <summary>

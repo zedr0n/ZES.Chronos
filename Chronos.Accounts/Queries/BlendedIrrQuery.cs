@@ -14,4 +14,5 @@ public class BlendedIrrQuery(List<string> accounts, Asset denominator) : Query<B
     public List<string> Accounts => accounts;
     public Asset Denominator => denominator;
     public Instant Start { get; set; }
+    public Period Period { get; set; }
 }

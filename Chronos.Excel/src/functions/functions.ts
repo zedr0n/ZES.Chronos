@@ -750,22 +750,115 @@ export async function hashflareStats() : Promise<any>
 /**
  * @customfunction
  * @param {string[][]} accounts account names
- * @param {number} asOfDate as of date
- * @param {number} [startDate] start date
+ * @param {number[][]} [dates] as of dates
  * @param {string} assetId denominator asset
+ * @param {number} [startDate] start date
+ * @param {number} [period] period in years
+ * @param {boolean} indexByDate return results as an entity indexed by date
  */
-export async function blendedIrr(accounts: string[][], asOfDate : number, startDate? : number, assetId? : string) : Promise<any> {
+export async function blendedIrr(accounts: string[][], dates? : number[][], assetId? : string, startDate? : number, period?: number, indexByDate? : boolean) : Promise<any> {
   if(assetId == undefined || assetId == "")
     assetId = "GBP"
 
-  let query = `{
-    blendedIrr( accounts:[${accounts.map(a => `"${a}"`).join(', ')}], denominator : { assetId : "${assetId}", assetType : CURRENCY }, date : ${ExcelDateToISO(asOfDate)}, startDate : ${ExcelDateToISO(startDate)} ) { irr }
-  }`
+  var p = OptionalExcelNumber(period)
+  
+  const accountNames = FlattenRange(accounts)
+    .filter(a => a !== null && a !== undefined && a.toString() !== "")
+    .map(a => a.toString())
+
+  const inputDates = FlattenRange(dates)
+    .filter(d => d !== null && d !== undefined && d.toString() !== "")
+
+  const dateArgs = inputDates
+    .map(d => ExcelDateToISO(Number(d)))
+    .filter(d => d !== null)
+
+  const dateKeys = inputDates
+    .map(d => ExcelDateKey(Number(d)))
+    .filter(d => d !== "")
+
+  if(accountNames.length == 0)
+    return "At least one account is required"
+
+  let query = `{ irrs: blendedIrrAtDates(
+      accounts:[${accountNames.map(a => `"${a}"`).join(', ')}],
+      dates:${FormatGraphQlArray(dateArgs)},
+      denominator : { assetId : "${assetId}", assetType : CURRENCY },
+      startDate : ${ExcelDateToISO(startDate)},
+      period: ${p != null ? '"P' + p + 'Y' + '"' : null})
+      {
+        time
+        blendedIrr { irr }
+      }
+    }`
   
   window.console.log(query)
   
-  let result = await SingleQuery(query, data => data.blendedIrr.irr)
-  return result
+  let result = await SingleQuery(query, data => data.irrs.map(item => ({
+    date: item.time,
+    irr: item.blendedIrr.irr
+  })))
+  if(typeof(result)  === "string")
+    return result
+
+  if(dateArgs.length <= 1)
+  {
+    const item = result[0]
+    const date = dateKeys[0] ?? DateKey(item.date)
+    return item.irr//BlendedIrrEntity(item, `[${assetId}] ` + accountNames.join(', '), date)
+  }
+
+  const resultProperties = indexByDate
+    ? {
+        "Results" : {
+          type : Excel.CellValueType.entity,
+          text : "Results",
+          properties : result.reduce((properties, item, idx) => {
+            const date = dateKeys[idx] ?? DateKey(item.date)
+            properties[date] = BlendedIrrEntity(item, date, date)
+            return properties
+          }, {})
+        }
+      }
+    : {
+        "Results" : {
+          type : Excel.CellValueType.array,
+          elements: result.map((item, idx) => {
+            const date = dateKeys[idx] ?? DateKey(item.date)
+            return [BlendedIrrEntity(item, date, date)]
+          })
+        }
+      }
+
+  return {
+    type : Excel.CellValueType.entity,
+    text : `[${assetId}] ` + accountNames.join(', '),
+    properties : resultProperties
+  }
+}
+
+function FormatGraphQlArray(values : string[]) : string {
+  if(values === null || values === undefined || values.length == 0)
+    return "null"
+
+  return `[${values.join(', ')}]`
+}
+
+function BlendedIrrEntity(result : any, text : string, date? : string) : Excel.EntityCellValue {
+  return {
+    type : Excel.CellValueType.entity,
+    text,
+    properties : {
+      "Date" : {
+        type : Excel.CellValueType.string,
+        basicValue : date ?? text,
+      },
+      "IRR" : {
+        type : Excel.CellValueType.double,
+        basicValue : result.irr,
+      }
+    }
+  }
 }
 
 function FormatAssetQuoteOverrides(quoteOverrides?: string[][]): string {
@@ -789,165 +882,113 @@ function FormatAssetQuoteOverrides(quoteOverrides?: string[][]): string {
 /**
  * @customfunction
  * @param {string[][]} accounts account name
- * @param {number} asOfDate as of date
+ * @param {number[][]} [dates] as of dates
  * @param {string} assetId denominator asset
  * @param quoteOverrides
  * @param {boolean} computeGains whether to compute gains
+ * @param {boolean} indexByDate return results as an entity indexed by date
  */
-export async function accountStats(accounts : string[][], asOfDate : number, assetId? : string, quoteOverrides?: string[][], computeGains? : boolean) : Promise<any> {
+export async function accountStats(accounts : string[][], dates? : number[][], assetId? : string, quoteOverrides?: string[][], computeGains? : boolean, indexByDate? : boolean) : Promise<any> {
+  return await accountStatsAtDates(accounts, dates, assetId, quoteOverrides, computeGains, indexByDate)
+}
+
+async function accountStatsAtDates(accounts : string[][], dates? : number[][], assetId? : string, quoteOverrides?: string[][], computeGains? : boolean, indexByDate? : boolean) : Promise<any> {
   if(assetId == undefined || assetId == "")
     assetId = "GBP"
 
+  if(computeGains === undefined || computeGains == null)
+    computeGains = true
+
+  const accountNames = FlattenRange(accounts)
+    .filter(a => a !== null && a !== undefined && a.toString() !== "")
+    .map(a => a.toString())
+
+  const inputDates = FlattenRange(dates)
+    .filter(d => d !== null && d !== undefined && d.toString() !== "")
+
+  const dateArgs = inputDates
+    .map(d => ExcelDateToISO(Number(d)))
+    .filter(d => d !== null)
+
+  const dateKeys = inputDates
+    .map(d => ExcelDateKey(Number(d)))
+    .filter(d => d !== "")
+
+  if(accountNames.length == 0)
+    return "At least one account is required"
+
   let assetQuoteOverrides = FormatAssetQuoteOverrides(quoteOverrides)
-  
-  let query = ''
-  if(accounts.length == 1)
-  {
-    query = `{ stats: accountStats(  
-      accountName : "${accounts[0][0]}",
-      date : "${ExcelDateToJSDate(asOfDate).toISOString()}",
+  let query = `{ stats: accountStatsAtDates(
+      accounts:[${accountNames.map(a => `"${a}"`).join(', ')}],
+      dates:${FormatGraphQlArray(dateArgs)},
       denominator : { assetId : "${assetId}", assetType : CURRENCY },
-      assetQuoteOverrides : ${assetQuoteOverrides})
+      assetQuoteOverrides : ${assetQuoteOverrides},
+      computeGains : ${computeGains})
       {
-        balance { amount denominator { assetId } }
-        income { amount denominator { assetId } } 
-        cashBalance { amount denominator { assetId } } 
-        totalDividend { amount denominator { assetId } } 
-        positions { amount denominator { assetId } } 
-        values { amount denominator { assetId } } 
-        dividends { amount denominator { assetId } } 
-        costBasis { amount denominator { assetId } } 
-        realisedGains { amount denominator { assetId } } 
-        irr 
+        time
+        stats {
+          balance { amount denominator { assetId } }
+          income { amount denominator { assetId } }
+          cashBalance { amount denominator { assetId } }
+          totalDividend { amount denominator { assetId } }
+          positions { amount denominator { assetId } }
+          values { amount denominator { assetId } }
+          dividends { amount denominator { assetId } }
+          costBasis { amount denominator { assetId } }
+          realisedGains { amount denominator { assetId } }
+          irr
+        }
       }
     }`;
-  }
-  else 
-  {
-    query = `{ stats: combinedAccountStats(
-      accounts:[${accounts.map(a => `"${a}"`).join(', ')}],
-      date : "${ExcelDateToJSDate(asOfDate).toISOString()}",
-      denominator : { assetId : "${assetId}", assetType : CURRENCY },
-      assetQuoteOverrides : ${assetQuoteOverrides} ) 
-      { 
-        balance { amount denominator { assetId } } 
-        income { amount denominator { assetId } } 
-        cashBalance { amount denominator { assetId } } 
-        totalDividend { amount denominator { assetId } } 
-        positions { amount denominator { assetId } } 
-        values { amount denominator { assetId } } 
-        dividends { amount denominator { assetId } } 
-        costBasis { amount denominator { assetId } } 
-        realisedGains { amount denominator { assetId } } 
-        irr
-      }
-    }`;
-  }
-  
+
   window.console.log(query)
 
-  // amount = Number(await SingleQuery(query, data => data.accountStats.balance.amount.toString()))
-  let result = await SingleQuery(query, data => ({ 
-    amount: data.stats.balance.amount, asset: data.stats.balance.denominator,
-    cashAmount: data.stats.cashBalance.amount, cashAsset: data.stats.cashBalance.denominator,
-    totalDividend: data.stats.totalDividend.amount, income : data.stats.income.amount, 
-    positions: data.stats.positions, values: data.stats.values, costBasis: data.stats.costBasis, realisedGains: data.stats.realisedGains, dividends: data.stats.dividends,
-    irr: data.stats.irr }
-  ))
+  let result = await SingleQuery(query, data => data.stats.map(item => ({
+    date: item.time,
+    amount: item.stats.balance.amount, asset: item.stats.balance.denominator,
+    cashAmount: item.stats.cashBalance.amount, cashAsset: item.stats.cashBalance.denominator,
+    totalDividend: item.stats.totalDividend.amount, income : item.stats.income.amount,
+    positions: item.stats.positions, values: item.stats.values, costBasis: item.stats.costBasis,
+    realisedGains: item.stats.realisedGains, dividends: item.stats.dividends,
+    irr: item.stats.irr
+  })))
   if(typeof(result)  === "string")
     return result
-  
-  const myEntity : Excel.EntityCellValue = {
-    type : Excel.CellValueType.entity, 
-    text : `[${assetId}] ` + accounts.map(a => `${a}`).join(', '),
-    properties : {
-      "IRR" : {
-        type : Excel.CellValueType.double,
-        basicValue : result.irr,
-      },
-      "Balance" : {
-        type : Excel.CellValueType.double,
-        basicValue: result.amount, 
-      },
-      "CashBalance" : {
-        type: Excel.CellValueType.double,
-        basicValue: result.cashAmount,
-      },
-      "Income" : {
-        type: Excel.CellValueType.double,
-        basicValue: result.income,
-      },
-      "Dividend" : {
-        type: Excel.CellValueType.double,
-        basicValue: result.totalDividend,
-      },
-      "Positions" : {
-        type : Excel.CellValueType.array,
-        elements: (result.positions && result.positions.length > 0)
-          ? result.positions.map((pos, idx) => ({
-              type: Excel.CellValueType.entity,
-              text: pos.denominator?.assetId ?? "",
-              properties: {
-                "Asset": {
-                  type: Excel.CellValueType.string,
-                  basicValue: pos.denominator?.assetId ?? ""
-                },
-                "Amount": {
-                  type: Excel.CellValueType.double,
-                  basicValue: pos.amount ?? 0
-                },
-                "Value": {
-                  type: Excel.CellValueType.double,
-                  basicValue: result.values?.[idx]?.amount ?? 0
-                },
-                "Dividend": {
-                  type: Excel.CellValueType.double,
-                  basicValue: result.dividends?.[idx]?.amount ?? 0
-                },
-                "CostBasis" : {
-                  type: Excel.CellValueType.double,
-                  basicValue: result.costBasis?.[idx]?.amount ?? 0
-                },
-                "RealisedGain": {
-                  type: Excel.CellValueType.double,
-                  basicValue: result.realisedGains?.[idx]?.amount ?? 0
-                }
-              }
-            }))
-          : [{
-              type: Excel.CellValueType.entity,
-              text: "No positions",
-              properties: {
-                "Asset": {
-                  type: Excel.CellValueType.string,
-                  basicValue: ""
-                },
-                "Amount": {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                },
-                "Value": {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                },
-                "Dividend" : {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                },
-                "CostBasis" : {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0 
-                },
-                "RealisedGain": {
-                  type: Excel.CellValueType.double,
-                  basicValue: 0
-                }
-              }
-            }]
-      },
-    }
+
+  if(dateArgs.length <= 1)
+  {
+    const item = result[0]
+    const date = dateKeys[0] ?? DateKey(item.date)
+    return AccountStatsEntity(item, `[${assetId}] ` + accountNames.join(', '), date)
   }
-  return myEntity
+
+  const resultProperties = indexByDate
+    ? {
+        "Results" : {
+          type : Excel.CellValueType.entity,
+          text : "Results",
+          properties : result.reduce((properties, item, idx) => {
+            const date = dateKeys[idx] ?? DateKey(item.date)
+            properties[date] = AccountStatsEntity(item, date, date)
+            return properties
+          }, {})
+        }
+      }
+    : {
+        "Results" : {
+          type : Excel.CellValueType.array,
+          elements: result.map((item, idx) => {
+            const date = dateKeys[idx] ?? DateKey(item.date)
+            return [AccountStatsEntity(item, date, date)]
+          })
+        }
+      }
+
+  return {
+    type : Excel.CellValueType.entity,
+    text : `[${assetId}] ` + accountNames.join(', '),
+    properties : resultProperties
+  }
 }
 
 function AccountStatsEntity(result : any, text : string, date? : string) : Excel.EntityCellValue {
@@ -1063,110 +1104,6 @@ function ExcelDateKey(serial : number) : string {
   const month = (date.getMonth() + 1).toString().padStart(2, "0")
   const day = date.getDate().toString().padStart(2, "0")
   return `${year}-${month}-${day}`
-}
-
-/**
- * @customfunction
- * @param {string[][]} accounts account names
- * @param {number[][]} dates as of dates
- * @param {string} assetId denominator asset
- * @param quoteOverrides
- * @param {boolean} computeGains whether to compute gains
- * @param {boolean} indexByDate return results as an entity indexed by date
- */
-export async function accountStatsAtDates(accounts : string[][], dates : number[][], assetId? : string, quoteOverrides?: string[][], computeGains? : boolean, indexByDate? : boolean) : Promise<any> {
-  if(assetId == undefined || assetId == "")
-    assetId = "GBP"
-
-  if(computeGains === undefined || computeGains == null)
-    computeGains = true
-
-  const accountNames = FlattenRange(accounts)
-    .filter(a => a !== null && a !== undefined && a.toString() !== "")
-    .map(a => a.toString())
-
-  const inputDates = FlattenRange(dates)
-    .filter(d => d !== null && d !== undefined && d.toString() !== "")
-
-  const dateArgs = inputDates
-    .map(d => ExcelDateToISO(Number(d)))
-    .filter(d => d !== null)
-
-  const dateKeys = inputDates
-    .map(d => ExcelDateKey(Number(d)))
-    .filter(d => d !== "")
-
-  if(accountNames.length == 0)
-    return "At least one account is required"
-
-  if(dateArgs.length == 0)
-    return "At least one date is required"
-
-  let assetQuoteOverrides = FormatAssetQuoteOverrides(quoteOverrides)
-  let query = `{ stats: accountStatsAtDates(
-      accounts:[${accountNames.map(a => `"${a}"`).join(', ')}],
-      dates:[${dateArgs.join(', ')}],
-      denominator : { assetId : "${assetId}", assetType : CURRENCY },
-      assetQuoteOverrides : ${assetQuoteOverrides},
-      computeGains : ${computeGains})
-      {
-        date
-        stats {
-          balance { amount denominator { assetId } }
-          income { amount denominator { assetId } }
-          cashBalance { amount denominator { assetId } }
-          totalDividend { amount denominator { assetId } }
-          positions { amount denominator { assetId } }
-          values { amount denominator { assetId } }
-          dividends { amount denominator { assetId } }
-          costBasis { amount denominator { assetId } }
-          realisedGains { amount denominator { assetId } }
-          irr
-        }
-      }
-    }`;
-
-  window.console.log(query)
-
-  let result = await SingleQuery(query, data => data.stats.map(item => ({
-    date: item.date,
-    amount: item.stats.balance.amount, asset: item.stats.balance.denominator,
-    cashAmount: item.stats.cashBalance.amount, cashAsset: item.stats.cashBalance.denominator,
-    totalDividend: item.stats.totalDividend.amount, income : item.stats.income.amount,
-    positions: item.stats.positions, values: item.stats.values, costBasis: item.stats.costBasis,
-    realisedGains: item.stats.realisedGains, dividends: item.stats.dividends,
-    irr: item.stats.irr
-  })))
-  if(typeof(result)  === "string")
-    return result
-
-  const resultProperties = indexByDate
-    ? {
-        "Results" : {
-          type : Excel.CellValueType.entity,
-          text : "Results",
-          properties : result.reduce((properties, item, idx) => {
-            const date = dateKeys[idx] ?? DateKey(item.date)
-            properties[date] = AccountStatsEntity(item, date, date)
-            return properties
-          }, {})
-        }
-      }
-    : {
-        "Results" : {
-          type : Excel.CellValueType.array,
-          elements: result.map((item, idx) => {
-            const date = dateKeys[idx] ?? DateKey(item.date)
-            return [AccountStatsEntity(item, date, date)]
-          })
-        }
-      }
-
-  return {
-    type : Excel.CellValueType.entity,
-    text : `[${assetId}] ` + accountNames.join(', '),
-    properties : resultProperties
-  }
 }
 
 /**
@@ -1328,10 +1265,14 @@ export async function disposalGainItems(asOfDate : number, assetId : string, acc
  */
 export function accountStatsDynamic(account : string, asOfDate : number, invocation : CustomFunctions.StreamingInvocation<string>) : void {
   const query = `{
-      accountStats(  accountName : "${account}", date : "${ExcelDateToJSDate(asOfDate).toISOString()}" ) { balance { amount } } 
+      accountStats(
+        accounts : ["${account}"],
+        dates : [${ExcelDateToISO(asOfDate)}]) {
+        stats { balance { amount } }
+      } 
   }`;
 
-  Query(query, data => data.accountStats.balance.amount.toString(), invocation);
+  Query(query, data => data.accountStats[0].stats.balance.amount.toString(), invocation);
 }
 
 /**

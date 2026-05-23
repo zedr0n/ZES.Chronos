@@ -1549,8 +1549,38 @@ namespace Chronos.Tests
             var blendedIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Timestamp = date3 });
             Assert.Equal(0.05, blendedIrr.Irr, 1e-3);
             
+            blendedIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")));
+            Assert.Equal(0.05, blendedIrr.Irr, 1e-3);
+            
             var intIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Timestamp = date3, Start = date2.ToInstant() });
             Assert.Equal(0.06, intIrr.Irr, 1e-3);
+            
+            intIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Start = date2.ToInstant() });
+            Assert.Equal(0.06, intIrr.Irr, 1e-3);
+
+            var intIrr2 = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Timestamp = date3, Period = Period.FromYears(1) });
+            Assert.Equal(0.06, intIrr2.Irr, 1e-3);
+            
+            intIrr2 = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Period = Period.FromYears(1) });
+            Assert.Equal(0, intIrr2.Irr, 1e-3);
+
+            var allIntIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Timestamp = date3, Period = Period.FromYears(1), AdditionalTimestamps = [date2] });
+            Assert.Equal(0.06, allIntIrr.Irr, 1e-3);
+            Assert.Equal(0.04, allIntIrr.HistoricalResults[date2].Irr, 1e-3);
+            
+            allIntIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Period = Period.FromYears(1), AdditionalTimestamps = [date2] });
+            Assert.Equal(0, allIntIrr.Irr, 1e-3);
+            Assert.Equal(0.04, allIntIrr.HistoricalResults[date2].Irr, 1e-3);
+            
+            var allIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { Timestamp = date3, AdditionalTimestamps = [date, date2] });
+            Assert.Equal(0.05, allIrr.Irr, 1e-3);
+            Assert.Equal(0, allIrr.HistoricalResults[date].Irr, 1e-3);
+            Assert.Equal(0.04, allIrr.HistoricalResults[date2].Irr, 1e-3);
+
+            allIrr = await bus.QueryAsync(new BlendedIrrQuery(["Account"], new Currency("GBP")) { AdditionalTimestamps = [date, date2] });
+            Assert.Equal(0.05, allIrr.Irr, 1e-3);
+            Assert.Equal(0, allIrr.HistoricalResults[date].Irr, 1e-3);
+            Assert.Equal(0.04, allIrr.HistoricalResults[date2].Irr, 1e-3);
         }
 
         [Fact]

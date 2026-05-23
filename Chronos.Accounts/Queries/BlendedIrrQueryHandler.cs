@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Chronos.Core;
@@ -7,6 +8,7 @@ using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Branching;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries;
@@ -34,46 +36,70 @@ public class BlendedIrrQueryHandler : DefaultQueryHandler<BlendedIrrQuery, Blend
     protected override async Task<BlendedIrr> Handle(IProjectionState<BlendedIrrState> projection, BlendedIrrQuery query)
     {
         var accounts = query.Accounts;
-        var allCashflows = new List<(Instant time, Quantity quantity)>();
 
         var t0 = query.Start;
-        var startBalance = 0.0;
 
+        if(query.Period != null && query.Start != default)
+            throw new InvalidOperationException("Cannot specify both period and start time");
+
+        var now = query.Timestamp ?? _activeTimeline.Now;
+        var additionalTimestamps = query.AdditionalTimestamps?.ToList() ?? [];
         if (t0 != default)
         {
-            var startAccountStats =
-                await _combinedAccountStatsHandler.Handle(new CombinedAccountStatsQuery(accounts, query.Denominator)
-                {
-                    Timeline = query.Timeline,
-                    Timestamp = t0.ToTime(),
-                    QueryNet = query.QueryNet,
-                    ComputeCapitalGains = false
-                });
-            startBalance += startAccountStats.Balance.Amount;
-            allCashflows.AddRange(startAccountStats.ExternalCashflows.Where(x => x.Item1 >= t0));
+            additionalTimestamps.Add(t0.ToTime());
         }
+        else if (query.Period != null)
+        {
+            foreach (var t in additionalTimestamps.ToList())
+                additionalTimestamps.Add(t.MinusPeriod(query.Period));
+            t0 = now.MinusPeriod(query.Period).ToInstant();
+            additionalTimestamps.Add(t0.ToTime());
+        }
+        additionalTimestamps = additionalTimestamps.Distinct().OrderBy(x => x).ToList();
         
-        if (startBalance != 0.0)
-            allCashflows.Add((t0, new Quantity(-startBalance, query.Denominator)));
-        
-        var endBalance = 0.0;
-        
-        var endAccountStats =
-            await _combinedAccountStatsHandler.Handle(new CombinedAccountStatsQuery(accounts, query.Denominator)
+        var accountStats = await _combinedAccountStatsHandler.Handle(
+            new CombinedAccountStatsQuery(accounts, query.Denominator)
             {
                 Timeline = query.Timeline,
                 Timestamp = query.Timestamp,
                 QueryNet = query.QueryNet,
-                ComputeCapitalGains = false 
+                ComputeCapitalGains = false,
+                AdditionalTimestamps = additionalTimestamps 
             });
-        endBalance += endAccountStats.Balance.Amount;
-        allCashflows.AddRange(endAccountStats.ExternalCashflows.Where(x => x.Item1 >= t0));
+
+        var irr = ComputeIrr((t0, accountStats.HistoricalResults.GetValueOrDefault(t0.ToTime(), null)),
+            (now.ToInstant(), accountStats), query.Denominator);
         
-        var now = query.Timestamp?.ToInstant() ?? _activeTimeline.Now.ToInstant();
+        var blendedIrr = new BlendedIrr(irr);
+
+        foreach (var t in query.AdditionalTimestamps ?? [])
+        {
+            var startT = query.Period != null ? t.MinusPeriod(query.Period).ToInstant() : query.Start;
+            if (startT > t.ToInstant())
+                throw new InvalidOperationException($"Start time {startT} is after the end time {t}");
+            var historicalIrr =  ComputeIrr(
+                (startT, accountStats.HistoricalResults.GetValueOrDefault(startT.ToTime(), null)),
+                (t.ToInstant(), accountStats.HistoricalResults.GetValueOrDefault(t, null)),
+                query.Denominator); 
+            blendedIrr.HistoricalResults[t] = new BlendedIrr(historicalIrr);
+        }
+
+        return blendedIrr;
+    }
+
+    double ComputeIrr((Instant t, AccountStats stats) start, (Instant t, AccountStats stats) end, Asset denominator)
+    {
+        var allCashflows = new List<(Instant time, Quantity quantity)>();
+
+        if (start.t != default)
+            allCashflows.Add((start.t, new Quantity(-start.stats.Balance.Amount, denominator)));
+        
+        var endBalance = end.stats.Balance.Amount;
+        allCashflows.AddRange(end.stats.ExternalCashflows.Where(x => x.Item1 > start.t));
+       
         var extCashflows = allCashflows.OrderBy(x => x.time).Select(x => (x.time, x.quantity.Amount)).ToList();
-        extCashflows.Add((now, endBalance));
+        extCashflows.Add((end.t, endBalance));
         
-        var irr = IrrSolver.Solve(extCashflows);
-        return new BlendedIrr(irr);
+        return IrrSolver.Solve(extCashflows);
     }
 }
