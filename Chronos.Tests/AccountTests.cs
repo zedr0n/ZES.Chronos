@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Chronos.Accounts;
@@ -382,9 +383,11 @@ namespace Chronos.Tests
             {
                 date = date.PreviousWorkingDay().CloseOfDay();
                 var eodWebQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
+                var dateStr = date.ToString("yyyy-MM-dd", new DateTimeFormatInfo());
 
+                var data = "[{\"date\":\"2026-05-08\",\"open\":955.9,\"high\":995.9,\"low\":984.3,\"close\":988.8,\"adjusted_close\":988.8,\"volume\":175735}]".Replace("2026-05-08", dateStr); 
                 await connector.SetAsync(eodWebQuoteApi.GetUrl("IUKD.LSE", date, enforceCache: true),
-                    "[{\"date\":\"2026-05-08\",\"open\":955.9,\"high\":995.9,\"low\":984.3,\"close\":988.8,\"adjusted_close\":988.8,\"volume\":175735}]");
+                    data);
             }
 
             await bus.Command(new RegisterAssetPair(ccy, quoteCcy));
@@ -877,7 +880,7 @@ namespace Chronos.Tests
             await connector.SetAsync(coinQuoteApi.GetUrl(ticker, date2),
                 "[{\"date\":\"2017-08-14\",\"open\":4066.1000976563,\"high\":4325.1298828125,\"low\":3989.1599121094,\"close\":4325.1298828125,\"adjusted_close\":4325.1298828125,\"volume\":2463089920}]");
             await connector.SetAsync(coinQuoteApi.GetPreciseUrl(ticker, date2),
-                "[{\"date\":\"2017-08-14\",\"open\":4066.1000976563,\"high\":4325.1298828125,\"low\":3989.1599121094,\"close\":4325.1298828125,\"adjusted_close\":4325.1298828125,\"volume\":2463089920}]");
+                "[{\"timestamp\":1502713800,\"gmtoffset\":0,\"datetime\":\"2017-08-14 12:30:00\",\"open\":4205,\"high\":4212,\"low\":4191.94,\"close\":4325.1298828125,\"volume\":24.77}]");
             
             assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(eth, usd)) { Timestamp = date });
             ticker = assetPairInfo.Ticker;

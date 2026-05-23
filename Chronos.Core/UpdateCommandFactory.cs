@@ -13,7 +13,7 @@ public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> upda
     : IUpdateCommandFactory
 {
     /// <inheritdoc/>
-    public (UpdateQuote Command, ICommandHandler Handler) CreateUpdateQuote(UpdateQuote command, AssetType forAssetType, AssetType domAssetType, Time timestamp, bool intraday)
+    public (UpdateQuote Command, ICommandHandler Handler) CreateUpdateQuote(UpdateQuote command, AssetType forAssetType, AssetType domAssetType, Time timestamp, List<Time> additionalTimestamps, bool intraday)
     {
         var webApi = webApiProvider.GetQuoteApi(forAssetType, domAssetType, intraday);
         if (webApi == null)
@@ -26,6 +26,7 @@ public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> upda
         var commandT = (UpdateQuote)Activator.CreateInstance(typeof(UpdateQuote<,>).MakeGenericType(t, tSearch), command);
         commandT?.StoreInLog = false;
         commandT?.Timestamp = timestamp;
+        commandT?.AdditionalTimestamps = additionalTimestamps;
         var handler = updateQuoteHandlers.SingleOrDefault(h => h.CanHandle(commandT));
         return (commandT, handler);
     }

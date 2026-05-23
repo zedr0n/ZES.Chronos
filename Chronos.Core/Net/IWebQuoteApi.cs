@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Net;
 
@@ -19,6 +20,15 @@ public interface IWebQuoteApi
     string GetUrl(string ticker, Time date = null, bool enforceCache = false);
 
     /// <summary>
+    /// Constructs the URL for a specific ticker and a collection of dates, with an optional cache enforcement setting.
+    /// </summary>
+    /// <param name="ticker">The identifier representing the target entity or data set.</param>
+    /// <param name="dates">A collection of specific points in time for the requested data.</param>
+    /// <param name="enforceCache">A boolean flag indicating whether to enforce caching mechanisms.</param>
+    /// <returns>A string representing the constructed URL.</returns>
+    string GetUrl(string ticker, IEnumerable<Time> dates, bool enforceCache = false);
+    
+    /// <summary>
     /// Gets a more precise quote URL for the specified ticker and timestamp when the provider supports it
     /// (for example, minute-level data for historical timestamps).
     /// </summary>
@@ -28,16 +38,36 @@ public interface IWebQuoteApi
     /// <returns>
     /// The constructed URL for a precise web API request.
     /// Return <c>null</c> when no precise endpoint can be produced.
-    /// Implementations may also return the same URL as <see cref="GetUrl"/> when no distinct precise endpoint exists.
+    /// Implementations may also return the same URL as <c>GetUrl</c> when no distinct precise endpoint exists.
     /// </returns>
     string GetPreciseUrl(string ticker, Time date = null, bool enforceCache = false);
-    
+
+    /// <summary>
+    /// Constructs a precise URL for a specific ticker and time, with an optional cache enforcement setting.
+    /// </summary>
+    /// <param name="ticker">The identifier representing the target entity or data set.</param>
+    /// <param name="dates">A list of specific points in time for the requested data.</param>
+    /// <param name="enforceCache">A boolean flag indicating whether to enforce caching mechanisms.</param>
+    /// <returns>
+    /// A string representing the constructed precise URL for the web API request.
+    /// Returns <c>null</c> if no precise endpoint is available or when a precise URL cannot be determined.
+    /// May return the same result as <c>GetUrl</c> if no distinct precise endpoint exists.
+    /// </returns>
+    string GetPreciseUrl(string ticker, List<Time> dates, bool enforceCache = false);
+
     /// <summary>
     /// Retrieves a value from the provided JSON result.
     /// </summary>
     /// <param name="result">The JSON result containing the data from which the value is to be extracted.</param>
     /// <returns>A double value extracted from the JSON result.</returns>
-    double GetValue(IJsonResult result);
+    (Time Timestamp, double Value) GetValue(IJsonResult result);
+
+    /// <summary>
+    /// Extracts a collection of timestamped values from the given JSON result.
+    /// </summary>
+    /// <param name="result">The JSON response containing the data to extract.</param>
+    /// <returns>A collection of tuples, where each tuple contains a timestamp and a corresponding value.</returns>
+    IEnumerable<(Time Timestamp, double Value)> GetValues(IJsonResult result);
 
     /// <summary>
     /// Retrieves the search ticker corresponding to the specified asset and domestic asset.
@@ -61,4 +91,10 @@ public interface IWebQuoteApi
     /// <param name="intraday">A boolean flag indicating whether the request is for intraday data.</param>
     /// <returns>A boolean value indicating whether the API can handle the specified combination of asset types and intraday setting.</returns>
     bool CanHandle(AssetType forAssetType, AssetType domAssetType, bool intraday);
+
+    /// <summary>
+    /// Gets a value indicating whether the API supports handling multiple timestamps in a single request.
+    /// </summary>
+    /// <returns>A boolean value indicating whether multiple timestamps are supported.</returns>
+    bool SupportsMultipleTimestamps();
 }

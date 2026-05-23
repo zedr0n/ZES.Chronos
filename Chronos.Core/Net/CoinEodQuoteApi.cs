@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using ZES.Interfaces.Clocks;
 
 namespace Chronos.Core.Net;
@@ -21,6 +23,17 @@ public class CoinEodQuoteApi : EodhdEodQuoteApiBase
         
         var fromTimestamp = date.ToUnixTimeSeconds();
         var toTimestamp = fromTimestamp + 59;
+        return $"{BaseUrl}/{Endpoint}/{ticker}?from={fromTimestamp}&to={toTimestamp}&interval=1m&fmt=json&api_token={ApiKey ?? string.Empty}";
+    }
+
+    /// <inheritdoc/>
+    public override string GetPreciseUrl(string ticker, List<Time> dates, bool enforceCache = false)
+    {
+        if (dates.Count == 1)
+           return GetPreciseUrl(ticker, dates.FirstOrDefault(), enforceCache); 
+        
+        var fromTimestamp = dates.Min().ToUnixTimeSeconds() - 59;
+        var toTimestamp = dates.Max().ToUnixTimeSeconds() + 59;
         return $"{BaseUrl}/{Endpoint}/{ticker}?from={fromTimestamp}&to={toTimestamp}&interval=1m&fmt=json&api_token={ApiKey ?? string.Empty}";
     }
 

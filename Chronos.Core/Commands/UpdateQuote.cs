@@ -1,5 +1,8 @@
+using System.Collections.Generic;
 using Chronos.Core.Net;
 using Newtonsoft.Json;
+using ZES.Infrastructure;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Net;
 
 namespace Chronos.Core.Commands
@@ -31,10 +34,16 @@ namespace Chronos.Core.Commands
         public bool ForFallback { get; set; }
 
         /// <summary>
-        /// Gets or sets the resolved URL used during the update of a quote.
+        /// Gets or sets the additional timestamps associated with the update quote operation.
         /// </summary>
         [JsonIgnore]
-        public string ResolvedUrl { get; set; }
+        public List<Time> AdditionalTimestamps { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether batching should be used during the processing of the command.
+        /// </summary>
+        [JsonIgnore] 
+        public bool UseBatching { get; set; } = Configuration.UseBatching;
     }
 
     /// <inheritdoc />
@@ -56,7 +65,8 @@ namespace Chronos.Core.Commands
             Ephemeral = command.Ephemeral;
             Timestamp = command.Timestamp;
             ForFallback = command.ForFallback;
-            ResolvedUrl = command.ResolvedUrl;
+            AdditionalTimestamps = command.AdditionalTimestamps;
+            UseBatching = command.UseBatching;
         }
     }
 }

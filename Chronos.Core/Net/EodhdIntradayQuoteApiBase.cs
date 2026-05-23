@@ -18,14 +18,16 @@ public abstract class EodhdIntradayQuoteApiBase : EodhdQuoteApiBase
     }
 
     /// <inheritdoc/>
-    public override double GetValue(IJsonResult result)
+    public override (Time Timestamp, double Value) GetValue(IJsonResult result)
     {
-        var r = result as JsonResult;
-        return r?.Close ?? double.NaN;
+        return result is not JsonResult r ? (null, double.NaN) : (Time.FromUnixTimeSeconds(r.Timestamp), r.Close);
     }
     
     /// <inheritdoc/>
     public override Type GetJsonResultType() => typeof(JsonResult);
+
+    /// <inheritdoc/>
+    public override bool SupportsMultipleTimestamps() => false;
 
     /// <summary>
     /// Represents the JSON result of an intraday (real-time) data query, containing current market data.

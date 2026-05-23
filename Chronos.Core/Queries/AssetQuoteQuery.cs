@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using ZES.Infrastructure;
 using ZES.Interfaces.Clocks;
 
 namespace Chronos.Core.Queries;
@@ -59,4 +60,11 @@ public class AssetQuoteQuery(Asset forAsset, Asset domAsset) : ZES.Infrastructur
     /// </summary>
     [JsonIgnore]
     public Dictionary<(Asset ForAsset, Asset DomAsset, Time Timestamp), SingleAssetQuote> SingleAssetQuotes { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether batching should be used during the processing of asset quotes.
+    /// When enabled, multiple operations related to asset quotes may be grouped together for performance optimization.
+    /// </summary>
+    [JsonIgnore]
+    public bool UseBatching { get; set; } = Configuration.UseBatching;
 }

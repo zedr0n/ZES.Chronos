@@ -31,8 +31,7 @@ namespace Chronos.Core.Queries
     IClock clock,
     IQueryHandler<AssetPairInfoQuery, AssetPairInfo> pairInfoHandler,
     IQueryHandler<SingleAssetQuoteQuery, SingleAssetQuote> handler,
-    ICommandHandler<RetroactiveCommand<UpdateQuote>> updateQuoteHandler,
-    IFlowCompletionService completionService)
+    ICommandHandler<UpdateQuote> updateQuoteHandler)
     : QueryHandlerBase<AssetQuoteQuery, AssetQuote, AssetPairsInfo>(manager, activeTimeline)
   {
     protected override async Task<AssetQuote> Handle(IProjectionState<AssetPairsInfo> projection, AssetQuoteQuery query)
@@ -88,7 +87,7 @@ namespace Chronos.Core.Queries
       
       if (info.Pairs.ToList().Contains(fordom))
       {
-        var result = await GetSingleQuote(query, timestamp, query.ForAsset, query.DomAsset);
+        var result = await GetSingleAssetQuote(query, timestamp, query.ForAsset, query.DomAsset);
         price = result.Price;
       }
       else 
@@ -103,8 +102,8 @@ namespace Chronos.Core.Queries
           var isInverse = info.Pairs.Contains(AssetPair.Fordom(domAsset, forAsset));
           
           var pathResult = isInverse ? 
-            await GetSingleQuote(query, timestamp, domAsset, forAsset) 
-            : await GetSingleQuote(query, timestamp, forAsset, domAsset);
+            await GetSingleAssetQuote(query, timestamp, domAsset, forAsset) 
+            : await GetSingleAssetQuote(query, timestamp, forAsset, domAsset);
           
           var pathPrice = pathResult.Price;
 
@@ -145,7 +144,7 @@ namespace Chronos.Core.Queries
       return true;
     }
 
-    private async Task<SingleAssetQuote> GetSingleQuote(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
+    private async Task<SingleAssetQuote> GetSingleAssetQuote(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
     {
       var key = (forAsset, domAsset, timestamp);
 
@@ -156,15 +155,15 @@ namespace Chronos.Core.Queries
       if (!intraday && query.SingleAssetQuotes.TryGetValue(key, out var cached))
         return cached;
 
-      var quote = await GetSingleQuoteEx(query, timestamp, forAsset, domAsset);
-      if (quote != null)
+      var quotes = await GetQuotes(query, timestamp, forAsset, domAsset);
+      if (quotes != null)
       {
-        query.SingleAssetQuotes[key] = quote;
-        foreach(var (t, historicalQuote) in quote.HistoricalResults ?? [])
+        query.SingleAssetQuotes[key] = quotes;
+        foreach(var (t, historicalQuote) in quotes.HistoricalResults ?? [])
           query.SingleAssetQuotes[(forAsset, domAsset, t)] = historicalQuote;
       }
 
-      return quote;
+      return quotes;
     }
 
     private async Task UpdateSingleQuote(AssetPairInfo assetPairInfo, Time timestamp, bool enforceCache)
@@ -189,14 +188,53 @@ namespace Chronos.Core.Queries
         
       // we always try to update quote for intraday if requested
       if (!hasExactQuote && ((sameDayQuotes?.Count == 0 || intraday || hasExplicitTime)))
-      {
-        await completionService.RetroactiveExecution.FirstOrDefaultAsync(b => b == false);
-        await updateQuoteHandler.Handle(
-          new RetroactiveCommand<UpdateQuote>(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = enforceCache }, timestamp ));
-      }
+        await updateQuoteHandler.Handle(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = enforceCache, Timestamp = timestamp, StoreInLog = false } );
     }
     
-    private async Task<SingleAssetQuote> GetSingleQuoteEx(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
+    private async Task UpdateQuotes(AssetPairInfo assetPairInfo, Time timestamp, IEnumerable<Time> additionalTimestamps, bool enforceCache, bool useBatching)
+    {
+      var fordom = AssetPair.Fordom(assetPairInfo.ForAsset, assetPairInfo.DomAsset);
+      
+      var now = clock.GetCurrentInstant();
+      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
+     
+      var needsUpdate = NeedsUpdate(assetPairInfo, timestamp, intraday);
+      var timestamps = additionalTimestamps?.Where(t => NeedsUpdate(assetPairInfo, t, false)).ToList();
+
+      if (!needsUpdate && timestamps is { Count: > 0 })
+      {
+        timestamp = timestamps.Max();
+        timestamps = timestamps.Where(t => t != timestamp).OrderBy(t => t).ToList();
+        needsUpdate = true;
+      }
+
+      // we always try to update quote for intraday if requested
+      if (needsUpdate)
+        await updateQuoteHandler.Handle(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = enforceCache, Timestamp = timestamp, AdditionalTimestamps = timestamps, StoreInLog = false, UseBatching = useBatching } );
+    }
+
+    private bool NeedsUpdate(AssetPairInfo assetPairInfo, Time timestamp, bool intraday)
+    {
+      var quoteDates = assetPairInfo?.QuoteDates;
+      var holidayCalendar = assetPairInfo?.HolidayCalendar;
+      
+      List<Instant> sameDayQuotes;
+      if(holidayCalendar != null) 
+        sameDayQuotes = quoteDates?.Where(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant(), timestamp.IsWorkingDay() ? 0 : 1)).ToList();
+      else
+        sameDayQuotes = quoteDates?.Where(d => d.IsSameDay(timestamp.ToInstant())).ToList(); 
+
+      var hasExactQuote = quoteDates?.Contains(timestamp.ToInstant()) ?? false;
+
+      var hasExplicitTime = timestamp != timestamp.StartOfDay();
+      if (holidayCalendar != null && !timestamp.IsWorkingDay())
+        hasExplicitTime = false;
+
+      // we always try to update quote for intraday if requested
+      return !hasExactQuote && ((sameDayQuotes?.Count == 0 || intraday || hasExplicitTime));
+    }
+    
+    private async Task<SingleAssetQuote> GetQuotes(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
     {
       var now = clock.GetCurrentInstant();
       var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
@@ -210,9 +248,10 @@ namespace Chronos.Core.Queries
       var fordom = AssetPair.Fordom(forAsset, domAsset);
       if (query.UpdateQuote && !useStaleQuotes)
       {
-        await UpdateSingleQuote(assetPairInfo, timestamp, query.EnforceCache);
-        foreach(var t in query.AdditionalTimestamps ?? [])
-          await UpdateSingleQuote(assetPairInfo, t, query.EnforceCache);
+        await UpdateQuotes(assetPairInfo, timestamp, query.AdditionalTimestamps, query.EnforceCache, query.UseBatching);
+        //await UpdateSingleQuote(assetPairInfo, timestamp, query.EnforceCache);
+        //foreach(var t in query.AdditionalTimestamps ?? [])
+          //await UpdateSingleQuote(assetPairInfo, t, query.EnforceCache);
       }
 
       var result = await handler.Handle(new SingleAssetQuoteQuery(fordom)

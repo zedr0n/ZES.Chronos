@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Net;
 
@@ -23,11 +25,35 @@ public abstract class EodhdEodQuoteApiBase : EodhdQuoteApiBase
     }
 
     /// <inheritdoc/>
-    public override double GetValue(IJsonResult result)
+    public override string GetUrl(string ticker, IEnumerable<Time> dates, bool enforceCache = false)
+    {
+        var datesList = dates?.ToList();
+        if (datesList == null || datesList.Count == 0)
+            return null;
+            
+        var fromDate = datesList.Min().ToDateTime().ToString(DateFormat, new DateTimeFormatInfo());
+        var toDate = datesList.Max().ToDateTime().ToString(DateFormat, new DateTimeFormatInfo());
+        return $"{BaseUrl}/{Endpoint}/{ticker}?from={fromDate}&to={toDate}&fmt=json&api_token={ApiKey ?? string.Empty}";
+    }
+
+    /// <inheritdoc/>
+    public override (Time Timestamp, double Value) GetValue(IJsonResult result)
     {
         var r = result as JsonResult;
         var data = r?.SingleOrDefault();
-        return data?.Close ?? double.NaN;
+        if (data == null)
+            return (null, double.NaN);
+        
+        var time = data.Date.ToTime() ?? Time.FromUnixTimeSeconds(data.Timestamp);
+        return (time, data.Close);
+    }
+
+    /// <inheritdoc/>
+    [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "?? [] bug")]
+    public override IEnumerable<(Time Timestamp, double Value)> GetValues(IJsonResult result)
+    {
+        var r = result as JsonResult;
+        return r?.Select(x => (x.Date != null ? DateTime.Parse(x.Date).ToTime() : Time.FromUnixTimeSeconds(x.Timestamp), x.Close)) ?? [];
     }
 
     /// <inheritdoc/>
@@ -46,6 +72,16 @@ public abstract class EodhdEodQuoteApiBase : EodhdQuoteApiBase
         /// </summary>
         public class PriceData
         {
+            /// <summary>
+            /// Gets or sets the date associated with the price data.
+            /// </summary>
+            public string Date { get; set; }
+
+            /// <summary>
+            /// Gets or sets the timestamp representing the specific point in time associated with the price data.
+            /// </summary>
+            public long Timestamp { get; set; }
+            
             /// <summary>
             /// Gets or sets the opening price for the asset on a specific trading day.
             /// </summary>

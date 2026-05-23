@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reactive.Linq;
@@ -8,6 +9,7 @@ using ZES.Infrastructure;
 using ZES.Infrastructure.Alerts;
 using ZES.Infrastructure.Net;
 using ZES.Infrastructure.Utils;
+using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
 using ZES.Interfaces.Infrastructure;
@@ -71,7 +73,17 @@ namespace Chronos.Core.Commands
         timestamp = timestamp.PreviousWorkingDay().CloseOfDay();
         intraday = false;
       }
+      
+      var additionalTimestamps = command.AdditionalTimestamps;
+      if (command.AdditionalTimestamps != null && holidayCalendar != null)
+      {
+        additionalTimestamps = command.AdditionalTimestamps
+          .Select(t => !t.IsWorkingDay() ? t.PreviousWorkingDay().CloseOfDay() : t).Distinct().Where(t => t != timestamp).ToList();
+      }
 
+      if (!command.Ephemeral && additionalTimestamps is { Count: > 0 })
+        throw new InvalidOperationException("Additional timestamps can only be specified for ephemeral quote updates");
+      
       var hasExplicitTime = timestamp != timestamp.StartOfDay();
       
       if (timestamp == null)
@@ -88,12 +100,21 @@ namespace Chronos.Core.Commands
         throw new InvalidOperationException(
           $"Quote already added for {timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
       }
+
+      if (intraday && additionalTimestamps is { Count: > 0 })
+      {
+        var (intradayCommandT, intradayHandler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, timestamp, null, true);
+        await intradayHandler.Handle(intradayCommandT);
+
+        timestamp = additionalTimestamps.Max();
+        additionalTimestamps = additionalTimestamps.Where(t => t != timestamp).OrderBy(t => t).ToList();
+        intraday = false;
+      }
       
-      var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, timestamp, intraday);
+      var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, timestamp, additionalTimestamps, intraday);
       await handler.Handle(commandT);
-      command.ResolvedUrl = commandT.ResolvedUrl;
     }
-    
+
     /// <inheritdoc/>
     protected override void Act(AssetPair root, UpdateQuote command)
     {
@@ -186,63 +207,9 @@ namespace Chronos.Core.Commands
         await _addQuoteTickerHandler.Handle(addQuoteTickerCommand);
       }
 
-      var value = 0.0;
-      switch (root.DomAsset.AssetId)
-      {
-        case "GBX" when root.ForAsset.AssetId == "GBP":
-          value = 100.0;
-          break;
-        case "GBP" when root.ForAsset.AssetId == "GBX":
-          value = 0.01;
-          break;
-        default:
-        {
-          var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
-          obs.Connect();
-
-          var noTimeSpecified = command.Timestamp == command.Timestamp.StartOfDay();
-            
-          var preciseUrl = root.Url ?? webQuoteApi.GetPreciseUrl(ticker, command.Timestamp, command.EnforceCache);
-          var url = root.Url ?? webQuoteApi.GetUrl(ticker, command.Timestamp, command.EnforceCache);
-
-          if (preciseUrl != null && preciseUrl != url && !noTimeSpecified)
-          {
-            var preciseRequestorId = $"{command.Target}-precise-{command.Timestamp.ToUnixTimeSeconds()}";
-            await _jsonRequestHandler.Handle(new RequestJson<T>(preciseRequestorId, preciseUrl)).Timeout();
-
-            var resPrecise = await obs.FirstOrDefaultAsync(r => r.RequestorId == preciseRequestorId).Timeout(Configuration.Timeout);
-            value = webQuoteApi.GetValue(resPrecise.Data);
-            command.ResolvedUrl = preciseUrl;
-            if (!double.IsNaN(value))
-              break;
-          }
-          
-          var requestorId = $"{command.Target}-{command.Timestamp.ToUnixTimeSeconds()}";
-          await _jsonRequestHandler.Handle(new RequestJson<T>(requestorId, url)).Timeout();
-
-          var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == requestorId).Timeout(Configuration.Timeout);
-          value = webQuoteApi.GetValue(res.Data);
-
-          command.ResolvedUrl = url;
-          
-          break;
-        }
-      }
-
-      var addQuoteCommand = new AddQuote(command.Target, command.Timestamp.ToInstant(), value)
-      {
-        StoreInLog = false,
-        CorrelationId = command.CorrelationId,
-        AncestorId = command.AncestorId ?? command.MessageId,
-      };
-      
-      if (command.Ephemeral)
-      {
-        addQuoteCommand.Ephemeral = true;
-        addQuoteCommand.Timestamp = command.Timestamp;
-      }
-
-      await _handler.Handle(addQuoteCommand);
+      var values = await ResolveValues(command, root, ticker, root.Url, webQuoteApi);
+      foreach (var (timestamp, value) in values)
+        await AddQuote(command, timestamp, value);
     }
 
     /// <inheritdoc/>
@@ -252,6 +219,159 @@ namespace Chronos.Core.Commands
     protected override void Act(AssetPair root, UpdateQuote<T, TSearch> command)
     {
       throw new System.NotImplementedException();
+    }
+
+    private async Task<IEnumerable<(Time Timestamp, double Value)>> ResolveValues(
+      UpdateQuote<T, TSearch> command,
+      AssetPair assetPair,
+      string ticker,
+      string urlOverride,
+      IWebQuoteApi webQuoteApi)
+    {
+      var timestamps = new List<Time> { command.Timestamp };
+      if (command.AdditionalTimestamps != null)
+        timestamps.AddRange(command.AdditionalTimestamps);
+
+      List<(Time Timestamp, double Value)> values = assetPair.DomAsset.AssetId switch
+      {
+        "GBX" when assetPair.ForAsset.AssetId == "GBP" => timestamps.Select(t => (t, 100.0)).ToList(),
+        "GBP" when assetPair.ForAsset.AssetId == "GBX" => timestamps.Select(t => (t, 0.01)).ToList(),
+        _ => (await QueryValues(command, timestamps, ticker, urlOverride, webQuoteApi)).ToList(),
+      };
+
+      return values;
+    }
+
+    private async Task AddQuote(UpdateQuote<T, TSearch> command, Time timestamp, double value)
+    {
+      var addQuoteCommand = new AddQuote(command.Target, timestamp.ToInstant(), value)
+      {
+        StoreInLog = false,
+        CorrelationId = command.CorrelationId,
+        AncestorId = command.AncestorId ?? command.MessageId,
+      };
+      
+      if (command.Ephemeral)
+      {
+        addQuoteCommand.Ephemeral = true;
+        addQuoteCommand.Timestamp = timestamp;
+      }
+
+      await _handler.Handle(addQuoteCommand);
+    }
+
+    private async Task<IEnumerable<(Time Timestamp, double Value)>> QueryValues(
+      UpdateQuote<T, TSearch> command,
+      IEnumerable<Time> timestamps,
+      string ticker,
+      string urlOverride,
+      IWebQuoteApi webQuoteApi)
+    {
+      var dates = timestamps.ToList(); 
+      
+      if (!webQuoteApi.SupportsMultipleTimestamps() || dates.Count == 1 || !command.UseBatching)
+      {
+        var valuesList = new List<(Time Timestamp, double Value)>();
+        foreach (var t in dates.OrderBy(t => t).ToList())
+        {
+          var value = await QueryValue(command, t, ticker, urlOverride, webQuoteApi);
+          valuesList.Add((t, value));
+        }
+
+        return valuesList;
+      }
+      
+      var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
+      obs.Connect();
+
+      var timestamp = command.Timestamp;
+      var noTimeSpecified = timestamp == timestamp.StartOfDay();
+      
+      var preciseUrl = urlOverride ?? webQuoteApi.GetPreciseUrl(ticker, dates, command.EnforceCache);
+      var url = urlOverride ?? webQuoteApi.GetUrl(ticker, dates, command.EnforceCache);
+
+      var values = dates.ToDictionary(x => x, x => double.NaN); 
+      
+      if (preciseUrl != null && preciseUrl != url && !noTimeSpecified)
+      {
+        var preciseRequestorId = $"{command.Target}-precise-{timestamp.ToUnixTimeSeconds()}";
+        await _jsonRequestHandler.Handle(new RequestJson<T>(preciseRequestorId, preciseUrl)).Timeout();
+
+        var resPrecise = await obs.FirstOrDefaultAsync(r => r.RequestorId == preciseRequestorId).Timeout(Configuration.Timeout);
+        var preciseResults = webQuoteApi.GetValues(resPrecise.Data).ToList();
+        var valid = true;
+        foreach (var t in dates)
+        {
+          var v = preciseResults.SingleOrDefault(x => x.Timestamp == t);
+          if ( v == default )
+            v = preciseResults.SingleOrDefault(x => Math.Abs(x.Timestamp.ToUnixTimeSeconds() - t.ToUnixTimeSeconds()) < 60);
+          if (v == default)
+            v = (t, double.NaN);
+          
+          values[t] = v.Value;
+          valid &= !double.IsNaN(v.Value);
+        }
+        
+        if (valid)
+          return values.Select(x => (x.Key, x.Value)).ToList();
+      }
+          
+      var requestorId = $"{command.Target}-{timestamp.ToUnixTimeSeconds()}";
+      await _jsonRequestHandler.Handle(new RequestJson<T>(requestorId, url)).Timeout();
+
+      var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == requestorId).Timeout(Configuration.Timeout);
+      var results = webQuoteApi.GetValues(res.Data).ToList();
+
+      foreach (var t in dates)
+      {
+        if (!double.IsNaN(values[t]))
+          continue;
+        var v = results.SingleOrDefault(x => x.Timestamp == t);
+        if (v == default)
+          v = results.SingleOrDefault(x => x.Timestamp.IsSameDay(t));
+        if (v == default)
+          v = (t, double.NaN);
+        values[t] = v.Value;
+      }
+      
+      return values.Select(x => (x.Key, x.Value)).ToList();
+    }
+    
+    private async Task<double> QueryValue(
+      UpdateQuote<T, TSearch> command, 
+      Time timestamp,
+      string ticker,
+      string urlOverride,
+      IWebQuoteApi webQuoteApi)
+    {
+      var obs = _messageQueue.Alerts.OfType<JsonRequestCompleted<T>>().Replay();
+      obs.Connect();
+
+      var noTimeSpecified = timestamp == timestamp.StartOfDay();
+      
+      var preciseUrl = urlOverride ?? webQuoteApi.GetPreciseUrl(ticker, timestamp, command.EnforceCache);
+      var url = urlOverride ?? webQuoteApi.GetUrl(ticker, timestamp, command.EnforceCache);
+
+      var value = 0.0;
+      
+      if (preciseUrl != null && preciseUrl != url && !noTimeSpecified)
+      {
+        var preciseRequestorId = $"{command.Target}-precise-{timestamp.ToUnixTimeSeconds()}";
+        await _jsonRequestHandler.Handle(new RequestJson<T>(preciseRequestorId, preciseUrl)).Timeout();
+
+        var resPrecise = await obs.FirstOrDefaultAsync(r => r.RequestorId == preciseRequestorId).Timeout(Configuration.Timeout);
+        value = webQuoteApi.GetValue(resPrecise.Data).Value;
+        if (!double.IsNaN(value))
+          return value;
+      }
+          
+      var requestorId = $"{command.Target}-{timestamp.ToUnixTimeSeconds()}";
+      await _jsonRequestHandler.Handle(new RequestJson<T>(requestorId, url)).Timeout();
+
+      var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == requestorId).Timeout(Configuration.Timeout);
+      value = webQuoteApi.GetValue(res.Data).Value;
+
+      return value;
     }
   }
 }

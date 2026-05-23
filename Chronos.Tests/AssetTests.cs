@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -107,7 +108,7 @@ namespace Chronos.Tests
             await connector.SetAsync(webSearchApi.GetUrl(iukdAsset.AssetId),
                 "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
 
-            await connector.SetAsync(eqQuoteApi.GetUrl("IUKD.LSE", null, true),
+            await connector.SetAsync(eqQuoteApi.GetUrl("IUKD.LSE", (Time)null, true),
                 "{\"code\":\"IUKD.LSE\",\"timestamp\":1776440100,\"gmtoffset\":0,\"open\":995.4,\"high\":999.4,\"low\":989.4,\"close\":999.4,\"volume\":329826,\"previousClose\":993.6,\"change\":5.8,\"change_p\":0.5837}");
             
             await bus.Command(new RegisterAssetPair(AssetPair.Fordom(domAsset, quoteAsset), domAsset, quoteAsset));
@@ -257,6 +258,79 @@ namespace Chronos.Tests
             
             var quote = await bus.QueryAsync(new AssetQuoteQuery(btc, usd) { Timestamp = date, UpdateQuote = true });
             Assert.Equal(4136.89, quote.Quantity.Amount);
+        }
+        
+        [Fact]
+        public async Task CanGetMultipleCoinQuotes()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+
+            var btc = new Asset("BTC", AssetType.Coin);
+            var usd = new Currency("USD");
+            
+            await connector.SetAsync(webSearchApi.GetUrl(coinQuoteApi.GetSearchTicker(btc, usd)),
+                "[{\"Code\":\"BTC-USD\",\"Exchange\":\"CC\",\"Name\":\"Bitcoin\",\"Type\":\"Currency\",\"Country\":\"Unknown\",\"Currency\":\"USD\",\"ISIN\":null,\"isPrimary\":false,\"previousClose\":76734.7109375,\"previousCloseDate\":\"2026-04-28\"}]");
+
+            await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc,usd), Time.MinValue));
+            
+            var date = new LocalDateTime(2017, 8, 16, 1, 50).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2017, 8, 16, 2, 50).InUtc().ToInstant().ToTime();
+           
+            var dates = new List<Time>() { date, date2 };
+            
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(btc, usd)) { Timestamp = date });
+            var btcTicker = assetPairInfo.Ticker;
+            await connector.SetAsync(coinQuoteApi.GetPreciseUrl(btcTicker, dates),
+                "[{\"timestamp\":1502848200,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:50:00\",\"open\":4147.5,\"high\":4155.02,\"low\":4136.89,\"close\":4136.89,\"volume\":17.83},{\"timestamp\":1502848260,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:51:00\",\"open\":4155.02,\"high\":4164.99,\"low\":4136.08,\"close\":4164.99,\"volume\":48.88},{\"timestamp\":1502848320,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:52:00\",\"open\":4160.1,\"high\":4167.49,\"low\":4137.08,\"close\":4164.28,\"volume\":35.25},{\"timestamp\":1502848380,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:53:00\",\"open\":4164.18,\"high\":4185.711,\"low\":4137.21,\"close\":4178.2,\"volume\":14.76},{\"timestamp\":1502848440,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:54:00\",\"open\":4178.1,\"high\":4178.1,\"low\":4139.72,\"close\":4139.72,\"volume\":26.5},{\"timestamp\":1502848500,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:55:00\",\"open\":4162.51,\"high\":4169.999,\"low\":4135.44,\"close\":4160.15,\"volume\":64.04},{\"timestamp\":1502848560,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:56:00\",\"open\":4145.9,\"high\":4169.999,\"low\":4133.32,\"close\":4133.32,\"volume\":44.36},{\"timestamp\":1502848620,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:57:00\",\"open\":4144.5,\"high\":4165.30599,\"low\":4132.22,\"close\":4133.13,\"volume\":21.79},{\"timestamp\":1502848680,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:58:00\",\"open\":4160.664,\"high\":4169.5,\"low\":4129.7,\"close\":4144.01,\"volume\":11.59},{\"timestamp\":1502848740,\"gmtoffset\":0,\"datetime\":\"2017-08-16 01:59:00\",\"open\":4132.08,\"high\":4180.809,\"low\":4131.57,\"close\":4144.9,\"volume\":43.67},{\"timestamp\":1502848800,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:00:00\",\"open\":4150.02,\"high\":4177.888,\"low\":4130.62,\"close\":4165.6,\"volume\":7.68},{\"timestamp\":1502848860,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:01:00\",\"open\":4148.18,\"high\":4166,\"low\":4131.9,\"close\":4148.99,\"volume\":13.92},{\"timestamp\":1502848920,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:02:00\",\"open\":4149.8,\"high\":4165.6,\"low\":4133.61,\"close\":4160.805,\"volume\":15.97},{\"timestamp\":1502848980,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:03:00\",\"open\":4148.99,\"high\":4169.72999,\"low\":4135.23,\"close\":4148.98,\"volume\":19.86},{\"timestamp\":1502849040,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:04:00\",\"open\":4148.98,\"high\":4168.917,\"low\":4124.7,\"close\":4140.52,\"volume\":27.6},{\"timestamp\":1502849100,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:05:00\",\"open\":4144.03,\"high\":4168.906,\"low\":4126.4,\"close\":4140.84,\"volume\":24.84},{\"timestamp\":1502849160,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:06:00\",\"open\":4132.51,\"high\":4161.294,\"low\":4132.51,\"close\":4140.7,\"volume\":10.69},{\"timestamp\":1502849220,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:07:00\",\"open\":4145,\"high\":4161.1,\"low\":4129.55,\"close\":4161.1,\"volume\":12.88},{\"timestamp\":1502849280,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:08:00\",\"open\":4148.31,\"high\":4157.39999,\"low\":4117.86,\"close\":4125.3,\"volume\":92.77},{\"timestamp\":1502849340,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:09:00\",\"open\":4118.35,\"high\":4157.3,\"low\":4111.9,\"close\":4115,\"volume\":58.2},{\"timestamp\":1502849400,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:10:00\",\"open\":4131.72,\"high\":4149.073,\"low\":4110.21,\"close\":4120.2,\"volume\":15.08},{\"timestamp\":1502849460,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:11:00\",\"open\":4120.1,\"high\":4142.07,\"low\":4111.74,\"close\":4140.002,\"volume\":29.41},{\"timestamp\":1502849520,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:12:00\",\"open\":4119.8,\"high\":4141.895,\"low\":4114.99,\"close\":4123.86,\"volume\":26.41},{\"timestamp\":1502849580,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:13:00\",\"open\":4123.86,\"high\":4140.39999,\"low\":4112.61,\"close\":4131.71,\"volume\":14.54},{\"timestamp\":1502849640,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:14:00\",\"open\":4123.87,\"high\":4140.3,\"low\":4120.7,\"close\":4126.9,\"volume\":23.44},{\"timestamp\":1502849700,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:15:00\",\"open\":4126.89,\"high\":4134.89999,\"low\":4108.89,\"close\":4124.94,\"volume\":8.49},{\"timestamp\":1502849760,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:16:00\",\"open\":4124.59,\"high\":4136.442,\"low\":4107.32,\"close\":4120.05,\"volume\":8.19},{\"timestamp\":1502849820,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:17:00\",\"open\":4134.999,\"high\":4135.001,\"low\":4104.54,\"close\":4111.1,\"volume\":25.51},{\"timestamp\":1502849880,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:18:00\",\"open\":4111,\"high\":4134.89999,\"low\":4097.6,\"close\":4100,\"volume\":81.9},{\"timestamp\":1502849940,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:19:00\",\"open\":4112.28,\"high\":4126.05,\"low\":4097,\"close\":4097.62,\"volume\":38.18},{\"timestamp\":1502850000,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:20:00\",\"open\":4097.62,\"high\":4130.401,\"low\":4093,\"close\":4105.37,\"volume\":26.92},{\"timestamp\":1502850060,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:21:00\",\"open\":4100.01,\"high\":4114.89999,\"low\":4088.91,\"close\":4092.4,\"volume\":30.51},{\"timestamp\":1502850120,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:22:00\",\"open\":4097.29,\"high\":4114.899,\"low\":4091.06,\"close\":4092.4,\"volume\":7.23},{\"timestamp\":1502850180,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:23:00\",\"open\":4092.4,\"high\":4114.895,\"low\":4077.9,\"close\":4085.1,\"volume\":95.65},{\"timestamp\":1502850240,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:24:00\",\"open\":4080.1,\"high\":4114.798,\"low\":4077.3,\"close\":4083.4,\"volume\":62.14},{\"timestamp\":1502850300,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:25:00\",\"open\":4108.7,\"high\":4114.7,\"low\":4071.19,\"close\":4086.59,\"volume\":44.51},{\"timestamp\":1502850360,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:26:00\",\"open\":4086.6,\"high\":4103,\"low\":4081.43,\"close\":4084.7,\"volume\":48.93},{\"timestamp\":1502850420,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:27:00\",\"open\":4087.29,\"high\":4105.12,\"low\":4078.68,\"close\":4084.7,\"volume\":42.1},{\"timestamp\":1502850480,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:28:00\",\"open\":4082.6,\"high\":4110.6,\"low\":4074.3,\"close\":4089.27,\"volume\":31.01},{\"timestamp\":1502850540,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:29:00\",\"open\":4082.1,\"high\":4105.49,\"low\":4082.1,\"close\":4085.8,\"volume\":34.12},{\"timestamp\":1502850600,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:30:00\",\"open\":4091.09,\"high\":4091.18,\"low\":4082.57,\"close\":4088.02,\"volume\":20.8},{\"timestamp\":1502850660,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:31:00\",\"open\":4091.18,\"high\":4110.6,\"low\":4085.6,\"close\":4100,\"volume\":29.8},{\"timestamp\":1502850720,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:32:00\",\"open\":4099.1,\"high\":4117.19,\"low\":4086.05,\"close\":4113,\"volume\":70.58},{\"timestamp\":1502850780,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:33:00\",\"open\":4113,\"high\":4119.76,\"low\":4097.3,\"close\":4119.7,\"volume\":33.38},{\"timestamp\":1502850840,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:34:00\",\"open\":4119.7,\"high\":4123.579,\"low\":4105,\"close\":4114.89,\"volume\":66.17},{\"timestamp\":1502850900,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:35:00\",\"open\":4104.77,\"high\":4123.578,\"low\":4082,\"close\":4093.01,\"volume\":86.13},{\"timestamp\":1502850960,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:36:00\",\"open\":4082.23,\"high\":4113.89999,\"low\":4077.4,\"close\":4093.01,\"volume\":56.76},{\"timestamp\":1502851020,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:37:00\",\"open\":4109.701,\"high\":4109.701,\"low\":4070,\"close\":4093.01,\"volume\":25.31},{\"timestamp\":1502851080,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:38:00\",\"open\":4080,\"high\":4105.122,\"low\":4066.9,\"close\":4100,\"volume\":70.87},{\"timestamp\":1502851140,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:39:00\",\"open\":4077.82,\"high\":4104.44899,\"low\":4075.46,\"close\":4078,\"volume\":24.74},{\"timestamp\":1502851200,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:40:00\",\"open\":4077,\"high\":4102.98899,\"low\":4052.9,\"close\":4079.99,\"volume\":125.43},{\"timestamp\":1502851260,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:41:00\",\"open\":4074.07,\"high\":4095,\"low\":4059,\"close\":4074.78,\"volume\":50.83},{\"timestamp\":1502851320,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:42:00\",\"open\":4069.5,\"high\":4086.538,\"low\":4059.9,\"close\":4073.01,\"volume\":40.63},{\"timestamp\":1502851380,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:43:00\",\"open\":4073.01,\"high\":4086.6,\"low\":4044.66,\"close\":4080.521,\"volume\":114.12},{\"timestamp\":1502851440,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:44:00\",\"open\":4055.23,\"high\":4080,\"low\":4044.68,\"close\":4061.55,\"volume\":62.65},{\"timestamp\":1502851500,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:45:00\",\"open\":4061,\"high\":4074.994,\"low\":4037.1,\"close\":4047.77,\"volume\":148.7},{\"timestamp\":1502851560,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:46:00\",\"open\":4047.78,\"high\":4071.3,\"low\":4031,\"close\":4047.86,\"volume\":57.61},{\"timestamp\":1502851620,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:47:00\",\"open\":4039.2,\"high\":4064.9,\"low\":4024.58,\"close\":4049,\"volume\":51.24},{\"timestamp\":1502851680,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:48:00\",\"open\":4035.1,\"high\":4055.054,\"low\":4024.58,\"close\":4040.03,\"volume\":43.14},{\"timestamp\":1502851740,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:49:00\",\"open\":4034.4,\"high\":4049.9,\"low\":4032.81,\"close\":4033.1,\"volume\":93.99},{\"timestamp\":1502851800,\"gmtoffset\":0,\"datetime\":\"2017-08-16 02:50:00\",\"open\":4033.6,\"high\":4049.595,\"low\":4028.32,\"close\":4029.94,\"volume\":42.6}]");
+            
+            var quote = await bus.QueryAsync(new AssetQuoteQuery(btc, usd) { Timestamp = date, UpdateQuote = true, AdditionalTimestamps = [date2]});
+            Assert.Equal(4136.89, quote.Quantity.Amount);
+            Assert.Equal(4029.94, quote.HistoricalResults[date2].Quantity.Amount);
+        }
+        
+        [Fact]
+        public async Task CanGetMultipleEquityQuotes()
+        {
+            var container = CreateContainer();
+            var bus = container.GetInstance<IBus>();
+            var connector = container.GetInstance<IJSonConnector>();
+            var webApiProvider = container.GetInstance<IWebApiProvider>();
+            var webSearchApi = webApiProvider.GetSearchApi();
+            var webQuoteApi = webApiProvider.GetQuoteApi(AssetType.Equity, AssetType.Currency, false);
+
+            var iukd = new Asset("IUKD", AssetType.Equity);
+            var gbp = new Currency("GBP");
+            var gbx = new Currency("GBX");
+            
+            await connector.SetAsync(webSearchApi.GetUrl("IUKD"),
+                "[{\"Code\":\"IUKD\",\"Exchange\":\"LSE\",\"Name\":\"iShares UK Dividend UCITS\",\"Type\":\"ETF\",\"Country\":\"UK\",\"Currency\":\"GBX\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":944,\"previousCloseDate\":\"2026-03-25\"},{\"Code\":\"IUKD\",\"Exchange\":\"SW\",\"Name\":\"iShares UK Dividend UCITS ETF GBP (Dist) CHF\",\"Type\":\"ETF\",\"Country\":\"Switzerland\",\"Currency\":\"CHF\",\"ISIN\":\"IE00B0M63060\",\"isPrimary\":false,\"previousClose\":9.948,\"previousCloseDate\":\"2026-03-25\"}]");
+
+            await bus.Command(new RegisterAssetPair(gbp, gbx).ToRetroactiveCommand(Time.MinValue));
+            await bus.Command(new RegisterAssetPair(iukd, gbx, "UK").ToRetroactiveCommand(Time.MinValue));
+
+            var assetPairInfo = await bus.QueryAsync(new AssetPairInfoQuery(AssetPair.Fordom(iukd, gbx)));
+            var ticker = assetPairInfo.Ticker;
+           
+            
+            var date = new LocalDateTime(2017, 8, 17, 15, 30).InUtc().ToInstant().ToTime();
+            var date2 = new LocalDateTime(2017, 8, 18,  15, 30).InUtc().ToInstant().ToTime();
+            var date3 = new LocalDateTime(2017, 8, 19, 15, 30).InUtc().ToInstant().ToTime();
+            var date4 = new LocalDateTime(2017, 8, 20, 15, 30).InUtc().ToInstant().ToTime();
+           
+            var dates = new List<Time>() { date, date2 };
+            await connector.SetAsync(webQuoteApi.GetUrl(ticker, dates), 
+                "[{\"date\":\"2017-08-17\",\"open\":919,\"high\":919.65,\"low\":913.5,\"close\":915.25,\"adjusted_close\":566.2138,\"volume\":125851},{\"date\":\"2017-08-18\",\"open\":910,\"high\":910.895,\"low\":905.75,\"close\":908.625,\"adjusted_close\":562.1153,\"volume\":195808}]");
+            
+            var quote = await bus.QueryAsync(new AssetQuoteQuery(iukd, gbp) { Timestamp = date4, UpdateQuote = true, AdditionalTimestamps = [date, date2, date3]});
+            Assert.Equal(9.08625, quote.Quantity.Amount, 6);
+            Assert.Equal(9.1525, quote.HistoricalResults[date].Quantity.Amount, 6);
+            Assert.Equal(9.08625, quote.HistoricalResults[date2].Quantity.Amount, 6);
+            Assert.Equal(9.08625, quote.HistoricalResults[date3].Quantity.Amount, 6);
         }
 
         [Fact]
