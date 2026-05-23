@@ -29,6 +29,12 @@ namespace Chronos.Core.Commands
         /// Defaults to <see langword="false"/>.
         /// </remarks>
         public bool ForFallback { get; set; }
+
+        /// <summary>
+        /// Gets or sets the resolved URL used during the update of a quote.
+        /// </summary>
+        [JsonIgnore]
+        public string ResolvedUrl { get; set; }
     }
 
     /// <inheritdoc />
@@ -50,6 +56,7 @@ namespace Chronos.Core.Commands
             Ephemeral = command.Ephemeral;
             Timestamp = command.Timestamp;
             ForFallback = command.ForFallback;
+            ResolvedUrl = command.ResolvedUrl;
         }
     }
 }

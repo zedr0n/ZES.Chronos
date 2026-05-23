@@ -96,10 +96,16 @@ namespace Chronos.Accounts
                 });
             }
 
-            public AccountStats AccountStats(string[] accounts, string date = null, Asset denominator = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool computeGains = true)
+            public AccountStats AccountStats(string accountName, string date = null, Asset denominator = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool computeGains = true)
+            {
+                return AccountStatsAtDates([accountName], date != null ? [date] : null, denominator, assetQuoteOverrides, computeGains).Single().Stats;
+            }
+            
+            public AccountStats CombinedAccountStats(string[] accounts, string date = null, Asset denominator = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool computeGains = true)
             {
                 return AccountStatsAtDates(accounts, date != null ? [date] : null, denominator, assetQuoteOverrides, computeGains).Single().Stats;
             }
+
             
             public List<AccountStatsAtTime> AccountStatsAtDates(string[] accounts, string[] dates = null, Asset denominator = null, List<AssetQuoteOverride> assetQuoteOverrides = null, bool computeGains = true)
             {

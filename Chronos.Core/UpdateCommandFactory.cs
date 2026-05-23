@@ -13,7 +13,7 @@ public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> upda
     : IUpdateCommandFactory
 {
     /// <inheritdoc/>
-    public (ICommand Command, ICommandHandler Handler) CreateUpdateQuote(UpdateQuote command, AssetType forAssetType, AssetType domAssetType, Time timestamp, bool intraday)
+    public (UpdateQuote Command, ICommandHandler Handler) CreateUpdateQuote(UpdateQuote command, AssetType forAssetType, AssetType domAssetType, Time timestamp, bool intraday)
     {
         var webApi = webApiProvider.GetQuoteApi(forAssetType, domAssetType, intraday);
         if (webApi == null)
@@ -23,7 +23,7 @@ public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> upda
 
         var t = webApi.GetJsonResultType();
         var tSearch = webSearchApi.GetJsonResultType();
-        var commandT = (ICommand)Activator.CreateInstance(typeof(UpdateQuote<,>).MakeGenericType(t, tSearch), command);
+        var commandT = (UpdateQuote)Activator.CreateInstance(typeof(UpdateQuote<,>).MakeGenericType(t, tSearch), command);
         commandT?.StoreInLog = false;
         commandT?.Timestamp = timestamp;
         var handler = updateQuoteHandlers.SingleOrDefault(h => h.CanHandle(commandT));
@@ -31,14 +31,14 @@ public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> upda
     }
 
     /// <inheritdoc/>
-    public (ICommand Command, ICommandHandler Handler) CreateUpdateTicker(UpdateTicker command, AssetType forAssetType, AssetType domAssetType)
+    public (UpdateTicker Command, ICommandHandler Handler) CreateUpdateTicker(UpdateTicker command, AssetType forAssetType, AssetType domAssetType)
     {
         var webApi = webApiProvider.GetQuoteApi(forAssetType, domAssetType, false);
         var webSearchApi = webApiProvider.GetSearchApi();
 
         var t = webApi.GetJsonResultType();
         var tSearch = webSearchApi.GetJsonResultType();
-        var commandT = (ICommand)Activator.CreateInstance(typeof(UpdateTicker<,>).MakeGenericType(t, tSearch), command);
+        var commandT = (UpdateTicker)Activator.CreateInstance(typeof(UpdateTicker<,>).MakeGenericType(t, tSearch), command);
         commandT?.StoreInLog = false;
         var handler = updateTickerHandlers.SingleOrDefault(h => h.CanHandle(commandT));
         return (commandT, handler);

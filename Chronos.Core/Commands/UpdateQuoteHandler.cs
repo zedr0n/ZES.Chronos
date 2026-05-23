@@ -91,6 +91,7 @@ namespace Chronos.Core.Commands
       
       var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, timestamp, intraday);
       await handler.Handle(commandT);
+      command.ResolvedUrl = commandT.ResolvedUrl;
     }
     
     /// <inheritdoc/>
@@ -211,6 +212,7 @@ namespace Chronos.Core.Commands
 
             var resPrecise = await obs.FirstOrDefaultAsync(r => r.RequestorId == preciseRequestorId).Timeout(Configuration.Timeout);
             value = webQuoteApi.GetValue(resPrecise.Data);
+            command.ResolvedUrl = preciseUrl;
             if (!double.IsNaN(value))
               break;
           }
@@ -220,6 +222,8 @@ namespace Chronos.Core.Commands
 
           var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == requestorId).Timeout(Configuration.Timeout);
           value = webQuoteApi.GetValue(res.Data);
+
+          command.ResolvedUrl = url;
           
           break;
         }
