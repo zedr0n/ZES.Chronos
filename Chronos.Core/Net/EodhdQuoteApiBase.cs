@@ -39,8 +39,13 @@ public abstract class EodhdQuoteApiBase : IWebQuoteApi
     public abstract (Time Timestamp, double Value) GetValue(IJsonResult result);
 
     /// <inheritdoc/>
-    public virtual IEnumerable<(Time Timestamp, double Value)> GetValues(IJsonResult result)
-        => new List<(Time Timestamp, double Value)> { GetValue(result) };
+    public virtual IReadOnlyDictionary<Time, double> GetValues(IJsonResult result)
+    {
+        var dict = new Dictionary<Time, double>();
+        var v = GetValue(result);
+        dict.Add(v.Timestamp, v.Value);
+        return dict;
+    }
 
     /// <inheritdoc/>
     public abstract string GetSearchTicker(Asset forAsset, Asset domAsset);

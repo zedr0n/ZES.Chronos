@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using NodaTime;
 using ZES.Infrastructure.Utils;
 using ZES.Interfaces.Clocks;
 
@@ -19,8 +20,7 @@ public class UkAssetPools : IAssetPools
     // itemised disposal gains
     private readonly List<DisposalGainItem> _disposalGains = new();
     
-    private DateTime _lastEndOfDay;
-    private long _disposalSequence;
+    private LocalDate _lastEndOfDay;
     private readonly bool _trackDisposalLots;
     
     public double CostBasis
@@ -31,7 +31,7 @@ public class UkAssetPools : IAssetPools
                 return 0.0;
             
             var pools = new UkAssetPools(this);
-            pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+            pools.AdvanceTo(_lastEndOfDay.PlusDays(_pendingDisposalsByAge.Count+1));
             return pools._pools.Sum(p => p.Cost);
         }
     }
@@ -44,7 +44,7 @@ public class UkAssetPools : IAssetPools
                 return 0.0;
             
             var pools = new UkAssetPools(this);
-            pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+            pools.AdvanceTo(_lastEndOfDay.PlusDays(_pendingDisposalsByAge.Count+1));
             return pools._disposalGains.Sum(g => g.Gain);
         }
     }
@@ -61,7 +61,7 @@ public class UkAssetPools : IAssetPools
             return new Dictionary<int, double>();
             
         var pools = new UkAssetPools(this);
-        pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+        pools.AdvanceTo(_lastEndOfDay.PlusDays(_pendingDisposalsByAge.Count+1));
 
         return pools._disposalGains.GroupBy(g => g.TaxYear).ToDictionary(g => g.Key, g => g.Sum(x => x.Gain)); 
     }
@@ -72,7 +72,7 @@ public class UkAssetPools : IAssetPools
             return []; 
             
         var pools = new UkAssetPools(this);
-        pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime()); 
+        pools.AdvanceTo(_lastEndOfDay.PlusDays(_pendingDisposalsByAge.Count+1)); 
         return pools._disposalGains;
     }
     
@@ -84,7 +84,7 @@ public class UkAssetPools : IAssetPools
                 return 0.0;
             
             var pools = new UkAssetPools(this);
-            pools.AdvanceTo(_lastEndOfDay.AddDays(_pendingDisposalsByAge.Count+1).ToTime());
+            pools.AdvanceTo(_lastEndOfDay.PlusDays(_pendingDisposalsByAge.Count+1));
             return pools._pools.Sum(p => p.Quantity);
         }
     }
@@ -113,7 +113,6 @@ public class UkAssetPools : IAssetPools
     {
         _trackDisposalLots = other._trackDisposalLots;
         _lastEndOfDay = other._lastEndOfDay;
-        _disposalSequence = other._disposalSequence;
         _sameDayAcquisitions = other._sameDayAcquisitions.Copy();
         _sameDayDisposals = other._sameDayDisposals.Copy();
         _section104Pool = other._section104Pool.Copy();
@@ -146,12 +145,12 @@ public class UkAssetPools : IAssetPools
 
     public void TransferFrom(Time time, IAssetPools source, double quantity)
     {
-        if(_lastEndOfDay > time.ToDateTime().Date)
+        if(_lastEndOfDay > time.Date())
             throw new InvalidOperationException("Cannot transfer from a future date");
         AdvanceTo(time);
         
         var s = (UkAssetPools)source;
-        if(s._lastEndOfDay > time.ToDateTime().Date)
+        if(s._lastEndOfDay > time.Date())
             throw new InvalidOperationException("Cannot transfer from a future date");
         s.AdvanceTo(time);
         
@@ -185,22 +184,24 @@ public class UkAssetPools : IAssetPools
     public void Acquire(Time time, double quantity, double cost)
     {
         AdvanceTo(time);
-        _sameDayAcquisitions.Date = time.ToDateTime().Date;
+        _sameDayAcquisitions.Date = time.Date();
         _sameDayAcquisitions.Add(quantity, cost);
     }
 
     public void Dispose(Time time, double quantity, double cost)
     {
         AdvanceTo(time);
-        _sameDayDisposals.Date = time.ToDateTime().Date; 
+        _sameDayDisposals.Date = time.Date(); 
         _sameDayDisposals.RecordDisposal(time, quantity, cost);
     }
 
     public void AdvanceTo(Time time)
+        => AdvanceTo(time.Date());
+
+    private void AdvanceTo(LocalDate date)
     {
-        var date = time.ToDateTime().Date;
         if (_lastEndOfDay == default)
-            _lastEndOfDay = date.AddDays(-1);
+            _lastEndOfDay = date.PlusDays(-1);
         
         if (date == _lastEndOfDay) 
             return;
@@ -208,7 +209,7 @@ public class UkAssetPools : IAssetPools
         // AccountStatsQueryHandler advances pools on every transaction date. If a later query skips
         // more than the matching window, no unprocessed acquisition can still match these
         // pending disposals, so they can be closed before jumping to the final ageing window.
-        var matchingStartDate = date.AddDays(-_pendingDisposalsByAge.Count);
+        var matchingStartDate = date.PlusDays(-_pendingDisposalsByAge.Count);
         if (_lastEndOfDay < matchingStartDate && _pendingDisposalsByAge.Count > 0)
             AdvanceToMatchingWindow(matchingStartDate);
 
@@ -288,13 +289,13 @@ public class UkAssetPools : IAssetPools
         if (remainingAcquisitions > 0)
             _section104Pool.Add(remainingAcquisitions, remainingAcquisitions*sameDayAcquisitionsAverageCost);
 
-        _lastEndOfDay = _lastEndOfDay.AddDays(1);
+        _lastEndOfDay = _lastEndOfDay.PlusDays(1);
         
         _sameDayDisposals.Clear();
         _sameDayAcquisitions.Clear();
     }
 
-    private void AdvanceToMatchingWindow(DateTime matchingStartDate)
+    private void AdvanceToMatchingWindow(LocalDate matchingStartDate)
     {
         AdvanceOneDay();
         if (_lastEndOfDay >= matchingStartDate)
@@ -335,13 +336,13 @@ public class UkAssetPools : IAssetPools
         _lastEndOfDay = matchingStartDate;
     }
 
-    private class Disposal(DateTime date, double quantity)
+    private class Disposal(LocalDate date, double quantity)
     {
-        public DateTime Date => date;
+        public LocalDate Date => date;
         public double Quantity { get; set; } = quantity;
 
         public Disposal(Time disposalTime, double quantity)
-            : this(disposalTime.ToDateTime(), quantity)
+            : this(disposalTime.Date(), quantity)
         { }
 
         public Disposal(Disposal other, double ratio = 1.0)
@@ -412,7 +413,7 @@ public class UkAssetPools : IAssetPools
         public double Cost { get; private set; }
         public double AverageCost => Quantity == 0 ? 0.0 : Cost / Quantity;
 
-        public DateTime Date { get; set; } = DateTime.MinValue;
+        public LocalDate Date { get; set; } = LocalDate.MinIsoValue;
 
         /// <summary>
         /// Creates disposal gain records for a matched disposal quantity.
@@ -428,14 +429,14 @@ public class UkAssetPools : IAssetPools
         /// <param name="matchType">The UK matching rule that produced this gain.</param>
         /// <param name="acquisitionDate">The acquisition date for same-day or bed-and-breakfast matches, when known.</param>
         /// <returns>One or more disposal gain records whose gains sum to the realised gain for the match.</returns>
-        public virtual IEnumerable<DisposalGainItem> CreateDisposalGains(DateTime date, double quantity, double proceedsPerUnit, double costBasisPerUnit, DisposalMatchType matchType, DateTime? acquisitionDate = null)
+        public virtual IEnumerable<DisposalGainItem> CreateDisposalGains(LocalDate date, double quantity, double proceedsPerUnit, double costBasisPerUnit, DisposalMatchType matchType, LocalDate? acquisitionDate = null)
         {
             return new List<DisposalGainItem>()
             {
                 new()
                 {
-                    Date = date,
-                    AcquisitionDate = acquisitionDate,
+                    Date = date.ToDateTimeUnspecified(),
+                    AcquisitionDate = acquisitionDate?.ToDateTimeUnspecified(),
                     TaxYear = GetTaxYear(date),
                     Quantity = quantity,
                     CostBasis = quantity * costBasisPerUnit, 
@@ -487,14 +488,14 @@ public class UkAssetPools : IAssetPools
         {
             var ratio = Quantity == 0 ? 0.0 : quantity / Quantity;
 
-            other.Date = quantity != 0 ? Date : DateTime.MinValue;
+            other.Date = quantity != 0 ? Date : LocalDate.MinIsoValue;
             other.Quantity = quantity;
             other.Cost = Cost * ratio;
         }
 
-        protected static int GetTaxYear(DateTime date)
+        protected static int GetTaxYear(LocalDate date)
         {
-            if(date == DateTime.MinValue)
+            if(date == LocalDate.MinIsoValue)
                 return 0;
             
             var year = date.Year;
@@ -527,7 +528,7 @@ public class UkAssetPools : IAssetPools
         /// This implementation preserves the same pooled per-unit proceeds and cost basis as the aggregated
         /// calculation, but splits the output across the recorded disposal lots in disposal sequence order.
         /// </remarks>
-        public override IEnumerable<DisposalGainItem> CreateDisposalGains(DateTime date, double quantity, double proceedsPerUnit, double costBasisPerUnit, DisposalMatchType matchType, DateTime? acquisitionDate = null)
+        public override IEnumerable<DisposalGainItem> CreateDisposalGains(LocalDate date, double quantity, double proceedsPerUnit, double costBasisPerUnit, DisposalMatchType matchType, LocalDate? acquisitionDate = null)
         {
             var disposalGains = new List<DisposalGainItem>();
             if (quantity == 0)
@@ -543,8 +544,8 @@ public class UkAssetPools : IAssetPools
                 
                 var item = new DisposalGainItem()
                 {
-                    Date = lot.Date,
-                    AcquisitionDate = acquisitionDate,
+                    Date = lot.Date.ToDateTimeUnspecified(),
+                    AcquisitionDate = acquisitionDate?.ToDateTimeUnspecified(),
                     Quantity = q,
                     Proceeds = proceeds,
                     CostBasis = q*costBasisPerUnit,

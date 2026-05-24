@@ -50,10 +50,12 @@ public abstract class EodhdEodQuoteApiBase : EodhdQuoteApiBase
 
     /// <inheritdoc/>
     [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "?? [] bug")]
-    public override IEnumerable<(Time Timestamp, double Value)> GetValues(IJsonResult result)
+    public override IReadOnlyDictionary<Time, double> GetValues(IJsonResult result)
     {
         var r = result as JsonResult;
-        return r?.Select(x => (x.Date != null ? DateTime.Parse(x.Date).ToTime() : Time.FromUnixTimeSeconds(x.Timestamp), x.Close)) ?? [];
+        return r?.ToDictionary(
+            x => x.Date != null ? DateTime.Parse(x.Date).ToTime() : Time.FromUnixTimeSeconds(x.Timestamp),
+            x => x.Close) ?? [];
     }
 
     /// <inheritdoc/>

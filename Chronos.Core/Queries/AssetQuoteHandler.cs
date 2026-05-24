@@ -7,10 +7,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Chronos.Core.Commands;
-using NodaTime;
 using ZES.Infrastructure;
 using ZES.Infrastructure.Domain;
 using ZES.Infrastructure.Utils;
@@ -149,10 +147,7 @@ namespace Chronos.Core.Queries
       var key = (forAsset, domAsset, timestamp);
 
       query.SingleAssetQuotes ??= new Dictionary<(Asset asset, Asset denominator, Time timestamp), SingleAssetQuote>();
-
-      var now = clock.GetCurrentInstant();
-      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
-      if (!intraday && query.SingleAssetQuotes.TryGetValue(key, out var cached))
+      if (query.SingleAssetQuotes.TryGetValue(key, out var cached))
         return cached;
 
       var quotes = await GetQuotes(query, timestamp, forAsset, domAsset);
@@ -165,41 +160,24 @@ namespace Chronos.Core.Queries
 
       return quotes;
     }
-
-    private async Task UpdateSingleQuote(AssetPairInfo assetPairInfo, Time timestamp, bool enforceCache)
-    {
-      var now = clock.GetCurrentInstant();
-      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
-      
-      var fordom = AssetPair.Fordom(assetPairInfo.ForAsset, assetPairInfo.DomAsset);
-      var quoteDates = assetPairInfo?.QuoteDates;
-      var holidayCalendar = assetPairInfo?.HolidayCalendar;
-      List<Instant> sameDayQuotes;
-      if(holidayCalendar != null) 
-        sameDayQuotes = quoteDates?.Where(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant(), timestamp.IsWorkingDay() ? 0 : 1)).ToList();
-      else
-        sameDayQuotes = quoteDates?.Where(d => d.IsSameDay(timestamp.ToInstant())).ToList(); 
-
-      var hasExplicitTime = timestamp != timestamp.StartOfDay();
-      if (holidayCalendar != null && !timestamp.IsWorkingDay())
-        hasExplicitTime = false;
-        
-      var hasExactQuote = quoteDates?.Contains(timestamp.ToInstant()) ?? false;
-        
-      // we always try to update quote for intraday if requested
-      if (!hasExactQuote && ((sameDayQuotes?.Count == 0 || intraday || hasExplicitTime)))
-        await updateQuoteHandler.Handle(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = enforceCache, Timestamp = timestamp, StoreInLog = false } );
-    }
     
     private async Task UpdateQuotes(AssetPairInfo assetPairInfo, Time timestamp, IEnumerable<Time> additionalTimestamps, bool enforceCache, bool useBatching)
     {
       var fordom = AssetPair.Fordom(assetPairInfo.ForAsset, assetPairInfo.DomAsset);
       
       var now = clock.GetCurrentInstant();
-      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
-     
-      var needsUpdate = NeedsUpdate(assetPairInfo, timestamp, intraday);
-      var timestamps = additionalTimestamps?.Where(t => NeedsUpdate(assetPairInfo, t, false)).ToList();
+      var intraday =  timestamp.Date() == now.Date();
+    
+      var quoteDates = assetPairInfo?.QuoteDates?.ToHashSet() ?? [];
+      var holidayCalendar = assetPairInfo?.HolidayCalendar;
+
+      var effectiveQuoteDates = quoteDates?
+        .GroupBy(d => d.RollToWorkingDay(holidayCalendar : holidayCalendar).Date())
+        .ToDictionary(g => g.Key, g => g.ToList()) ?? [];
+
+      var needsUpdate = !QuoteExtensions.HasExistingQuote(timestamp.ToInstant(), quoteDates, effectiveQuoteDates, intraday, holidayCalendar);
+      var timestamps = additionalTimestamps?.Where(t => 
+        !QuoteExtensions.HasExistingQuote(t.ToInstant(), quoteDates, effectiveQuoteDates, false, holidayCalendar)).ToList();
 
       if (!needsUpdate && timestamps is { Count: > 0 })
       {
@@ -213,31 +191,10 @@ namespace Chronos.Core.Queries
         await updateQuoteHandler.Handle(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = enforceCache, Timestamp = timestamp, AdditionalTimestamps = timestamps, StoreInLog = false, UseBatching = useBatching } );
     }
 
-    private bool NeedsUpdate(AssetPairInfo assetPairInfo, Time timestamp, bool intraday)
-    {
-      var quoteDates = assetPairInfo?.QuoteDates;
-      var holidayCalendar = assetPairInfo?.HolidayCalendar;
-      
-      List<Instant> sameDayQuotes;
-      if(holidayCalendar != null) 
-        sameDayQuotes = quoteDates?.Where(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant(), timestamp.IsWorkingDay() ? 0 : 1)).ToList();
-      else
-        sameDayQuotes = quoteDates?.Where(d => d.IsSameDay(timestamp.ToInstant())).ToList(); 
-
-      var hasExactQuote = quoteDates?.Contains(timestamp.ToInstant()) ?? false;
-
-      var hasExplicitTime = timestamp != timestamp.StartOfDay();
-      if (holidayCalendar != null && !timestamp.IsWorkingDay())
-        hasExplicitTime = false;
-
-      // we always try to update quote for intraday if requested
-      return !hasExactQuote && ((sameDayQuotes?.Count == 0 || intraday || hasExplicitTime));
-    }
-    
     private async Task<SingleAssetQuote> GetQuotes(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
     {
       var now = clock.GetCurrentInstant();
-      var intraday =  timestamp.ToDateTime().Date == now.ToDateTime().Date;
+      var intraday =  timestamp.Date() == now.Date();
 
       if(TryGetOverride(query, forAsset, domAsset, out var price))
         return new SingleAssetQuote(price, timestamp.ToInstant());

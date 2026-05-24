@@ -87,7 +87,7 @@ public class SingleAssetQuote(double price, Instant timestamp, string holidayCal
             if (intraday && !SupportsIntraday)
                 numberOfWorkingDays++;
 
-            b &= Timestamp.IsWithinPriorWorkingDays(currentTimestamp, numberOfWorkingDays);
+            b &= Timestamp.IsWithinPriorWorkingDays(currentTimestamp, numberOfWorkingDays, holidayCalendar);
         }
 
         return b;

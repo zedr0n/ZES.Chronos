@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Reactive.Linq;
@@ -18,6 +19,7 @@ using IClock = ZES.Interfaces.Clocks.IClock;
 namespace Chronos.Core.Commands
 {
   /// <inheritdoc />
+  [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1010:Opening square brackets should be spaced correctly", Justification = "[] issue")]
   public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<UpdateQuote, AssetPair>
   {
     private readonly IEsRepository<IAggregate> _repository;
@@ -50,60 +52,52 @@ namespace Chronos.Core.Commands
     /// <inheritdoc/>
     public override async Task Handle(UpdateQuote command)
     {
-      var root = await _repository.Find<AssetPair>(command.Target);
-      if (root == null)
+      var assetPairInfo = await _repository.Find<AssetPair>(command.Target);
+      if (assetPairInfo == null)
         throw new ArgumentNullException(nameof(AssetPair));
 
-      var holidayCalendar = root.HolidayCalendar;
+      var quoteDates = assetPairInfo?.QuoteDates?.ToHashSet() ?? [];
+      var holidayCalendar = assetPairInfo.HolidayCalendar;
       
       var timestamp = command.Timestamp;
+      if (timestamp == null)
+        throw new InvalidOperationException("Timestamp cannot be null");
+      
       var now = _clock.GetCurrentInstant();
-      var intraday = timestamp.ToDateTime().Date == now.ToDateTime().Date;
+      var intraday = timestamp.Date() == now.Date();
       
-      // handle intraday
-      if (intraday && !root.SupportsIntraday)
+      // handle intraday and holidays
+      if ((intraday && !assetPairInfo.SupportsIntraday) || !timestamp.IsWorkingDay(holidayCalendar))
       {
         intraday = false;
-        timestamp = timestamp.PreviousWorkingDay().CloseOfDay(); 
-      }
-
-      // handle holidays
-      if (holidayCalendar != null && !timestamp.IsWorkingDay())
-      {
-        timestamp = timestamp.PreviousWorkingDay().CloseOfDay();
-        intraday = false;
+        timestamp = timestamp.PreviousWorkingDay(holidayCalendar).CloseOfDay(); 
       }
       
-      var additionalTimestamps = command.AdditionalTimestamps;
-      if (command.AdditionalTimestamps != null && holidayCalendar != null)
+      var effectiveQuoteDates = quoteDates?
+        .GroupBy(d => d.RollToWorkingDay(holidayCalendar).Date())
+        .ToDictionary(g => g.Key, g => g.ToList()) ?? [];
+      
+      if (QuoteExtensions.HasExistingQuote(timestamp.ToInstant(), quoteDates, effectiveQuoteDates, intraday, holidayCalendar))
+        throw new InvalidOperationException($"Valid quote already exists for {timestamp.Date()}");
+      
+      // filter out additional timestamps that are already present in the quote dates
+      var additionalTimestamps = command.AdditionalTimestamps?
+        .Where(t => !QuoteExtensions.HasExistingQuote(t.ToInstant(), quoteDates, effectiveQuoteDates, false, holidayCalendar)).ToList();
+      
+      if (additionalTimestamps != null && holidayCalendar != null)
       {
-        additionalTimestamps = command.AdditionalTimestamps
-          .Select(t => !t.IsWorkingDay() ? t.PreviousWorkingDay().CloseOfDay() : t).Distinct().Where(t => t != timestamp).ToList();
+        additionalTimestamps = additionalTimestamps
+          .Select(t => !t.IsWorkingDay(holidayCalendar) ? t.PreviousWorkingDay(holidayCalendar).CloseOfDay() : t)
+          .Distinct().Where(t => t != timestamp)
+          .ToList();
       }
 
       if (!command.Ephemeral && additionalTimestamps is { Count: > 0 })
         throw new InvalidOperationException("Additional timestamps can only be specified for ephemeral quote updates");
       
-      var hasExplicitTime = timestamp != timestamp.StartOfDay();
-      
-      if (timestamp == null)
-        throw new InvalidOperationException("Timestamp cannot be null");
-
-      bool withinSameDay;
-      if (holidayCalendar != null)
-        withinSameDay = root.QuoteDates.Any(d => d.IsWithinPriorWorkingDays(timestamp.ToInstant(), timestamp.IsWorkingDay() ? 0 : 1));  
-      else
-        withinSameDay = root.QuoteDates.Any(d => d.IsSameDay(timestamp.ToInstant()));
-      
-      if (!intraday && !hasExplicitTime && withinSameDay) 
-      {
-        throw new InvalidOperationException(
-          $"Quote already added for {timestamp.ToInstant().InUtc().ToString("yyyy-MM-dd", new DateTimeFormatInfo())}");
-      }
-
       if (intraday && additionalTimestamps is { Count: > 0 })
       {
-        var (intradayCommandT, intradayHandler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, timestamp, null, true);
+        var (intradayCommandT, intradayHandler) = _factory.CreateUpdateQuote(command, assetPairInfo.ForAsset.AssetType, assetPairInfo.DomAsset.AssetType, timestamp, null, true);
         await intradayHandler.Handle(intradayCommandT);
 
         timestamp = additionalTimestamps.Max();
@@ -111,7 +105,7 @@ namespace Chronos.Core.Commands
         intraday = false;
       }
       
-      var (commandT, handler) = _factory.CreateUpdateQuote(command, root.ForAsset.AssetType, root.DomAsset.AssetType, timestamp, additionalTimestamps, intraday);
+      var (commandT, handler) = _factory.CreateUpdateQuote(command, assetPairInfo.ForAsset.AssetType, assetPairInfo.DomAsset.AssetType, timestamp, additionalTimestamps, intraday);
       await handler.Handle(commandT);
     }
 
@@ -183,7 +177,7 @@ namespace Chronos.Core.Commands
         throw new ArgumentNullException(nameof(AssetPair));
 
       var now = _clock.GetCurrentInstant();
-      var intraday = command.Timestamp.ToDateTime().Date == now.ToDateTime().Date;
+      var intraday = command.Timestamp.Date() == now.Date();
       
       var webQuoteApi = _webApiProvider.GetQuoteApi(root.ForAsset.AssetType, root.DomAsset.AssetType, intraday);
       var webSearchApi = _webApiProvider.GetSearchApi();
@@ -298,18 +292,20 @@ namespace Chronos.Core.Commands
         await _jsonRequestHandler.Handle(new RequestJson<T>(preciseRequestorId, preciseUrl)).Timeout();
 
         var resPrecise = await obs.FirstOrDefaultAsync(r => r.RequestorId == preciseRequestorId).Timeout(Configuration.Timeout);
-        var preciseResults = webQuoteApi.GetValues(resPrecise.Data).ToList();
+        var preciseResults = webQuoteApi.GetValues(resPrecise.Data);
         var valid = true;
+        
+        var preciseResultsByDay = preciseResults
+          .GroupBy(x => x.Key.Date())
+          .ToDictionary(g => g.Key, g => g.First().Value);
+        
         foreach (var t in dates)
         {
-          var v = preciseResults.SingleOrDefault(x => x.Timestamp == t);
-          if ( v == default )
-            v = preciseResults.SingleOrDefault(x => Math.Abs(x.Timestamp.ToUnixTimeSeconds() - t.ToUnixTimeSeconds()) < 60);
-          if (v == default)
-            v = (t, double.NaN);
+          if (!preciseResults.TryGetValue(t, out var v) && !preciseResultsByDay.TryGetValue(t.Date(), out v))
+            v = double.NaN;
           
-          values[t] = v.Value;
-          valid &= !double.IsNaN(v.Value);
+          values[t] = v;
+          valid &= !double.IsNaN(v);
         }
         
         if (valid)
@@ -320,18 +316,17 @@ namespace Chronos.Core.Commands
       await _jsonRequestHandler.Handle(new RequestJson<T>(requestorId, url)).Timeout();
 
       var res = await obs.FirstOrDefaultAsync(r => r.RequestorId == requestorId).Timeout(Configuration.Timeout);
-      var results = webQuoteApi.GetValues(res.Data).ToList();
-
-      foreach (var t in dates)
+      var results = webQuoteApi.GetValues(res.Data);
+      var resultsByDay = results
+        .GroupBy(x => x.Key.Date())
+        .ToDictionary(g => g.Key, g => g.First().Value);
+      
+      foreach (var t in dates.Where(t => double.IsNaN(values[t])))
       {
-        if (!double.IsNaN(values[t]))
-          continue;
-        var v = results.SingleOrDefault(x => x.Timestamp == t);
-        if (v == default)
-          v = results.SingleOrDefault(x => x.Timestamp.IsSameDay(t));
-        if (v == default)
-          v = (t, double.NaN);
-        values[t] = v.Value;
+        if (!results.TryGetValue(t, out var v) && !resultsByDay.TryGetValue(t.Date(), out v))
+          v = double.NaN;
+          
+        values[t] = v;
       }
       
       return values.Select(x => (x.Key, x.Value)).ToList();

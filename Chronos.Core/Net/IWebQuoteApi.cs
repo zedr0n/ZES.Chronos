@@ -67,7 +67,7 @@ public interface IWebQuoteApi
     /// </summary>
     /// <param name="result">The JSON response containing the data to extract.</param>
     /// <returns>A collection of tuples, where each tuple contains a timestamp and a corresponding value.</returns>
-    IEnumerable<(Time Timestamp, double Value)> GetValues(IJsonResult result);
+    IReadOnlyDictionary<Time, double> GetValues(IJsonResult result);
 
     /// <summary>
     /// Retrieves the search ticker corresponding to the specified asset and domestic asset.
