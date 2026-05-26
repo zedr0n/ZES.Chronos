@@ -166,18 +166,19 @@ namespace Chronos.Core.Queries
       var fordom = AssetPair.Fordom(assetPairInfo.ForAsset, assetPairInfo.DomAsset);
       
       var now = clock.GetCurrentInstant();
-      var intraday =  timestamp.Date() == now.Date();
+      var intraday = timestamp.Date() == now.Date();
     
       var quoteDates = assetPairInfo?.QuoteDates?.ToHashSet() ?? [];
       var holidayCalendar = assetPairInfo?.HolidayCalendar;
+      var supportsIntraday = assetPairInfo.SupportsIntraday;
 
       var effectiveQuoteDates = quoteDates?
         .GroupBy(d => d.RollToWorkingDay(holidayCalendar : holidayCalendar).Date())
         .ToDictionary(g => g.Key, g => g.ToList()) ?? [];
 
-      var needsUpdate = !QuoteExtensions.HasExistingQuote(timestamp.ToInstant(), quoteDates, effectiveQuoteDates, intraday, holidayCalendar);
+      var needsUpdate = !QuoteExtensions.HasExistingQuote(timestamp.ToInstant(), quoteDates, effectiveQuoteDates, intraday,supportsIntraday, holidayCalendar);
       var timestamps = additionalTimestamps?.Where(t => 
-        !QuoteExtensions.HasExistingQuote(t.ToInstant(), quoteDates, effectiveQuoteDates, false, holidayCalendar)).ToList();
+        !QuoteExtensions.HasExistingQuote(t.ToInstant(), quoteDates, effectiveQuoteDates, false, supportsIntraday, holidayCalendar)).ToList();
 
       if (!needsUpdate && timestamps is { Count: > 0 })
       {

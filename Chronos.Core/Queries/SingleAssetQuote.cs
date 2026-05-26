@@ -72,24 +72,6 @@ public class SingleAssetQuote(double price, Instant timestamp, string holidayCal
     /// Timestamps are also validated based on whether intraday constraints are enforced.
     /// </remarks>
     public bool IsValid(Instant currentTimestamp, bool intraday = false)
-    {
-        var b = !double.IsNaN(Price);
-        if (!b)
-            return false;
-
-        if (holidayCalendar == null)
-        {
-            b &= Timestamp.IsSameDay(currentTimestamp);
-        }
-        else
-        {
-            var numberOfWorkingDays = 1;
-            if (intraday && !SupportsIntraday)
-                numberOfWorkingDays++;
-
-            b &= Timestamp.IsWithinPriorWorkingDays(currentTimestamp, numberOfWorkingDays, holidayCalendar);
-        }
-
-        return b;
-    }
+        => !double.IsNaN(Price) &&
+            QuoteExtensions.IsValidQuoteFor(currentTimestamp, Timestamp, intraday, SupportsIntraday, HolidayCalendar);
 }

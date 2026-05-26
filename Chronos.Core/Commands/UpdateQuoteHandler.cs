@@ -65,6 +65,7 @@ namespace Chronos.Core.Commands
       
       var now = _clock.GetCurrentInstant();
       var intraday = timestamp.Date() == now.Date();
+      var supportsIntraday = assetPairInfo.SupportsIntraday;
       
       // handle intraday and holidays
       if ((intraday && !assetPairInfo.SupportsIntraday) || !timestamp.IsWorkingDay(holidayCalendar))
@@ -77,12 +78,12 @@ namespace Chronos.Core.Commands
         .GroupBy(d => d.RollToWorkingDay(holidayCalendar).Date())
         .ToDictionary(g => g.Key, g => g.ToList()) ?? [];
       
-      if (QuoteExtensions.HasExistingQuote(timestamp.ToInstant(), quoteDates, effectiveQuoteDates, intraday, holidayCalendar))
+      if (QuoteExtensions.HasExistingQuote(timestamp.ToInstant(), quoteDates, effectiveQuoteDates, intraday, supportsIntraday, holidayCalendar))
         throw new InvalidOperationException($"Valid quote already exists for {timestamp.Date()}");
       
       // filter out additional timestamps that are already present in the quote dates
       var additionalTimestamps = command.AdditionalTimestamps?
-        .Where(t => !QuoteExtensions.HasExistingQuote(t.ToInstant(), quoteDates, effectiveQuoteDates, false, holidayCalendar)).ToList();
+        .Where(t => !QuoteExtensions.HasExistingQuote(t.ToInstant(), quoteDates, effectiveQuoteDates, false, supportsIntraday, holidayCalendar)).ToList();
       
       if (additionalTimestamps != null && holidayCalendar != null)
       {
