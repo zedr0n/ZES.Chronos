@@ -18,7 +18,7 @@ public class FutureQuoteDateResolverSource(IClock clock, DefaultQuoteDataResolve
     public bool CanResolve(QuoteDataRequest request)
     {
         var now = clock.GetCurrentInstant();
-        return !request.Timestamps.Any(t => t.Date() <= now.Date());
+        return request.Timestamps.Any(t => t.Date() > now.Date());
     }
 
     /// <inheritdoc/>

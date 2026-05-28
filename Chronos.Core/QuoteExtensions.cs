@@ -49,6 +49,9 @@ public static class QuoteExtensions
             .GroupBy(d => d.RollToWorkingDay(holidayCalendar: holidayCalendar).Date())
             .ToDictionary(g => g.Key, g => g.ToList()) ?? [];
         
+        if (intraday && supportsIntraday && quoteDates.Any(t => IsWithinSeconds(t, timestamp)))
+            return true;
+        
         return GetCandidateDates(timestamp, intraday, supportsIntraday, holidayCalendar)
             .Distinct()
             .SelectMany(date => effectiveQuoteDates.TryGetValue(date, out var candidates) ? candidates : [])
@@ -119,9 +122,6 @@ public static class QuoteExtensions
     private static IEnumerable<LocalDate> GetCandidateDates(Instant timestamp, bool intraday, bool supportsIntraday, string holidayCalendar)
     {
         var isWorkingDay = timestamp.IsWorkingDay(holidayCalendar);
-        if (intraday && supportsIntraday && isWorkingDay)
-            yield break;
-            
         yield return timestamp.RollToWorkingDay(holidayCalendar).Date();
 
         if (holidayCalendar == null)

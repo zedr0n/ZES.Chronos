@@ -144,6 +144,9 @@ namespace Chronos.Core.Queries
 
     private async Task<SingleAssetQuote> GetSingleAssetQuote(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
     {
+      if (TryGetUnitConversionQuote(forAsset, domAsset, timestamp, out var quote))
+        return quote;
+      
       var key = (forAsset, domAsset, timestamp);
 
       query.SingleAssetQuotes ??= new Dictionary<(Asset asset, Asset denominator, Time timestamp), SingleAssetQuote>();
@@ -160,38 +163,23 @@ namespace Chronos.Core.Queries
 
       return quotes;
     }
-    
-    private async Task UpdateQuotes(AssetPairInfo assetPairInfo, Time timestamp, IEnumerable<Time> additionalTimestamps, bool enforceCache, bool useBatching)
+
+    private static bool TryGetUnitConversionQuote(Asset forAsset, Asset domAsset, Time timestamp, out SingleAssetQuote quote)
     {
-      var fordom = AssetPair.Fordom(assetPairInfo.ForAsset, assetPairInfo.DomAsset);
-      
-      var now = clock.GetCurrentInstant();
-      var intraday = timestamp.Date() == now.Date();
-    
-      var quoteDates = assetPairInfo?.QuoteDates?.ToHashSet() ?? [];
-      var holidayCalendar = assetPairInfo?.HolidayCalendar;
-      var supportsIntraday = assetPairInfo.SupportsIntraday;
-
-      var effectiveQuoteDates = quoteDates?
-        .GroupBy(d => d.RollToWorkingDay(holidayCalendar : holidayCalendar).Date())
-        .ToDictionary(g => g.Key, g => g.ToList()) ?? [];
-
-      var needsUpdate = !QuoteExtensions.HasExistingQuote(timestamp.ToInstant(), quoteDates, effectiveQuoteDates, intraday,supportsIntraday, holidayCalendar);
-      var timestamps = additionalTimestamps?.Where(t => 
-        !QuoteExtensions.HasExistingQuote(t.ToInstant(), quoteDates, effectiveQuoteDates, false, supportsIntraday, holidayCalendar)).ToList();
-
-      if (!needsUpdate && timestamps is { Count: > 0 })
+      switch (forAsset.AssetId)
       {
-        timestamp = timestamps.Max();
-        timestamps = timestamps.Where(t => t != timestamp).OrderBy(t => t).ToList();
-        needsUpdate = true;
+        case "GBP" when domAsset.AssetId == "GBX":
+          quote = new SingleAssetQuote(100.0, timestamp.ToInstant());
+          return true;
+        case "GBX" when domAsset.AssetId == "GBP":
+          quote = new SingleAssetQuote(0.01, timestamp.ToInstant());
+          return true;
+        default:
+          quote = null;
+          return false;
       }
-
-      // we always try to update quote for intraday if requested
-      if (needsUpdate)
-        await updateQuoteHandler.Handle(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = enforceCache, Timestamp = timestamp, AdditionalTimestamps = timestamps, StoreInLog = false, UseBatching = useBatching } );
     }
-
+    
     private async Task<SingleAssetQuote> GetQuotes(AssetQuoteQuery query, Time timestamp, Asset forAsset, Asset domAsset)
     {
       var now = clock.GetCurrentInstant();
@@ -201,16 +189,13 @@ namespace Chronos.Core.Queries
         return new SingleAssetQuote(price, timestamp.ToInstant());
       
       var assetPairInfo = await pairInfoHandler.Handle(new AssetPairInfoQuery(AssetPair.Fordom(forAsset, domAsset)));
-      var useStaleQuotes = assetPairInfo?.UseStaleQuotes ?? false;
+      if (assetPairInfo == null)
+        throw new InvalidOperationException($"No asset pair info found for {forAsset}{domAsset}");
+      var useStaleQuotes = assetPairInfo.UseStaleQuotes;
       
       var fordom = AssetPair.Fordom(forAsset, domAsset);
-      if (query.UpdateQuote && !useStaleQuotes)
-      {
+      if (query.UpdateQuote && (!useStaleQuotes || assetPairInfo.QuoteDates.Length == 0))
         await UpdateQuotes(assetPairInfo, timestamp, query.AdditionalTimestamps, query.EnforceCache, query.UseBatching);
-        //await UpdateSingleQuote(assetPairInfo, timestamp, query.EnforceCache);
-        //foreach(var t in query.AdditionalTimestamps ?? [])
-          //await UpdateSingleQuote(assetPairInfo, t, query.EnforceCache);
-      }
 
       var result = await handler.Handle(new SingleAssetQuoteQuery(fordom)
       {
@@ -273,7 +258,38 @@ namespace Chronos.Core.Queries
       foreach (var t in invalidResults)
         historicalResults[t] = new SingleAssetQuote(0.0, t.ToInstant()); 
       return new SingleAssetQuote(result.IsValid(timestamp.ToInstant(), intraday) ? result.Price : 0.0, timestamp.ToInstant()) { HistoricalResults = historicalResults };
-    }    
+    }   
+    
+    private async Task UpdateQuotes(AssetPairInfo assetPairInfo, Time timestamp, IEnumerable<Time> additionalTimestamps, bool enforceCache, bool useBatching)
+    {
+      var fordom = AssetPair.Fordom(assetPairInfo.ForAsset, assetPairInfo.DomAsset);
+      
+      var now = clock.GetCurrentInstant();
+      var intraday = timestamp.Date() == now.Date();
+    
+      var quoteDates = assetPairInfo?.QuoteDates?.ToHashSet() ?? [];
+      var holidayCalendar = assetPairInfo?.HolidayCalendar;
+      var supportsIntraday = assetPairInfo.SupportsIntraday;
+
+      var effectiveQuoteDates = quoteDates?
+        .GroupBy(d => d.RollToWorkingDay(holidayCalendar : holidayCalendar).Date())
+        .ToDictionary(g => g.Key, g => g.ToList()) ?? [];
+
+      var needsUpdate = !QuoteExtensions.HasExistingQuote(timestamp.ToInstant(), quoteDates, effectiveQuoteDates, intraday,supportsIntraday, holidayCalendar);
+      var timestamps = additionalTimestamps?.Where(t => 
+        !QuoteExtensions.HasExistingQuote(t.ToInstant(), quoteDates, effectiveQuoteDates, false, supportsIntraday, holidayCalendar)).ToList();
+
+      if (!needsUpdate && timestamps is { Count: > 0 })
+      {
+        timestamp = timestamps.Max();
+        timestamps = timestamps.Where(t => t != timestamp).OrderBy(t => t).ToList();
+        needsUpdate = true;
+      }
+
+      // we always try to update quote for intraday if requested
+      if (needsUpdate)
+        await updateQuoteHandler.Handle(new UpdateQuote(fordom) { Ephemeral = true, EnforceCache = enforceCache, Timestamp = timestamp, AdditionalTimestamps = timestamps, StoreInLog = false, UseBatching = useBatching } );
+    }
   }
 }
 
