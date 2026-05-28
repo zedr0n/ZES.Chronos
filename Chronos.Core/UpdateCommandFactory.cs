@@ -3,34 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Chronos.Core.Commands;
 using Chronos.Core.Net;
-using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Core;
 
 /// <inheritdoc />
-public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateQuote>> updateQuoteHandlers, ICollection<ICommandHandler<UpdateTicker>> updateTickerHandlers, IWebApiProvider webApiProvider) 
+public class UpdateCommandFactory(ICollection<ICommandHandler<UpdateTicker>> updateTickerHandlers, IWebApiProvider webApiProvider) 
     : IUpdateCommandFactory
 {
-    /// <inheritdoc/>
-    public (UpdateQuote Command, ICommandHandler Handler) CreateUpdateQuote(UpdateQuote command, AssetType forAssetType, AssetType domAssetType, Time timestamp, List<Time> additionalTimestamps, bool intraday)
-    {
-        var webApi = webApiProvider.GetQuoteApi(forAssetType, domAssetType, intraday);
-        if (webApi == null)
-           throw new InvalidOperationException($"No quote API found for {forAssetType}/{domAssetType}");
-        
-        var webSearchApi = webApiProvider.GetSearchApi();
-
-        var t = webApi.GetJsonResultType();
-        var tSearch = webSearchApi.GetJsonResultType();
-        var commandT = (UpdateQuote)Activator.CreateInstance(typeof(UpdateQuote<,>).MakeGenericType(t, tSearch), command);
-        commandT?.StoreInLog = false;
-        commandT?.Timestamp = timestamp;
-        commandT?.AdditionalTimestamps = additionalTimestamps;
-        var handler = updateQuoteHandlers.SingleOrDefault(h => h.CanHandle(commandT));
-        return (commandT, handler);
-    }
-
     /// <inheritdoc/>
     public (UpdateTicker Command, ICommandHandler Handler) CreateUpdateTicker(UpdateTicker command, AssetType forAssetType, AssetType domAssetType)
     {

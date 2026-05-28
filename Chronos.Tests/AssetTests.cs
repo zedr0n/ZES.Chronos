@@ -522,7 +522,7 @@ namespace Chronos.Tests
             await connector.SetAsync(eqQuoteApi.GetUrl(ticker, date),
                 "[{\"date\":\"2023-12-01\",\"open\":1.106,\"high\":1.115,\"low\":1.106,\"close\":1.115,\"adjusted_close\":24.53,\"volume\":3255}]");
            
-            var res = await bus.QueryAsync(new AccountStatsQuery("Main", domAsset) { Timestamp = date, QueryNet = true });
+            var res = await bus.QueryAsync(new AccountStatsQuery("Main", domAsset) { Timestamp = date, UpdateQuotes = true });
             Assert.Equal(100, res.Positions.SingleOrDefault()?.Amount);
             Assert.Equal(100*1.115, res.Balance.Amount);
             
@@ -533,7 +533,7 @@ namespace Chronos.Tests
             await connector.SetAsync(eqQuoteApi.GetUrl(ticker, splitDate),
                 "[{\"date\":\"2023-12-04\",\"open\":24.45,\"high\":24.97,\"low\":24.45,\"close\":24.7325,\"adjusted_close\":24.7325,\"volume\":96}]");
             
-            res = await bus.QueryAsync(new AccountStatsQuery("Main", domAsset) { Timestamp = splitDate, QueryNet = true });
+            res = await bus.QueryAsync(new AccountStatsQuery("Main", domAsset) { Timestamp = splitDate, UpdateQuotes = true });
             Assert.Equal(100*0.045, res.Positions.SingleOrDefault()?.Amount);
             Assert.Equal(100*24.7325*0.045, res.Balance.Amount, 1e-6);
         }
@@ -620,7 +620,7 @@ namespace Chronos.Tests
             
             await bus.Command(new RetroactiveCommand<AddQuoteUrl>(new AddQuoteUrl("GBPUSD", fxQuoteApi.GetUrl(ticker, date)), date));
             
-            await bus.Command(new RetroactiveCommand<UpdateQuote<EodhdEodQuoteApiBase.JsonResult, WebSearchApi.JsonResult>>(new UpdateQuote<EodhdEodQuoteApiBase.JsonResult, WebSearchApi.JsonResult>("GBPUSD"), date));
+            await bus.Command(new RetroactiveCommand<UpdateQuote>(new UpdateQuote("GBPUSD"), date));
             await bus.Equal(new SingleAssetQuoteQuery("GBPUSD") { Timestamp = date }, s => s.Price, 1.3337);
         }
 

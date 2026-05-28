@@ -35,7 +35,7 @@ public class RealisedGainsForTaxYearQueryHandler(IProjectionManager manager, ITi
         {
             Timeline = query.Timeline,
             Timestamp = timestamp,
-            QueryNet = query.QueryNet,
+            UpdateQuotes = query.UpdateQuotes,
             AssetQuoteOverrides = query.AssetQuoteOverrides
         });
 

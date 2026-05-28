@@ -1,6 +1,5 @@
-﻿using System.Collections.Generic;
-using Chronos.Core.Commands;
-using ZES.Interfaces.Clocks;
+﻿using Chronos.Core.Commands;
+using ZES.Infrastructure.Net;
 using ZES.Interfaces.Domain;
 
 namespace Chronos.Core;
@@ -11,18 +10,6 @@ namespace Chronos.Core;
 /// </summary>
 public interface IUpdateCommandFactory
 {
-    /// <summary>
-    /// Creates a command along with its corresponding handler for updating asset quotes based on the provided parameters.
-    /// </summary>
-    /// <param name="command">The command specifying the parameters for updating the asset quote.</param>
-    /// <param name="forAssetType">The type of the asset being quoted (e.g., Coin, Currency, or Equity).</param>
-    /// <param name="domAssetType">The type of the domestic asset in the asset pair.</param>
-    /// <param name="timestamp">The timestamp for the quote update.</param>
-    /// <param name="additionalTimestmaps">Additional timestamps for which to fetch quotes, if any. If null, only the specified timestamp will be used.</param>
-    /// <param name="intraday">Indicates whether the requested quote is intraday.</param>
-    /// <returns>A tuple containing the command to update the quote and the handler responsible for executing the command.</returns>
-    (UpdateQuote Command, ICommandHandler Handler) CreateUpdateQuote(UpdateQuote command, AssetType forAssetType, AssetType domAssetType, Time timestamp, List<Time> additionalTimestmaps, bool intraday);
-
     /// <summary>
     /// Creates a command along with its corresponding handler for updating asset tickers based on the given parameters.
     /// </summary>

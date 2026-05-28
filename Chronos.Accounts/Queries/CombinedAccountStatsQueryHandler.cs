@@ -37,7 +37,7 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
         {
             Timeline = query.Timeline,
             Timestamp = query.Timestamp,
-            QueryNet = query.QueryNet,
+            UpdateQuotes = query.UpdateQuotes,
             EnforceCache = query.EnforceCache,
             NumberOfMatchingDays = query.NumberOfMatchingDays,
             AssetQuoteOverrides = query.AssetQuoteOverrides,
@@ -55,7 +55,7 @@ public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimel
                 Timeline = query.Timeline,
                 Timestamp = query.Timestamp,
                 EnforceCache = query.EnforceCache,
-                UpdateQuote = query.QueryNet,
+                UpdateQuote = query.UpdateQuotes,
                 AdditionalTimestamps = query.AdditionalTimestamps,
                 AssetQuoteOverrides = query.AssetQuoteOverrides
             });

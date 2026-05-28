@@ -89,7 +89,7 @@ namespace Chronos.Accounts
                 return Resolve(new DisposalGainItemsQuery(accounts, asset, denominator)
                 {
                     Timestamp = time,
-                    QueryNet = true,
+                    UpdateQuotes = true,
                     AssetQuoteOverrides = assetQuoteOverrides,
                     TrackDisposalLots = trackDisposalLots
                 });
@@ -128,7 +128,7 @@ namespace Chronos.Accounts
                     {
                         Timestamp = latest,
                         AdditionalTimestamps = additionalTimestamps,
-                        QueryNet = true,
+                        UpdateQuotes = true,
                         AssetQuoteOverrides = assetQuoteOverrides,
                         ComputeCapitalGains = computeGains
                     })
@@ -136,7 +136,7 @@ namespace Chronos.Accounts
                     {
                         Timestamp = latest,
                         AdditionalTimestamps = additionalTimestamps,
-                        QueryNet = true,
+                        UpdateQuotes = true,
                         AssetQuoteOverrides = assetQuoteOverrides,
                         ComputeCapitalGains = computeGains
                     });
@@ -171,7 +171,7 @@ namespace Chronos.Accounts
                 {
                     Timestamp = latest,
                     AdditionalTimestamps = additionalTimes,
-                    QueryNet = true,
+                    UpdateQuotes = true,
                     Period = period,
                     Start = startTime 
                 });

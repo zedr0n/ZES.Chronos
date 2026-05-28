@@ -13,6 +13,23 @@ namespace Chronos.Core.Commands
     [method: JsonConstructor]
     public class UpdateQuote(string fordom) : ZES.Infrastructure.Domain.Command
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UpdateQuote"/> class.
+        /// </summary>
+        /// <param name="command">Original command</param>
+        public UpdateQuote(UpdateQuote command)
+            : this(command.Target)
+        {
+            CorrelationId = command.CorrelationId;
+            AncestorId = command.AncestorId;
+            EnforceCache = command.EnforceCache;
+            Ephemeral = command.Ephemeral;
+            Timestamp = command.Timestamp;
+            ForFallback = command.ForFallback;
+            AdditionalTimestamps = command.AdditionalTimestamps;
+            UseBatching = command.UseBatching;
+        }
+        
         /// <inheritdoc/>
         public override string Target => fordom;
 
@@ -44,29 +61,5 @@ namespace Chronos.Core.Commands
         /// </summary>
         [JsonIgnore] 
         public bool UseBatching { get; set; } = Configuration.UseBatching;
-    }
-
-    /// <inheritdoc />
-    [method: JsonConstructor]
-    public class UpdateQuote<T, TSearch>(string fordom) : UpdateQuote(fordom)
-        where T : class, IWebQuoteJsonResult
-        where TSearch : class, IWebSearchJsonResult
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="UpdateQuote{T, TSearch}"/> class.
-        /// </summary>
-        /// <param name="command">Base class command</param>
-        public UpdateQuote(UpdateQuote command)
-            : this(command.Target)
-        {
-            CorrelationId = command.CorrelationId;
-            AncestorId = command.AncestorId;
-            EnforceCache = command.EnforceCache;
-            Ephemeral = command.Ephemeral;
-            Timestamp = command.Timestamp;
-            ForFallback = command.ForFallback;
-            AdditionalTimestamps = command.AdditionalTimestamps;
-            UseBatching = command.UseBatching;
-        }
     }
 }

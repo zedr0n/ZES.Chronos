@@ -30,7 +30,7 @@ public class CapitalGainsQuery(List<string> accounts, Asset denominator, List<As
     /// <remarks>
     /// When enabled, account valuation and gains calculations may trigger quote updates while resolving asset values.
     /// </remarks>
-    public bool QueryNet { get; set; }
+    public bool UpdateQuotes { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the cache should be enforced during the execution of the update quote command.

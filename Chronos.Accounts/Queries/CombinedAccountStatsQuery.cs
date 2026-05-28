@@ -30,7 +30,7 @@ public class CombinedAccountStatsQuery(List<string> accounts, Asset denominator)
     /// <remarks>
     /// When enabled, account valuation and gains calculations may trigger quote updates while resolving asset values.
     /// </remarks>
-    public bool QueryNet { get; set; }
+    public bool UpdateQuotes { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether capital gains computations should be performed.

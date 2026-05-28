@@ -44,7 +44,8 @@ namespace Chronos.Core
         [Registration]
         public static void RegisterAll(Container c)
         {
-            c.RegisterAll(Assembly.GetExecutingAssembly());
+            var assembly = Assembly.GetExecutingAssembly();
+            c.RegisterAll(assembly);
             c.RegisterSingleton<IUpdateCommandFactory, UpdateCommandFactory>();
             c.RegisterSingleton<IWebApiProvider, WebApiProvider>();
             c.Collection.Register<IWebQuoteApi>(
@@ -55,7 +56,16 @@ namespace Chronos.Core
                 typeof(FxIntradayQuoteApi),
                 typeof(EquityIntradayQuoteApi));
             c.RegisterSingleton<IWebSearchApi, WebSearchApi>();
+            c.Collection.Register<IQuoteDataResolverSource>(
+                typeof(FutureQuoteDateResolverSource),
+                typeof(DefaultQuoteDataResolverSource));
+            c.RegisterSingleton<DefaultQuoteDataResolverSource, DefaultQuoteDataResolverSource>();
+            c.RegisterSingleton<IQuoteDataResolver, QuoteDataResolver>();
             c.Collection.Register<IWebSearchApi>(typeof(WebSearchApi));
+            
+            var jsonResults = assembly.GetTypesFromInterface(typeof(IWebQuoteJsonResult)).Where(t => !t.IsInterface);
+            foreach (var type in jsonResults)
+                c.Collection.Append(typeof(IQuoteJsonRequestExecutor), typeof(QuoteJsonRequestExecutor<>).MakeGenericType(type));
         }
 
         /// <inheritdoc />

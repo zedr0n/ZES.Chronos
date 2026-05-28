@@ -62,7 +62,7 @@ public class BlendedIrrQueryHandler : DefaultQueryHandler<BlendedIrrQuery, Blend
             {
                 Timeline = query.Timeline,
                 Timestamp = query.Timestamp,
-                QueryNet = query.QueryNet,
+                UpdateQuotes = query.UpdateQuotes,
                 ComputeCapitalGains = false,
                 AdditionalTimestamps = additionalTimestamps 
             });

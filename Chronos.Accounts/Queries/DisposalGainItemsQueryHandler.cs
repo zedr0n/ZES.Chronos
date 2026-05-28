@@ -32,7 +32,7 @@ public class DisposalGainItemsQueryHandler(IProjectionManager manager, ITimeline
         {
             Timeline = query.Timeline,
             Timestamp = timestamp,
-            QueryNet = query.QueryNet,
+            UpdateQuotes = query.UpdateQuotes,
             AssetQuoteOverrides = query.AssetQuoteOverrides,
             TrackDisposalLots = query.TrackDisposalLots,
             EnforceCache = query.EnforceCache

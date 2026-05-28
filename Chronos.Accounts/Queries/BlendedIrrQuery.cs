@@ -10,7 +10,7 @@ namespace Chronos.Accounts.Queries;
 [method: JsonConstructor]
 public class BlendedIrrQuery(List<string> accounts, Asset denominator) : Query<BlendedIrr>
 {
-    public bool QueryNet { get; set; }
+    public bool UpdateQuotes { get; set; }
     public List<string> Accounts => accounts;
     public Asset Denominator => denominator;
     public Instant Start { get; set; }

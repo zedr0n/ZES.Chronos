@@ -18,7 +18,7 @@ public class RealisedGainsForTaxYearQuery(string account, int taxYear, Asset ass
     public int TaxYear => taxYear;
     public Asset Asset => asset;
     public Asset Denominator => denominator;
-    public bool QueryNet { get; set; }
+    public bool UpdateQuotes { get; set; }
     
     /// <summary>
     /// Gets or sets operation-scoped asset quote overrides used while valuing account history.

@@ -49,11 +49,11 @@ public class TransactionInfoQuery(string txId, Asset denominator = null)
     /// Gets or sets a value indicating whether the query should retrieve exchange rate quotes from the internet.
     /// </summary>
     /// <remarks>
-    /// The <c>QueryNet</c> property specifies if the query should attempt to fetch external
+    /// The <c>UpdateQuotes</c> property specifies if the query should attempt to fetch external
     /// exchange rate data for the transaction's associated assets. When set to <c>true</c>, the system
     /// will query internet sources for up-to-date quotes based on the transaction's date and assets.
     /// </remarks>
-    public bool QueryNet { get; set; }
+    public bool UpdateQuotes { get; set; }
     
     /// <summary>
     /// Gets or sets a value indicating whether the cache should be enforced during the execution of the update quote command.

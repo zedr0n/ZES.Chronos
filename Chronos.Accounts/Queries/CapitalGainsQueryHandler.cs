@@ -268,7 +268,7 @@ public class CapitalGainsQueryHandler(
                         var assetQuote = await assetQuoteHandler.Handle(new AssetQuoteQuery(c.Denominator, denominator)
                         {
                             Timestamp = t,
-                            UpdateQuote = query.QueryNet,
+                            UpdateQuote = query.UpdateQuotes,
                             EnforceCache = query.EnforceCache,
                             SourceOperationId = sourceOperationId?.ToString(),
                             AssetQuoteOverrides = query.AssetQuoteOverrides
@@ -296,7 +296,7 @@ public class CapitalGainsQueryHandler(
                         var assetQuote = await assetQuoteHandler.Handle(new AssetQuoteQuery(c.Denominator, denominator)
                         {
                             Timestamp = t,
-                            UpdateQuote = query.QueryNet,
+                            UpdateQuote = query.UpdateQuotes,
                             EnforceCache = query.EnforceCache,
                             SourceOperationId = sourceOperationId?.ToString(),
                             AssetQuoteOverrides = query.AssetQuoteOverrides
@@ -388,7 +388,7 @@ public class CapitalGainsQueryHandler(
                 var assetQuote = await assetQuoteHandler.Handle(new AssetQuoteQuery(fee.Denominator, denominator)
                 {
                     Timestamp = t,
-                    UpdateQuote = query.QueryNet,
+                    UpdateQuote = query.UpdateQuotes,
                     EnforceCache = query.EnforceCache,
                     SourceOperationId = sourceOperationId?.ToString(),
                     AssetQuoteOverrides = query.AssetQuoteOverrides
@@ -481,7 +481,7 @@ public class CapitalGainsQueryHandler(
         {
             Timeline = parentQuery.Timeline,
             Timestamp = timestamp,
-            QueryNet = parentQuery.QueryNet,
+            UpdateQuotes = parentQuery.UpdateQuotes,
             EnforceCache = parentQuery.EnforceCache,
             IncludeTransfersOutAtQueryDate = includeTransfersOutAtQueryDate,
             NumberOfMatchingDays = parentQuery.NumberOfMatchingDays,

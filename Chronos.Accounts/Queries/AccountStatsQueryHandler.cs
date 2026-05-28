@@ -103,7 +103,7 @@ namespace Chronos.Accounts.Queries
                         Timeline = query.Timeline,
                         Timestamp = timestamp,
                         EnforceCache = query.EnforceCache,
-                        UpdateQuote = query.QueryNet,
+                        UpdateQuote = query.UpdateQuotes,
                         AdditionalTimestamps = query.AdditionalTimestamps,
                         AssetQuoteOverrides = query.AssetQuoteOverrides
                     });
@@ -155,7 +155,7 @@ namespace Chronos.Accounts.Queries
                     {
                         Timeline = query.Timeline,
                         Timestamp = query.Timestamp,
-                        QueryNet = query.QueryNet,
+                        UpdateQuotes = query.UpdateQuotes,
                         EnforceCache = query.EnforceCache,
                         NumberOfMatchingDays = query.NumberOfMatchingDays,
                         AssetQuoteOverrides = query.AssetQuoteOverrides,
@@ -210,7 +210,7 @@ namespace Chronos.Accounts.Queries
                     tx = await _transactionInfoHandler.Handle(new TransactionInfoQuery(txId, denominator)
                     {
                         ConvertToDenominatorAtTxDate = query.ConvertToDenominatorAtTxDate,
-                        QueryNet = query.QueryNet,
+                        UpdateQuotes = query.UpdateQuotes,
                         EnforceCache = query.EnforceCache,
                         //Timestamp = query.Timestamp,
                     });
@@ -339,7 +339,7 @@ namespace Chronos.Accounts.Queries
                 Timeline = query.Timeline,
                 Timestamp = timestamp,
                 EnforceCache = query.EnforceCache,
-                UpdateQuote = query.QueryNet,
+                UpdateQuote = query.UpdateQuotes,
                 AssetQuoteOverrides = query.AssetQuoteOverrides
             });
 
