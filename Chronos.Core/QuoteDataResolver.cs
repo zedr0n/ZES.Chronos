@@ -16,7 +16,7 @@ public class QuoteDataResolver(IEnumerable<IQuoteDataResolverSource> sources) : 
     {
         var source = sources.Where(r => r.CanResolve(request)).OrderByDescending(r => r.Priority).FirstOrDefault();
         if (source == null)
-            throw new InvalidOperationException($"No source can resolve the request for {request.ForAsset.AssetId}/{request.DomAsset.AssetId} for {request.Timestamps.Max()}");
+            throw new InvalidOperationException($"No source can resolve the request for {request.AssetPair.ForAsset.AssetId}/{request.AssetPair.DomAsset.AssetId} for {request.Timestamps.Max()}");
         
         return source.ResolveValues(request);
     }

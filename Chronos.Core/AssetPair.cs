@@ -24,6 +24,7 @@ namespace Chronos.Core
             Register<QuoteUrlAdded>(ApplyEvent);
             Register<QuoteTickerAdded>(ApplyEvent);
             Register<StockSplitAdded>();
+            Register<FutureQuoteRuleAdded>(ApplyEvent);
         }
 
         /// <summary>
@@ -47,6 +48,13 @@ namespace Chronos.Core
             When(new AssetPairRegistered(fordom, forAsset, domAsset, holidayCalendar, supportsIntraday, useStaleQuotes));
         }
 
+        /// <summary>
+        /// Gets the collection of future quote rules associated with the asset pair.
+        /// Each rule defines specific behaviors or constraints for processing future quotes,
+        /// including the rule type and associated parameters.
+        /// </summary>
+        public List<FutureQuoteRuleDefinition> FutureQuoteRules { get; } = new();
+        
         /// <summary>
         /// Gets or sets the asset that is being quoted in the asset pair.
         /// This represents the "for" side of the pair (e.g., in a currency pair, USD in USD/EUR).
@@ -158,6 +166,21 @@ namespace Chronos.Core
         public void SplitStock(double ratio)
         {
             When(new StockSplitAdded(ForAsset, DomAsset, ratio));
+        }
+
+        /// <summary>
+        /// Adds a future quote rule to the asset pair by applying the specified rule type and parameters.
+        /// </summary>
+        /// <param name="ruleType">The type of the future quote rule to be added. This defines the specific strategy or behavior for the rule.</param>
+        /// <param name="parameters">A dictionary of parameters required for configuring the future quote rule. These may include specific conditions or settings for the rule.</param>
+        public void AddFutureQuoteRule(string ruleType, Dictionary<string, object> parameters)
+        {
+            When(new FutureQuoteRuleAdded(Id, ruleType, parameters));
+        }
+
+        private void ApplyEvent(FutureQuoteRuleAdded e)
+        {
+            FutureQuoteRules.Add(new FutureQuoteRuleDefinition(e.RuleType, e.Parameters));
         }
 
         private void ApplyEvent (AssetPairRegistered e)

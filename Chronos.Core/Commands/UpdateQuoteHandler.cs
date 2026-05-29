@@ -121,7 +121,7 @@ public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<U
           timestamps.AddRange(additionalTimestamps);
         timestamps.Add(timestamp);
 
-        var request = new QuoteDataRequest(assetPair.ForAsset, assetPair.DomAsset, timestamps, ticker, assetPair.Url, command.EnforceCache, command.UseBatching);
+        var request = new QuoteDataRequest(assetPair, timestamps, ticker, assetPair.Url, command.EnforceCache, command.UseBatching);
         var values = await _quoteDataResolver.ResolveValues(request);
         foreach (var (t, value) in values.OrderBy(x => x.Key))
           await AddQuote(command, t, value);

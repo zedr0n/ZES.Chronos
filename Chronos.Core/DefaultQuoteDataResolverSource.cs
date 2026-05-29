@@ -34,8 +34,8 @@ public class DefaultQuoteDataResolverSource(
         var timestamp = timestampsList.Max();
         var intraday = timestamp.Date() == now.Date();
         
-        var domAsset = request.DomAsset;
-        var forAsset = request.ForAsset;
+        var domAsset = request.AssetPair.DomAsset;
+        var forAsset = request.AssetPair.ForAsset;
         
         var webQuoteApi = webApiProvider.GetQuoteApi(forAsset.AssetType, domAsset.AssetType, intraday);
 

@@ -47,6 +47,9 @@ public class FutureTests : ChronosTest
 
         await bus.Command(new RegisterAssetPair(ccy, quoteCcy));
         await bus.Command(new RegisterAssetPair(asset, quoteCcy, "UK"));
+
+        var rule = new FutureQuoteRuleFlat();
+        await bus.Command(new AddFutureQuoteRule(AssetPair.Fordom(asset, quoteCcy), rule.RuleType, rule.ToDictionary()));
         
         var now = clock.GetCurrentInstant();
         

@@ -62,6 +62,8 @@ namespace Chronos.Core
             c.RegisterSingleton<DefaultQuoteDataResolverSource, DefaultQuoteDataResolverSource>();
             c.RegisterSingleton<IQuoteDataResolver, QuoteDataResolver>();
             c.Collection.Register<IWebSearchApi>(typeof(WebSearchApi));
+            c.Collection.Register<IFutureQuoteRuleFactory>(assembly);
+            c.RegisterSingleton<IFutureQuoteRuleRegistry, FutureQuoteRuleRegistry>();
             
             var jsonResults = assembly.GetTypesFromInterface(typeof(IWebQuoteJsonResult)).Where(t => !t.IsInterface);
             foreach (var type in jsonResults)
