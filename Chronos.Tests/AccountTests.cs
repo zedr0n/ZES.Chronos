@@ -1595,8 +1595,9 @@ namespace Chronos.Tests
             var webApiProvider = container.GetInstance<IWebApiProvider>();
             var webSearchApi = webApiProvider.GetSearchApi();
             var coinQuoteApi = webApiProvider.GetQuoteApi(AssetType.Coin, AssetType.Currency, false);
+            var fxQuoteApi = webApiProvider.GetQuoteApi(AssetType.Currency, AssetType.Currency, false);
 
-            var date = new LocalDateTime(2021, 8, 26, 12, 30).InUtc().ToInstant().ToTime();
+            var date = new LocalDateTime(2021, 8, 26, 12, 30).InUtc().ToInstant().StartOfDay().ToTime();
             
             var btc = new Asset("BTC", AssetType.Coin);
             var gbp = new Currency("GBP");
@@ -1610,6 +1611,10 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(btc, usd), Time.MinValue));
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(gbp, usd), Time.MinValue));
 
+            await connector.SetAsync(coinQuoteApi.GetUrl("BTC-USD.CC", date), 
+                "[{\"date\":\"2021-08-26\",\"open\":49002.64180701,\"high\":49347.58357137,\"low\":46405.78243211,\"close\":46942.21786802,\"adjusted_close\":46942.21786802,\"volume\":32666549568}]");
+            await connector.SetAsync(fxQuoteApi.GetUrl("GBPUSD.FOREX", date), 
+                "[{\"date\":\"2021-08-26\",\"open\":1.3765,\"high\":1.377,\"low\":1.3711,\"close\":1.3767,\"adjusted_close\":1.3767,\"volume\":447}]");
             var quote = await bus.QueryAsync(new AssetQuoteQuery(btc, gbp) { UpdateQuote = true, Timestamp = date });
             
             await bus.Command(new RetroactiveCommand<CreateAccount>(new CreateAccount("Account", AccountType.Trading), date));

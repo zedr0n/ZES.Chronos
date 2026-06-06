@@ -765,7 +765,7 @@ namespace Chronos.Tests
             var webApiProvider = container.GetInstance<IWebApiProvider>();
             var webSearchApi = webApiProvider.GetSearchApi();
             
-            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().ToTime();
+            var date = new LocalDateTime(2020, 12, 1, 12, 30).InUtc().ToInstant().StartOfDay().ToTime();
             
             var gbp = new Currency("GBP");
             var usd = new Currency("USD");
@@ -782,8 +782,8 @@ namespace Chronos.Tests
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(btc, usd), btc, usd), date));
             await bus.Command(new RetroactiveCommand<RegisterAssetPair>(new RegisterAssetPair(AssetPair.Fordom(gbp, usd), gbp, usd), date));
 
-            var midDate = new LocalDateTime(2020, 12, 10, 12, 30).InUtc().ToInstant().ToTime();
-            var lastDate = new LocalDateTime(2020, 12, 15, 12, 30).InUtc().ToInstant().ToTime(); 
+            var midDate = new LocalDateTime(2020, 12, 10, 12, 30).InUtc().ToInstant().StartOfDay().ToTime();
+            var lastDate = new LocalDateTime(2020, 12, 15, 12, 30).InUtc().ToInstant().StartOfDay().ToTime(); 
             
             await bus.Command(new RetroactiveCommand<AddQuoteTicker>(new AddQuoteTicker(AssetPair.Fordom(gbp, usd), "GBPUSD.FOREX"), date));
             
