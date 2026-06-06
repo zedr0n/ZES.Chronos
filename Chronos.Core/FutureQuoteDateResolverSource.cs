@@ -17,7 +17,7 @@ public class FutureQuoteDateResolverSource(IClock clock, DefaultQuoteDataResolve
     /// <inheritdoc/>
     public bool CanResolve(QuoteDataRequest request)
     {
-        var now = clock.GetCurrentInstant();
+        var now = request.Now > clock.GetCurrentInstant() ? clock.GetCurrentInstant() : request.Now; 
         var canResolve = request.Timestamps.Any(t => t.Date() > now.Date());
         if (!canResolve)
             return false;
@@ -40,7 +40,7 @@ public class FutureQuoteDateResolverSource(IClock clock, DefaultQuoteDataResolve
             .Where(x => x.AppliesTo(request))
             .ToList();
 
-        var now = clock.GetCurrentInstant();
+        var now = request.Now > clock.GetCurrentInstant() ? clock.GetCurrentInstant() : request.Now; 
         var pastTimestamps = request.Timestamps.Where(t => t <= now).ToList();
         var values = new Dictionary<Time, double>();
         if (pastTimestamps.Count > 0)
@@ -48,14 +48,18 @@ public class FutureQuoteDateResolverSource(IClock clock, DefaultQuoteDataResolve
         var futureTimestamps = request.Timestamps.Where(t => t > now).ToList();
         if (futureTimestamps.Count == 0)
             return values;
-        
-        var currentQuote = (await defaultResolver.ResolveValues(request with { Timestamps = new List<Time> { now } })).Single().Value;
-        foreach (var t in futureTimestamps)
+       
+        // handle intraday and holidays
+        var timestamp = now;
+        if (!assetPair.SupportsIntraday || !now.IsWorkingDay(assetPair.HolidayCalendar))
+            timestamp = timestamp.PreviousWorkingDay(assetPair.HolidayCalendar).CloseOfDay(); 
+
+        var currentQuote = (await defaultResolver.ResolveValues(request with { Timestamps = new List<Time> { timestamp } })).Single().Value;
+        foreach (var rule in rules)
         {
-            foreach (var rule in rules)
-            {
-                values[t] = rule.Apply(request, currentQuote);
-            }
+            var ruleValues = rule.Apply(request with { Timestamps = futureTimestamps, Now = timestamp }, currentQuote);
+            foreach ( var t in futureTimestamps)
+                values[t] = ruleValues[t];
         }
 
         return values;

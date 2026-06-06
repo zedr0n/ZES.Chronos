@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using ZES.Interfaces.Clocks;
 
 namespace Chronos.Core;
 
@@ -15,7 +17,8 @@ public class FutureQuoteRuleFlat() : IFutureQuoteRule
     public bool AppliesTo(QuoteDataRequest request) => true;
 
     /// <inheritdoc/>
-    public double Apply(QuoteDataRequest request, double currentQuote) => currentQuote;
+    public IReadOnlyDictionary<Time, double> Apply(QuoteDataRequest request, double currentQuote) 
+        => request.Timestamps.ToDictionary(t => t, t => currentQuote);
 
     /// <inheritdoc/>
     public Dictionary<string, object> ToDictionary() => new();

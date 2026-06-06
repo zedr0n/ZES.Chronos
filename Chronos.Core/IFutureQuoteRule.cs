@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using ZES.Interfaces.Clocks;
 
 namespace Chronos.Core;
 
@@ -27,7 +28,7 @@ public interface IFutureQuoteRule
     /// <param name="request">The data request containing information about the asset, timestamps, and other parameters.</param>
     /// <param name="currentQuote">The current quote value to which the rule will be applied.</param>
     /// <returns>The resulting quote value after applying the rule.</returns>
-    public double Apply(QuoteDataRequest request, double currentQuote);
+    public IReadOnlyDictionary<Time, double> Apply(QuoteDataRequest request, double currentQuote);
 
     /// <summary>
     /// Converts the future quote rule into a dictionary representation of its parameters.

@@ -897,6 +897,8 @@ namespace Chronos.Tests
         [Fact]
         public async Task CanGetFallbackHistoricalQuotes()
         {
+            var useBatching = Configuration.UseBatching;
+            Configuration.UseBatching = false;
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var log = container.GetInstance<ILog>();
@@ -997,6 +999,7 @@ namespace Chronos.Tests
             Assert.Equal(9.797, quote.Quantity.Amount, 6);
             Assert.Equal(9.797, quote.HistoricalResults[validHistoricalDate].Quantity.Amount, 6);
             Assert.Equal(9.811, quote.HistoricalResults[invalidHistoricalDate].Quantity.Amount, 6);
+            Configuration.UseBatching = useBatching;
         }
     }
 }

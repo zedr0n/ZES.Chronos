@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using ZES.Infrastructure.Utils;
+using ZES.Interfaces.Branching;
 using ZES.Interfaces.Clocks;
 using ZES.Interfaces.Domain;
 using ZES.Interfaces.EventStore;
@@ -18,6 +19,7 @@ public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<U
     private readonly IQuoteDataResolver _quoteDataResolver;
     private readonly ICommandHandler<AddQuote> _handler;
     private readonly IClock _clock;
+    private readonly ITimeline _timeline;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateQuoteHandler"/> class.
@@ -36,13 +38,15 @@ public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<U
     IEsRepository<IAggregate> repository,
     IQuoteDataResolver quoteDataResolver,
     ICommandHandler<AddQuote> handler,
-    IClock clock)
+    IClock clock,
+    ITimeline timeline)
     : base(repository)
     {
       _repository = repository;
       _quoteDataResolver = quoteDataResolver;
       _handler = handler;
       _clock = clock;
+      _timeline = timeline;
     }
 
     /// <inheritdoc/>
@@ -121,7 +125,7 @@ public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<U
           timestamps.AddRange(additionalTimestamps);
         timestamps.Add(timestamp);
 
-        var request = new QuoteDataRequest(assetPair, timestamps, ticker, assetPair.Url, command.EnforceCache, command.UseBatching);
+        var request = new QuoteDataRequest(assetPair, _timeline.Now, timestamps, ticker, assetPair.Url, command.EnforceCache, command.UseBatching);
         var values = await _quoteDataResolver.ResolveValues(request);
         foreach (var (t, value) in values.OrderBy(x => x.Key))
           await AddQuote(command, t, value);
