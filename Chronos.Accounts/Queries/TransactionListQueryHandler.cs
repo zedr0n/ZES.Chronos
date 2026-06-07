@@ -8,7 +8,7 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries;
 
-public class TransactionListQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoQueryHandler)
+public class TransactionListQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline, IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoQueryHandler)
     : DefaultSingleQueryHandler<TransactionListQuery, TransactionList, TransactionListState>(manager, activeTimeline)
 {
     protected override async Task<TransactionList> Handle(IProjectionState<TransactionListState> projection, TransactionListQuery query)

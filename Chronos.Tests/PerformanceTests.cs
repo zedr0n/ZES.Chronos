@@ -38,7 +38,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             var graph = container.GetInstance<IGraph>();
             var log = container.GetInstance<ILog>();
             

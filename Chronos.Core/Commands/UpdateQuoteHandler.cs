@@ -19,7 +19,7 @@ public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<U
     private readonly IQuoteDataResolver _quoteDataResolver;
     private readonly ICommandHandler<AddQuote> _handler;
     private readonly IClock _clock;
-    private readonly ITimeline _timeline;
+    private readonly IActiveTimeline _timeline;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UpdateQuoteHandler"/> class.
@@ -30,6 +30,7 @@ public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<U
     /// <param name="quoteDataResolver">Resolves quote data required for the quote update process.</param>
     /// <param name="handler">Handles the `AddQuote` command to add new quotes as part of the update operation.</param>
     /// <param name="clock">Provides time-related operations necessary for processing quote updates.</param>
+    /// <param name="timeline">Manages the active timeline for quote updates, ensuring consistency and preventing duplicate updates.</param>
     /// <remarks>
     /// Ensures the proper processing and validation of quote updates, preventing duplicate updates for the same date
     /// and distinguishing between intraday and non-intraday updates.
@@ -39,7 +40,7 @@ public class UpdateQuoteHandler : ZES.Infrastructure.Domain.CommandHandlerBase<U
     IQuoteDataResolver quoteDataResolver,
     ICommandHandler<AddQuote> handler,
     IClock clock,
-    ITimeline timeline)
+    IActiveTimeline timeline)
     : base(repository)
     {
       _repository = repository;

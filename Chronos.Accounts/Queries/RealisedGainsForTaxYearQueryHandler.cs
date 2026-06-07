@@ -11,7 +11,7 @@ using ZES.Interfaces.Domain;
 namespace Chronos.Accounts.Queries;
 
 [Transient]
-public class RealisedGainsForTaxYearQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler)
+public class RealisedGainsForTaxYearQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline, IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler)
     : DefaultQueryHandler<RealisedGainsForTaxYearQuery, RealisedGainsForTaxYear, NullState>(manager, activeTimeline)
 {
     // do not read any streams for the query itself

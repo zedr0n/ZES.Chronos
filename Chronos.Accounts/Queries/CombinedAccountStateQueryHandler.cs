@@ -10,7 +10,7 @@ using ZES.Interfaces.Domain;
 namespace Chronos.Accounts.Queries;
 
 [Transient]
-public class CombinedAccountStateQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AccountStateQuery, AccountState> accountStatsStateHandler)
+public class CombinedAccountStateQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline, IQueryHandler<AccountStateQuery, AccountState> accountStatsStateHandler)
     : DefaultQueryHandler<CombinedAccountStateQuery, AccountState, NullState>(manager, activeTimeline)
 {
     protected override Task<AccountState> Handle(CombinedAccountStateQuery query)

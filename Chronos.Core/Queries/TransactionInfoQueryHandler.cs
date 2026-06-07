@@ -23,7 +23,7 @@ namespace Chronos.Core.Queries
         /// <param name="activeTimeline">Active timeline</param>
         /// <param name="handler">Asset price handler</param>
         /// <param name="log">Log service</param>
-        public TransactionInfoQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<AssetQuoteQuery, AssetQuote> handler, ILog log)
+        public TransactionInfoQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline, IQueryHandler<AssetQuoteQuery, AssetQuote> handler, ILog log)
             : base(manager, activeTimeline)
         {
             _handler = handler;

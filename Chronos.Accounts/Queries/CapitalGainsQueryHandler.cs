@@ -16,7 +16,7 @@ namespace Chronos.Accounts.Queries;
 [Transient]
 public class CapitalGainsQueryHandler(
     IProjectionManager manager,
-    ITimeline activeTimeline,
+    IActiveTimeline activeTimeline,
     IQueryHandler<AssetQuoteQuery, AssetQuote> assetQuoteHandler,
     IQueryHandler<CombinedAccountStateQuery, AccountState> accountStateHandler,
     IQueryHandler<AssetLedgerQuery, AssetLedger> ledgerHandler,

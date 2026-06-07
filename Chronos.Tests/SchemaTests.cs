@@ -80,7 +80,7 @@ namespace Chronos.Tests
             
             var schemaProvider = container.GetInstance<ISchemaProvider>();
             var generator = container.GetInstance<IGraphQlGenerator>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             
             var executor = schemaProvider.Build();
             

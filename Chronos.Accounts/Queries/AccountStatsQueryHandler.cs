@@ -24,7 +24,7 @@ namespace Chronos.Accounts.Queries
     [Transient]
     public class AccountStatsQueryHandler : DefaultQueryHandler<AccountStatsQuery, AccountStats, NullState>
     {
-        private readonly ITimeline _timeline;
+        private readonly IActiveTimeline _timeline;
         private readonly IQueryHandler<CombinedAccountStateQuery, AccountState> _accountStateHandler;
         private readonly IQueryHandler<AssetQuoteQuery, AssetQuote> _handler;
         private readonly IQueryHandler<TransactionInfoQuery, TransactionInfo> _transactionInfoHandler;
@@ -41,7 +41,7 @@ namespace Chronos.Accounts.Queries
         /// <remarks>
         /// This implementation processes the query by interacting with projection states and related handlers.
         /// </remarks>
-        public AccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
+        public AccountStatsQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline,
             IQueryHandler<CombinedAccountStateQuery, AccountState> accountStateHandler,
             IQueryHandler<AssetQuoteQuery, AssetQuote> handler,
             IQueryHandler<TransactionInfoQuery, TransactionInfo> transactionInfoHandler,

@@ -10,10 +10,10 @@ namespace Chronos.Core.Queries;
 /// This class extends the <see cref="DefaultSingleQueryHandler{TQuery, TResult}"/> to handle
 /// <see cref="SingleAssetQuoteQuery"/> and return a <see cref="SingleAssetQuote"/>.
 /// </summary>
-public class SingleAssetQuoteQueryHandler(IProjectionManager manager, ITimeline activeTimeline)
+public class SingleAssetQuoteQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline)
     : DefaultSingleQueryHandler<SingleAssetQuoteQuery, SingleAssetQuote>(manager, activeTimeline)
 {
-    private readonly ITimeline _activeTimeline = activeTimeline;
+    private readonly IActiveTimeline _activeTimeline = activeTimeline;
 
     /// <inheritdoc/>
     protected override Task<SingleAssetQuote> Handle(IProjectionState<SingleAssetQuote> projection, SingleAssetQuoteQuery query)

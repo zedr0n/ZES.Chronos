@@ -23,7 +23,7 @@ namespace Chronos.Core.Queries
   [Transient]
   public class AssetQuoteHandler(
     IProjectionManager manager,
-    ITimeline activeTimeline,
+    IActiveTimeline activeTimeline,
     ILog log,
     IBranchManager branchManager,
     IClock clock,

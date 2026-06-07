@@ -10,7 +10,7 @@ using ZES.Interfaces.Domain;
 namespace Chronos.Accounts.Queries;
 
 [Transient]
-public class CombinedAccountStatsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
+public class CombinedAccountStatsQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline,
     IQueryHandler<CombinedAccountStateQuery, AccountState> accountStatsStateHandler,
     IQueryHandler<AccountStatsQuery, AccountStats> accountStatsHandler,
     IQueryHandler<AssetQuoteQuery, AssetQuote> assetQuoteHandler)

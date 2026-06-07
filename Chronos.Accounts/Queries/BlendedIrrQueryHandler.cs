@@ -16,10 +16,10 @@ namespace Chronos.Accounts.Queries;
 [Transient]
 public class BlendedIrrQueryHandler : DefaultQueryHandler<BlendedIrrQuery, BlendedIrr, BlendedIrrState>
 {
-    private readonly ITimeline _activeTimeline;
+    private readonly IActiveTimeline _activeTimeline;
     private readonly IQueryHandler<CombinedAccountStatsQuery, AccountStats> _combinedAccountStatsHandler;
 
-    public BlendedIrrQueryHandler(IProjectionManager manager, ITimeline activeTimeline, 
+    public BlendedIrrQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline, 
         IQueryHandler<CombinedAccountStatsQuery, AccountStats> combinedAccountStatsHandler)
         : base(manager, activeTimeline)
     {

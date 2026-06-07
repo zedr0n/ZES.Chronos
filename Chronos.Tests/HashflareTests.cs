@@ -83,7 +83,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             var graph = container.GetInstance<IGraph>();
 
             var time = timeline.Now;
@@ -114,7 +114,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             var manager = container.GetInstance<IBranchManager>();
             var queue = container.GetInstance<IMessageQueue>();
             
@@ -159,7 +159,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             var manager = container.GetInstance<IBranchManager>();
             
             var time = timeline.Now;

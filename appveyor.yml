@@ -1,5 +1,5 @@
 version: 1.0.{build}
-image: Visual Studio 2022
+image: Visual Studio 2026
 
 dotnet_csproj:
   patch: true
@@ -16,14 +16,7 @@ build:
 after_build:
   #- cmd: pushd ZES && dotnet pack --no-build -o .. && popd
 test_script:
-  - cmd: dotnet test --no-build --filter DebugTests Chronos.Tests\Chronos.Tests.csproj
-  - cmd: dotnet test --no-build --filter CoinTests Chronos.Tests\Chronos.Tests.csproj
-  - cmd: dotnet test --no-build --filter SchemaTests Chronos.Tests\Chronos.Tests.csproj
-  - cmd: dotnet test --no-build --filter AccountTests Chronos.Tests\Chronos.Tests.csproj
-  - cmd: dotnet test --no-build --filter AssetTests Chronos.Tests\Chronos.Tests.csproj
-  - cmd: dotnet test --no-build --filter HashflareTests Chronos.Tests\Chronos.Tests.csproj
-  - cmd: dotnet test --no-build --filter PerformanceTests Chronos.Tests\Chronos.Tests.csproj
-  - cmd: dotnet test --no-build --filter FutureTests Chronos.Tests\Chronos.Tests.csproj
+  - cmd: dotnet test --no-build
 on_failure:
   #- cmd: 7z a SqlTests.zip Chronos.Tests\bin\Debug\netcoreapp2.0\*.db
   #- cmd: appveyor PushArtifact SqlTests.zip
@@ -38,6 +31,3 @@ nuget:
 install:
  - nuget sources add -Name Account -Source https://ci.appveyor.com/nuget/zinnos -UserName %nuget_user% -Password %nuget_password%
  - nuget sources add -Name MyGet -Source https://www.myget.org/F/zinnos-public/api/v3/index.json
- - ps: |
-     Invoke-WebRequest -Uri 'https://dot.net/v1/dotnet-install.ps1' -UseBasicParsing -OutFile "$env:temp\dotnet-install.ps1"
-     & $env:temp\dotnet-install.ps1 -Architecture x64 -Version '10.0.102' -InstallDir "$env:ProgramFiles\dotnet" 

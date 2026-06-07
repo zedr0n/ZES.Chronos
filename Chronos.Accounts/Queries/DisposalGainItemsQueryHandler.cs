@@ -12,7 +12,7 @@ using ZES.Interfaces.Domain;
 namespace Chronos.Accounts.Queries;
 
 [Transient]
-public class DisposalGainItemsQueryHandler(IProjectionManager manager, ITimeline activeTimeline,
+public class DisposalGainItemsQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline,
     IQueryHandler<CapitalGainsQuery, CapitalGains> capitalGainsHandler)
     : DefaultQueryHandler<DisposalGainItemsQuery, DisposalGainItems, NullState>(manager, activeTimeline)
 {

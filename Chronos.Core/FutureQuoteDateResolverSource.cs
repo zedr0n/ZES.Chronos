@@ -52,7 +52,7 @@ public class FutureQuoteDateResolverSource(IClock clock, DefaultQuoteDataResolve
         // handle intraday and holidays
         var timestamp = now;
         if (!assetPair.SupportsIntraday || !now.IsWorkingDay(assetPair.HolidayCalendar))
-            timestamp = timestamp.PreviousWorkingDay(assetPair.HolidayCalendar).CloseOfDay(); 
+            timestamp = timestamp.RollToWorkingDay("UK").CloseOfDay(); 
 
         var currentQuote = (await defaultResolver.ResolveValues(request with { Timestamps = new List<Time> { timestamp } })).Single().Value;
         foreach (var rule in rules)

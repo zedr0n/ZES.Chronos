@@ -5,7 +5,7 @@ using ZES.Interfaces.Domain;
 
 namespace Chronos.Accounts.Queries;
 
-public class AssetLedgerQueryHandler(IProjectionManager manager, ITimeline activeTimeline)
+public class AssetLedgerQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline)
     : DefaultQueryHandler<AssetLedgerQuery, AssetLedger>(manager, activeTimeline)
 {
     protected override async Task<AssetLedger> Handle(AssetLedgerQuery query)

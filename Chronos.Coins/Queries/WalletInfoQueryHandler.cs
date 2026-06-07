@@ -17,7 +17,7 @@ namespace Chronos.Coins.Queries
         /// <param name="manager">Projection manager</param>
         /// <param name="activeTimeline">Active timeline</param>
         /// <param name="handler">Coin info query handler</param>
-        public WalletInfoQueryHandler(IProjectionManager manager, ITimeline activeTimeline, IQueryHandler<CoinInfoQuery, CoinInfo> handler) 
+        public WalletInfoQueryHandler(IProjectionManager manager, IActiveTimeline activeTimeline, IQueryHandler<CoinInfoQuery, CoinInfo> handler) 
             : base(manager, activeTimeline)
         {
             _handler = handler;

@@ -174,7 +174,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
           
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
@@ -200,7 +200,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
             
@@ -1690,7 +1690,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
             var webSearchApi = webApiProvider.GetSearchApi();
@@ -1833,7 +1833,7 @@ namespace Chronos.Tests
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
             var repository = container.GetInstance<IEsRepository<IAggregate>>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
           
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
@@ -1864,7 +1864,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             var manager = container.GetInstance<IBranchManager>();
 
             var connector = container.GetInstance<IJSonConnector>();

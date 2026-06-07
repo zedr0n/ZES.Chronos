@@ -73,7 +73,7 @@ namespace Chronos.Tests
         {
             var container = CreateContainer();
             var bus = container.GetInstance<IBus>();
-            var timeline = container.GetInstance<ITimeline>();
+            var timeline = container.GetInstance<IActiveTimeline>();
             
             var connector = container.GetInstance<IJSonConnector>();
             var webApiProvider = container.GetInstance<IWebApiProvider>();
