@@ -198,7 +198,8 @@ public class FutureTests : ChronosTest
         await bus.Command(new TransactAsset("Account", new Quantity(100, asset), assetQuote.Quantity * 100));
 
         var stats = await bus.QueryAsync(new AccountStatsQuery("Account", ccy) { UpdateQuotes = true });
-        var futureQuote = assetQuote.Quantity.Amount * Math.Pow(1 + rate, (timeline.Now - now.RollToWorkingDay("UK").CloseOfDay()).TotalDays / 365);
+        var from = now;
+        var futureQuote = assetQuote.Quantity.Amount * Math.Pow(1 + rate, Math.Round((timeline.Now - from).TotalDays,0) / 365);
         Assert.Equal(100 * (futureQuote - assetQuote.Quantity.Amount), stats.Balance.Amount, 6);
         Assert.Single(stats.Positions);
         Assert.Equal(asset, stats.Positions[0].Denominator);

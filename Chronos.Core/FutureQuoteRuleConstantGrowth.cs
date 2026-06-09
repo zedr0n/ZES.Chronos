@@ -21,7 +21,7 @@ public class FutureQuoteRuleConstantGrowth(double rate) : IFutureQuoteRule
     /// <inheritdoc/>
     public IReadOnlyDictionary<Time, double> Apply(QuoteDataRequest request, double currentQuote)
     {
-        return request.Timestamps.ToDictionary(t => t, t => currentQuote * Math.Pow(1 + rate, (t - request.Now).TotalDays / 365));
+        return request.Timestamps.ToDictionary(t => t, t => currentQuote * Math.Pow(1 + rate, Math.Round((t - request.Now).TotalDays, 0) / 365));
     }
 
     /// <inheritdoc/>
