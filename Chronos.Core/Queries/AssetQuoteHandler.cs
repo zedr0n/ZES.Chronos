@@ -254,9 +254,36 @@ namespace Chronos.Core.Queries
       if (invalidResults.Count == 0)
         return new SingleAssetQuote(result.Price, timestamp.ToInstant()) { HistoricalResults = historicalResults }; 
      
-      log.Warn($"Stale pricing data found for {fordom} : {string.Join(", ", invalidResults)}");      
+      log.Warn($"Stale pricing data found for {fordom} : {string.Join(", ", invalidResults)}");
       foreach (var t in invalidResults)
-        historicalResults[t] = new SingleAssetQuote(0.0, t.ToInstant()); 
+      {
+        // try to find the latest stale quote
+        if (useStaleQuotes)
+        {
+          var latestHistoricalTimestamp =  historicalResults.Keys.OrderByDescending(x => x).FirstOrDefault(x => x <= t && historicalResults[x] != null);
+          var latestAvailableTimestamp = assetPairInfo.QuoteDates.Select(d => d.ToTime()).OrderByDescending(x => x).FirstOrDefault(x => x <= t);
+          
+          var latestHistoricalQuote = latestHistoricalTimestamp != null ? historicalResults[latestHistoricalTimestamp] : null;
+          var latestAvailableQuote = latestAvailableTimestamp != null ?  await handler.Handle(new SingleAssetQuoteQuery(fordom)
+          {
+            Timeline = query.Timeline,
+            Timestamp = latestAvailableTimestamp,
+          }) : null;
+
+          var quotePrice = 0.0;
+          if (latestHistoricalQuote != null && latestAvailableQuote != null)
+            quotePrice = latestHistoricalTimestamp > latestAvailableTimestamp ? latestHistoricalQuote.Price : latestAvailableQuote.Price;
+          else if (latestHistoricalQuote != null)
+            quotePrice = latestHistoricalQuote.Price;
+          else if (latestAvailableQuote != null)
+            quotePrice = latestAvailableQuote.Price;
+          
+          historicalResults[t] = new SingleAssetQuote(quotePrice, t.ToInstant());
+        }
+        else
+          historicalResults[t] = new SingleAssetQuote(0.0, t.ToInstant());
+      }
+
       return new SingleAssetQuote(result.IsValid(timestamp.ToInstant(), intraday) ? result.Price : 0.0, timestamp.ToInstant()) { HistoricalResults = historicalResults };
     }   
     

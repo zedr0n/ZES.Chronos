@@ -1,7 +1,7 @@
 ﻿namespace Chronos.Accounts
 {
     /// <summary>
-    /// Account type enum
+    /// Gets the account type representing a pension account.
     /// </summary>
     public enum AccountType
     {
@@ -14,5 +14,10 @@
         /// Trading account ( stocks, crypto, etc... ) 
         /// </summary>
         Trading,
+
+        /// <summary>
+        /// Gets the account type representing a pension account.
+        /// </summary>
+        Pension
     }
 }
